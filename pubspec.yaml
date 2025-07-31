@@ -1,0 +1,50 @@
+name: agronexus
+description: "A new Flutter project."
+publish_to: 'none' # Remove this line if you wish to publish to pub.dev
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.6.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+  go_router: ^14.8.0
+  dio: ^5.8.0+1
+  get_it: ^8.0.3
+  equatable: ^2.0.7
+  dartz: ^0.10.1
+  bloc: ^9.0.0
+  flutter_bloc: ^9.0.0
+  shared_preferences: ^2.5.2
+  google_fonts: ^6.2.1
+  image_picker: ^1.1.2
+  internet_connection_checker_plus: ^2.7.0
+  font_awesome_flutter: ^10.8.0
+  flutter_expanded_tile: ^0.4.0
+  mask_text_input_formatter: ^2.9.0
+  url_launcher: ^6.3.1
+  intl: ^0.20.2
+  date_field: ^6.0.3+1
+  geolocator: ^13.0.4
+  flutter_animate: ^4.1.1+1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+  flutter_launcher_icons: ^0.14.3
+
+
+flutter_launcher_icons:
+  android: "launcher_icon"
+  ios: true
+  image_path: "assets/logo.png"
+  min_sdk_android: 21
+
+flutter:
+  assets:
+    - assets/logo.png
+    - assets/agro_nexus.png
+
+  uses-material-design: true
