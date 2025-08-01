@@ -3,6 +3,7 @@ import 'package:agronexus/presentation/home/widgets/propriedade_card.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:go_router/go_router.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -87,10 +88,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     icon: Icons.favorite,
                     color: Colors.pink,
                     onTap: () {
-                      // TODO: Navegar para tela de manejo reprodutivo
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Manejo reprodutivo em desenvolvimento')),
-                      );
+                      context.go('/manejo-reprodutivo');
                     },
                   ),
                 ],
