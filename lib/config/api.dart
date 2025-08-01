@@ -1,5 +1,8 @@
 class API {
-  static const String baseUrl = 'http://localhost:8000/';
+  static const String baseUrl = 'http://10.0.2.2:8000/'; //Android Emulator
+  // static const String baseUrl = 'http://localhost:8000/'; // Localhost
+  // static const String baseUrl = 'http://your-ip-address:8000/'; // Localhost
+  // static const String baseUrl = 'https://api.example.com/'; // Production URL
 
   // AUTH
   static const String login = 'api/auth/login/';
@@ -21,16 +24,12 @@ class API {
 
   static const String notification = 'api/v1/notifications/';
   static const String notificationDeleteAll = 'api/v1/notifications/delete-all/';
-  static const String notificationMarkAllAsRead =
-      'api/v1/notifications/mark-all-as-read/';
-  static const String notificationMarkAllAsUnread =
-      'api/v1/notifications/mark-all-as-unread/';
+  static const String notificationMarkAllAsRead = 'api/v1/notifications/mark-all-as-read/';
+  static const String notificationMarkAllAsUnread = 'api/v1/notifications/mark-all-as-unread/';
   static const String notificationUnreadCount = 'api/v1/notifications/unread-count/';
   static String notificationById(String id) => 'api/v1/notifications/$id/';
-  static String notificationMarkAsRead(String id) =>
-      'api/v1/notifications/$id/mark-as-read/';
-  static String notificationMarkAsUnread(String id) =>
-      'api/v1/notifications/$id/mark-as-unread/';
+  static String notificationMarkAsRead(String id) => 'api/v1/notifications/$id/mark-as-read/';
+  static String notificationMarkAsUnread(String id) => 'api/v1/notifications/$id/mark-as-unread/';
 
   static const String propriedades = 'api/v1/propriedades/';
   static String propriedadeById(String id) => 'api/v1/propriedades/$id/';
@@ -40,6 +39,5 @@ class API {
   static const String usuariosMe = 'api/v1/usuarios/me/';
   static const String usuariosPassword = 'api/v1/usuarios/password/';
   static const String usuariosPasswordReset = 'api/v1/usuarios/password-reset/';
-  static const String usuariosPasswordResetConfirm =
-      'api/v1/usuarios/password-reset-confirm/';
+  static const String usuariosPasswordResetConfirm = 'api/v1/usuarios/password-reset-confirm/';
 }
