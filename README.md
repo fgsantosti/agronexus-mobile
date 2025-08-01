@@ -259,8 +259,8 @@ dart format .
 Para suporte técnico ou dúvidas:
 
 - 📧 **Email**: suporte@agronexus.com.br
-- 📱 **WhatsApp**: (11) 99999-9999
-- 🌐 **Site**: https://agronexus.com.br
+- 📱 **WhatsApp**: (89) 9428-3418
+- 🌐 **Site**: https://agronexus.app
 - 📋 **Issues**: https://github.com/seu-usuario/agronexus-mobile/issues
 
 ## 📄 Licença
