@@ -33,24 +33,6 @@ class _HomeScreenState extends State<HomeScreen> {
           // Dashboard com dados reais
           BlocBuilder<PropriedadeBloC, PropriedadeState>(
             builder: (context, state) {
-              int totalPropriedades = 0;
-              int totalAnimais = 0;
-              int totalLotes = 0;
-              int totalAreas = 0;
-              double totalAreaHa = 0;
-
-              if (state is PropriedadeListLoaded) {
-                totalPropriedades = state.entities.length;
-                totalAnimais = state.entities.fold(0, (sum, prop) => sum + prop.totalAnimais);
-                totalLotes = state.entities.fold(0, (sum, prop) => sum + prop.totalLotes);
-                totalAreas = state.entities.fold(0, (sum, prop) => sum + prop.totalAreas);
-                totalAreaHa = state.entities.fold(0.0, (sum, prop) {
-                  // Converte string para double
-                  double area = double.tryParse(prop.areaTotalHa) ?? 0.0;
-                  return sum + area;
-                });
-              }
-
               return GridView.count(
                 crossAxisCount: 2,
                 childAspectRatio: 1.2,
@@ -60,32 +42,56 @@ class _HomeScreenState extends State<HomeScreen> {
                 physics: NeverScrollableScrollPhysics(),
                 children: [
                   _buildDashboardCard(
-                    title: 'Propriedades',
-                    value: totalPropriedades.toString(),
-                    subtitle: '${totalAreaHa.toStringAsFixed(0)} ha total',
-                    icon: Icons.home,
+                    title: 'Calendário Inteligente',
+                    value: 'Hoje',
+                    subtitle: 'Próximas atividades',
+                    icon: Icons.calendar_today,
                     color: Colors.green,
+                    onTap: () {
+                      // TODO: Navegar para tela de calendário
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Calendário em desenvolvimento')),
+                      );
+                    },
                   ),
                   _buildDashboardCard(
-                    title: 'Animais',
-                    value: totalAnimais.toString(),
-                    subtitle: 'Total cadastrado',
-                    icon: Icons.pets,
-                    color: Colors.brown,
+                    title: 'Receitas/Despesas',
+                    value: 'Finanças',
+                    subtitle: 'Controle financeiro',
+                    icon: Icons.monetization_on,
+                    color: Colors.amber,
+                    onTap: () {
+                      // TODO: Navegar para tela de finanças
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Finanças em desenvolvimento')),
+                      );
+                    },
                   ),
                   _buildDashboardCard(
-                    title: 'Lotes',
-                    value: totalLotes.toString(),
-                    subtitle: 'Em todas propriedades',
-                    icon: Icons.grid_view,
-                    color: Colors.blue,
+                    title: 'Manejo Sanitário',
+                    value: 'Saúde',
+                    subtitle: 'Controle veterinário',
+                    icon: Icons.medical_services,
+                    color: Colors.red,
+                    onTap: () {
+                      // TODO: Navegar para tela de manejo sanitário
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Manejo sanitário em desenvolvimento')),
+                      );
+                    },
                   ),
                   _buildDashboardCard(
-                    title: 'Áreas',
-                    value: totalAreas.toString(),
-                    subtitle: 'Total de áreas',
-                    icon: Icons.crop_landscape,
-                    color: Colors.orange,
+                    title: 'Manejo Reprodutivo',
+                    value: 'Reprodução',
+                    subtitle: 'Controle reprodutivo',
+                    icon: Icons.favorite,
+                    color: Colors.pink,
+                    onTap: () {
+                      // TODO: Navegar para tela de manejo reprodutivo
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Manejo reprodutivo em desenvolvimento')),
+                      );
+                    },
                   ),
                 ],
               );
@@ -187,9 +193,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                       )
                     : Column(
-                        children: propriedades
-                            .map((e) => PropriedadeCard(propriedade: e))
-                            .toList(),
+                        children: propriedades.map((e) => PropriedadeCard(propriedade: e)).toList(),
                       );
               }
               return Card(
@@ -211,53 +215,58 @@ class _HomeScreenState extends State<HomeScreen> {
     String? subtitle,
     required IconData icon,
     required Color color,
+    VoidCallback? onTap,
   }) {
     return Card(
       elevation: 4,
-      child: Container(
-        padding: EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(8),
-          gradient: LinearGradient(
-            colors: [color.withOpacity(0.1), color.withOpacity(0.05)],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(8),
+        child: Container(
+          padding: EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(8),
+            gradient: LinearGradient(
+              colors: [color.withOpacity(0.1), color.withOpacity(0.05)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
           ),
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, color: color, size: 32),
-            SizedBox(height: 8),
-            Text(
-              value,
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-                color: color,
-              ),
-            ),
-            Text(
-              title,
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
-                color: Colors.grey[700],
-              ),
-              textAlign: TextAlign.center,
-            ),
-            if (subtitle != null) ...[
-              SizedBox(height: 4),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(icon, color: color, size: 32),
+              SizedBox(height: 8),
               Text(
-                subtitle,
+                value,
                 style: TextStyle(
-                  fontSize: 12,
-                  color: Colors.grey[600],
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: color,
+                ),
+              ),
+              Text(
+                title,
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                  color: Colors.grey[700],
                 ),
                 textAlign: TextAlign.center,
               ),
+              if (subtitle != null) ...[
+                SizedBox(height: 4),
+                Text(
+                  subtitle,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.grey[600],
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ],
             ],
-          ],
+          ),
         ),
       ),
     );
