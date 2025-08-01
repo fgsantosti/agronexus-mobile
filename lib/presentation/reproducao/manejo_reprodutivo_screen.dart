@@ -1,0 +1,221 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:agronexus/presentation/bloc/reproducao/reproducao_bloc.dart';
+import 'package:agronexus/presentation/bloc/reproducao/reproducao_event.dart';
+import 'package:agronexus/presentation/bloc/reproducao/reproducao_state.dart';
+import 'package:agronexus/presentation/reproducao/inseminacao_screen.dart';
+import 'package:agronexus/presentation/reproducao/diagnostico_gestacao_screen.dart';
+import 'package:agronexus/presentation/reproducao/parto_screen.dart';
+import 'package:agronexus/presentation/reproducao/estacao_monta_screen.dart';
+import 'package:agronexus/presentation/reproducao/protocolo_iatf_screen.dart';
+import 'package:agronexus/presentation/reproducao/relatorios_screen.dart';
+
+class ManejoReprodutivoScreen extends StatefulWidget {
+  const ManejoReprodutivoScreen({super.key});
+
+  @override
+  State<ManejoReprodutivoScreen> createState() => _ManejoReprodutivoScreenState();
+}
+
+class _ManejoReprodutivoScreenState extends State<ManejoReprodutivoScreen> with TickerProviderStateMixin {
+  late TabController _tabController;
+
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: 6, vsync: this);
+
+    // Carregar resumo ao inicializar
+    context.read<ReproducaoBloc>().add(LoadResumoReproducaoEvent());
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Manejo Reprodutivo'),
+        backgroundColor: Colors.pink.shade400,
+        foregroundColor: Colors.white,
+        elevation: 0,
+        bottom: TabBar(
+          controller: _tabController,
+          isScrollable: true,
+          indicatorColor: Colors.white,
+          labelColor: Colors.white,
+          unselectedLabelColor: Colors.white70,
+          labelStyle: const TextStyle(fontWeight: FontWeight.bold),
+          tabs: const [
+            Tab(icon: Icon(Icons.favorite), text: 'Inseminações'),
+            Tab(icon: Icon(Icons.medical_services), text: 'Diagnósticos'),
+            Tab(icon: Icon(Icons.child_care), text: 'Partos'),
+            Tab(icon: Icon(Icons.calendar_today), text: 'Est. Monta'),
+            Tab(icon: Icon(Icons.science), text: 'IATF'),
+            Tab(icon: Icon(Icons.assessment), text: 'Relatórios'),
+          ],
+        ),
+      ),
+      body: Column(
+        children: [
+          // Card com resumo geral
+          _buildResumoCard(),
+          // Conteúdo das abas
+          Expanded(
+            child: TabBarView(
+              controller: _tabController,
+              children: [
+                InseminacaoScreen(),
+                DiagnosticoGestacaoScreen(),
+                PartoScreen(),
+                EstacaoMontaScreen(),
+                ProtocoloIATFScreen(),
+                RelatoriosScreen(),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildResumoCard() {
+    return BlocBuilder<ReproducaoBloc, ReproducaoState>(
+      builder: (context, state) {
+        if (state is ResumoReproducaoLoaded) {
+          return Container(
+            margin: const EdgeInsets.all(16),
+            child: Card(
+              elevation: 4,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(Icons.analytics, color: Colors.pink.shade400),
+                        const SizedBox(width: 8),
+                        const Text(
+                          'Resumo do Ano',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const Spacer(),
+                        IconButton(
+                          icon: const Icon(Icons.refresh),
+                          onPressed: () {
+                            context.read<ReproducaoBloc>().add(LoadResumoReproducaoEvent());
+                          },
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _buildStatCard(
+                            'Inseminações',
+                            state.resumo['inseminacoes']?.toString() ?? '0',
+                            Icons.favorite,
+                            Colors.red,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: _buildStatCard(
+                            'Prenhes',
+                            state.resumo['diagnosticos_positivos']?.toString() ?? '0',
+                            Icons.medical_services,
+                            Colors.orange,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: _buildStatCard(
+                            'Partos',
+                            state.resumo['partos_vivos']?.toString() ?? '0',
+                            Icons.child_care,
+                            Colors.green,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: _buildStatCard(
+                            'Taxa Prenhez',
+                            '${state.resumo['taxa_prenhez'] ?? 0}%',
+                            Icons.trending_up,
+                            Colors.blue,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        }
+
+        if (state is ReproducaoLoading) {
+          return Container(
+            margin: const EdgeInsets.all(16),
+            child: const Card(
+              child: Padding(
+                padding: EdgeInsets.all(16),
+                child: Center(
+                  child: CircularProgressIndicator(),
+                ),
+              ),
+            ),
+          );
+        }
+
+        return const SizedBox.shrink();
+      },
+    );
+  }
+
+  Widget _buildStatCard(String title, String value, IconData icon, Color color) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: color.withOpacity(0.3)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Icon(icon, color: color, size: 20),
+          const SizedBox(height: 4),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: color,
+            ),
+          ),
+          Text(
+            title,
+            style: TextStyle(
+              fontSize: 10,
+              color: color,
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
+    );
+  }
+}
