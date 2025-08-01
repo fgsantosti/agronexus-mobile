@@ -1,5 +1,6 @@
 import 'package:agronexus/presentation/bloc/propriedade/propriedade_bloc.dart';
 import 'package:agronexus/presentation/home/widgets/propriedade_card.dart';
+import 'package:agronexus/presentation/reproducao/manejo_reprodutivo_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
@@ -35,7 +36,7 @@ class _HomeScreenState extends State<HomeScreen> {
             builder: (context, state) {
               return GridView.count(
                 crossAxisCount: 2,
-                childAspectRatio: 1.2,
+                childAspectRatio: 1.0,
                 crossAxisSpacing: 10,
                 mainAxisSpacing: 10,
                 shrinkWrap: true,
@@ -48,7 +49,6 @@ class _HomeScreenState extends State<HomeScreen> {
                     icon: Icons.calendar_today,
                     color: Colors.green,
                     onTap: () {
-                      // TODO: Navegar para tela de calendário
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(content: Text('Calendário em desenvolvimento')),
                       );
@@ -61,7 +61,6 @@ class _HomeScreenState extends State<HomeScreen> {
                     icon: Icons.monetization_on,
                     color: Colors.amber,
                     onTap: () {
-                      // TODO: Navegar para tela de finanças
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(content: Text('Finanças em desenvolvimento')),
                       );
@@ -74,7 +73,6 @@ class _HomeScreenState extends State<HomeScreen> {
                     icon: Icons.medical_services,
                     color: Colors.red,
                     onTap: () {
-                      // TODO: Navegar para tela de manejo sanitário
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(content: Text('Manejo sanitário em desenvolvimento')),
                       );
@@ -87,9 +85,11 @@ class _HomeScreenState extends State<HomeScreen> {
                     icon: Icons.favorite,
                     color: Colors.pink,
                     onTap: () {
-                      // TODO: Navegar para tela de manejo reprodutivo
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Manejo reprodutivo em desenvolvimento')),
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => ManejoReprodutivoScreen(),
+                        ),
                       );
                     },
                   ),
@@ -137,6 +137,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   child: Padding(
                     padding: EdgeInsets.all(16),
                     child: Column(
+                      mainAxisSize: MainAxisSize.min,
                       children: [
                         Icon(Icons.error, color: Colors.red, size: 48),
                         SizedBox(height: 8),
@@ -171,6 +172,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         child: Padding(
                           padding: EdgeInsets.all(16),
                           child: Column(
+                            mainAxisSize: MainAxisSize.min,
                             children: [
                               Icon(Icons.home_outlined, size: 48, color: Colors.grey),
                               SizedBox(height: 8),
@@ -193,6 +195,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                       )
                     : Column(
+                        mainAxisSize: MainAxisSize.min,
                         children: propriedades.map((e) => PropriedadeCard(propriedade: e)).toList(),
                       );
               }
@@ -234,35 +237,47 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
             children: [
               Icon(icon, color: color, size: 32),
               SizedBox(height: 8),
-              Text(
-                value,
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: color,
+              Flexible(
+                child: Text(
+                  value,
+                  style: TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    color: color,
+                  ),
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
-              Text(
-                title,
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
-                  color: Colors.grey[700],
+              Flexible(
+                child: Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                    color: Colors.grey[700],
+                  ),
+                  textAlign: TextAlign.center,
+                  overflow: TextOverflow.ellipsis,
+                  maxLines: 2,
                 ),
-                textAlign: TextAlign.center,
               ),
               if (subtitle != null) ...[
                 SizedBox(height: 4),
-                Text(
-                  subtitle,
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.grey[600],
+                Flexible(
+                  child: Text(
+                    subtitle,
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.grey[600],
+                    ),
+                    textAlign: TextAlign.center,
+                    overflow: TextOverflow.ellipsis,
+                    maxLines: 1,
                   ),
-                  textAlign: TextAlign.center,
                 ),
               ],
             ],
