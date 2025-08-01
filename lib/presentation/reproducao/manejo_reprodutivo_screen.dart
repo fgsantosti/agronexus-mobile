@@ -19,6 +19,7 @@ class ManejoReprodutivoScreen extends StatefulWidget {
 
 class _ManejoReprodutivoScreenState extends State<ManejoReprodutivoScreen> with TickerProviderStateMixin {
   late TabController _tabController;
+  Map<String, dynamic>? _resumoData; // Armazenar o resumo localmente
 
   @override
   void initState() {
@@ -84,104 +85,123 @@ class _ManejoReprodutivoScreenState extends State<ManejoReprodutivoScreen> with 
   }
 
   Widget _buildResumoCard() {
-    return BlocBuilder<ReproducaoBloc, ReproducaoState>(
-      builder: (context, state) {
+    return BlocListener<ReproducaoBloc, ReproducaoState>(
+      listener: (context, state) {
+        // Quando o resumo for carregado, armazenar localmente
         if (state is ResumoReproducaoLoaded) {
-          return Container(
-            margin: const EdgeInsets.all(16),
-            child: Card(
-              elevation: 4,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Icon(Icons.analytics, color: Colors.pink.shade400),
-                        const SizedBox(width: 8),
-                        const Text(
-                          'Resumo do Ano',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const Spacer(),
-                        IconButton(
-                          icon: const Icon(Icons.refresh),
-                          onPressed: () {
-                            context.read<ReproducaoBloc>().add(LoadResumoReproducaoEvent());
-                          },
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _buildStatCard(
-                            'Inseminações',
-                            state.resumo['inseminacoes']?.toString() ?? '0',
-                            Icons.favorite,
-                            Colors.red,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: _buildStatCard(
-                            'Prenhes',
-                            state.resumo['diagnosticos_positivos']?.toString() ?? '0',
-                            Icons.medical_services,
-                            Colors.orange,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: _buildStatCard(
-                            'Partos',
-                            state.resumo['partos_vivos']?.toString() ?? '0',
-                            Icons.child_care,
-                            Colors.green,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: _buildStatCard(
-                            'Taxa Prenhez',
-                            '${state.resumo['taxa_prenhez'] ?? 0}%',
-                            Icons.trending_up,
-                            Colors.blue,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          );
+          setState(() {
+            _resumoData = state.resumo;
+          });
         }
-
-        if (state is ReproducaoLoading) {
-          return Container(
-            margin: const EdgeInsets.all(16),
-            child: const Card(
-              child: Padding(
-                padding: EdgeInsets.all(16),
-                child: Center(
-                  child: CircularProgressIndicator(),
-                ),
-              ),
-            ),
-          );
-        }
-
-        return const SizedBox.shrink();
       },
+      child: BlocBuilder<ReproducaoBloc, ReproducaoState>(
+        builder: (context, state) {
+          // Mostrar loading apenas se não temos dados salvos
+          if (state is ReproducaoLoading && _resumoData == null) {
+            return Container(
+              margin: const EdgeInsets.all(16),
+              child: const Card(
+                child: Padding(
+                  padding: EdgeInsets.all(16),
+                  child: Center(
+                    child: CircularProgressIndicator(),
+                  ),
+                ),
+              ),
+            );
+          }
+
+          // Usar dados salvos ou do estado atual
+          Map<String, dynamic>? resumoToShow;
+          if (state is ResumoReproducaoLoaded) {
+            resumoToShow = state.resumo;
+          } else if (_resumoData != null) {
+            resumoToShow = _resumoData;
+          }
+
+          if (resumoToShow != null) {
+            return Container(
+              margin: const EdgeInsets.all(16),
+              child: Card(
+                elevation: 4,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(Icons.analytics, color: Colors.pink.shade400),
+                          const SizedBox(width: 8),
+                          const Text(
+                            'Resumo do Ano',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const Spacer(),
+                          IconButton(
+                            icon: const Icon(Icons.refresh),
+                            onPressed: () {
+                              context.read<ReproducaoBloc>().add(LoadResumoReproducaoEvent());
+                            },
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _buildStatCard(
+                              'Inseminações',
+                              resumoToShow['inseminacoes']?.toString() ?? '0',
+                              Icons.favorite,
+                              Colors.red,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: _buildStatCard(
+                              'Prenhes',
+                              resumoToShow['diagnosticos_positivos']?.toString() ?? '0',
+                              Icons.medical_services,
+                              Colors.orange,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: _buildStatCard(
+                              'Partos',
+                              resumoToShow['partos_vivos']?.toString() ?? '0',
+                              Icons.child_care,
+                              Colors.green,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: _buildStatCard(
+                              'Taxa Prenhez',
+                              '${resumoToShow['taxa_prenhez'] ?? 0}%',
+                              Icons.trending_up,
+                              Colors.blue,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          }
+
+          return const SizedBox.shrink();
+        },
+      ),
     );
   }
 
