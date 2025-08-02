@@ -6,6 +6,7 @@ import 'package:agronexus/presentation/bloc/reproducao/reproducao_event.dart';
 import 'package:agronexus/presentation/bloc/reproducao/reproducao_state.dart';
 import 'package:agronexus/domain/models/reproducao_entity.dart';
 import 'package:agronexus/domain/models/animal_entity.dart';
+import 'package:agronexus/presentation/widgets/animal_search_field.dart';
 import 'package:intl/intl.dart';
 
 class CadastroInseminacaoScreen extends StatefulWidget {
@@ -23,8 +24,6 @@ class _CadastroInseminacaoScreenState extends State<CadastroInseminacaoScreen> {
   final _dataInseminacaoController = TextEditingController();
   final _semenUtilizadoController = TextEditingController();
   final _observacoesController = TextEditingController();
-  final _custoMaterialController = TextEditingController();
-  final _custoPessoalController = TextEditingController();
 
   // Campos selecionados
   AnimalEntity? _animalSelecionado;
@@ -51,8 +50,6 @@ class _CadastroInseminacaoScreenState extends State<CadastroInseminacaoScreen> {
     _dataInseminacaoController.dispose();
     _semenUtilizadoController.dispose();
     _observacoesController.dispose();
-    _custoMaterialController.dispose();
-    _custoPessoalController.dispose();
     super.dispose();
   }
 
@@ -98,8 +95,6 @@ class _CadastroInseminacaoScreenState extends State<CadastroInseminacaoScreen> {
       protocoloIatf: _protocoloSelecionado,
       estacaoMonta: _estacaoSelecionada,
       observacoes: _observacoesController.text.isNotEmpty ? _observacoesController.text : null,
-      custoMaterial: double.tryParse(_custoMaterialController.text),
-      custoPessoal: double.tryParse(_custoPessoalController.text),
     );
 
     context.read<ReproducaoBloc>().add(CreateInseminacaoEvent(inseminacao));
@@ -121,24 +116,26 @@ class _CadastroInseminacaoScreenState extends State<CadastroInseminacaoScreen> {
       ),
       body: BlocListener<ReproducaoBloc, ReproducaoState>(
         listener: (context, state) {
-          print('Estado atual do BLoC: ${state.runtimeType}');
           if (state is OpcoesCadastroInseminacaoLoaded) {
-            print('Opções carregadas: ${state.opcoes}');
             setState(() {
               _opcoes = state.opcoes;
               _isLoading = false;
             });
+
+            // Debug: verificar quantos reprodutores foram carregados
+            print('DEBUG CADASTRO - Reprodutores carregados: ${state.opcoes.reprodutores.length}');
+            for (var reprodutor in state.opcoes.reprodutores) {
+              print('DEBUG CADASTRO - Reprodutor: ${reprodutor.idAnimal} - ${reprodutor.fazendaNome} - Sexo: ${reprodutor.sexo}');
+            }
           } else if (state is InseminacaoCreated) {
             _mostrarSnackbar('Inseminação cadastrada com sucesso!');
             Navigator.of(context).pop(true); // Retorna true para indicar sucesso
           } else if (state is ReproducaoError) {
-            print('Erro no BLoC: ${state.message}');
             _mostrarSnackbar('Erro: ${state.message}');
             setState(() {
               _isLoading = false;
             });
           } else if (state is ReproducaoLoading) {
-            print('Estado de loading...');
             setState(() {
               _isLoading = true;
             });
@@ -169,8 +166,6 @@ class _CadastroInseminacaoScreenState extends State<CadastroInseminacaoScreen> {
                           const SizedBox(height: 16),
                           _buildSemenUtilizado(),
                           const SizedBox(height: 16),
-                          _buildCustosSection(),
-                          const SizedBox(height: 16),
                           _buildObservacoes(),
                           const SizedBox(height: 24),
                           _buildBotaoSalvar(),
@@ -183,26 +178,18 @@ class _CadastroInseminacaoScreenState extends State<CadastroInseminacaoScreen> {
   }
 
   Widget _buildAnimalDropdown() {
-    return DropdownButtonFormField<AnimalEntity>(
-      decoration: const InputDecoration(
-        labelText: 'Animal (Fêmea)*',
-        border: OutlineInputBorder(),
-        prefixIcon: Icon(Icons.pets),
-      ),
-      value: _animalSelecionado,
-      items: _opcoes!.femeas.map((animal) {
-        return DropdownMenuItem(
-          value: animal,
-          child: Text('${animal.idAnimal} - ${animal.fazendaNome}'),
-        );
-      }).toList(),
+    return AnimalSearchField(
+      animais: _opcoes!.femeas,
+      animalSelecionado: _animalSelecionado,
+      labelText: 'Animal (Fêmea)*',
+      apenasFemeas: true,
       onChanged: (animal) {
         setState(() {
           _animalSelecionado = animal;
         });
       },
       validator: (value) {
-        if (value == null) return 'Selecione um animal';
+        if (_animalSelecionado == null) return 'Selecione um animal';
         return null;
       },
     );
@@ -253,25 +240,11 @@ class _CadastroInseminacaoScreenState extends State<CadastroInseminacaoScreen> {
   }
 
   Widget _buildReprodutorDropdown() {
-    return DropdownButtonFormField<AnimalEntity>(
-      decoration: const InputDecoration(
-        labelText: 'Reprodutor (Macho)',
-        border: OutlineInputBorder(),
-        prefixIcon: Icon(Icons.male),
-      ),
-      value: _reprodutorSelecionado,
-      items: [
-        const DropdownMenuItem<AnimalEntity>(
-          value: null,
-          child: Text('Nenhum selecionado'),
-        ),
-        ..._opcoes!.reprodutores.map((reprodutor) {
-          return DropdownMenuItem(
-            value: reprodutor,
-            child: Text('${reprodutor.idAnimal} - ${reprodutor.fazendaNome}'),
-          );
-        }),
-      ],
+    return AnimalSearchField(
+      animais: _opcoes!.reprodutores,
+      animalSelecionado: _reprodutorSelecionado,
+      labelText: 'Reprodutor (Macho)',
+      apenasManhos: true,
       onChanged: (reprodutor) {
         setState(() {
           _reprodutorSelecionado = reprodutor;
@@ -346,54 +319,6 @@ class _CadastroInseminacaoScreenState extends State<CadastroInseminacaoScreen> {
         hintText: 'Ex: Sêmen de Touro Nelore - Lote XYZ123',
       ),
       maxLines: 2,
-    );
-  }
-
-  Widget _buildCustosSection() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Custos',
-          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
-        ),
-        const SizedBox(height: 8),
-        Row(
-          children: [
-            Expanded(
-              child: TextFormField(
-                controller: _custoMaterialController,
-                decoration: const InputDecoration(
-                  labelText: 'Custo Material (R\$)',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.attach_money),
-                ),
-                keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                inputFormatters: [
-                  FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}')),
-                ],
-              ),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: TextFormField(
-                controller: _custoPessoalController,
-                decoration: const InputDecoration(
-                  labelText: 'Custo Pessoal (R\$)',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.person),
-                ),
-                keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                inputFormatters: [
-                  FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}')),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ],
     );
   }
 
