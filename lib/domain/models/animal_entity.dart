@@ -198,15 +198,32 @@ class AnimalEntity extends BaseEntity {
         fazendaNome = '';
 
   AnimalEntity.fromJson(super.json)
-      : idAnimal = json['id_animal'],
-        situacao = json['situacao'],
-        dataNascimento = json['data_nascimento'],
-        sexo = Sexo.fromString(json['sexo']),
-        acaoDestino = AcaoDestino.fromString(json['acao_destino']),
-        status = Status.fromString(json['status']),
-        observacao = json['observacao'],
-        lote = json['lote'],
-        loteNome = json['lote_nome'],
-        fazendaNome = json['fazenda_nome'],
+      : idAnimal = json['id_animal'] ?? json['identificacao_unica'] ?? '',
+        situacao = json['situacao'] ?? json['categoria'] ?? '',
+        dataNascimento = json['data_nascimento'] ?? '',
+        sexo = Sexo.fromString(json['sexo'] ?? 'F'),
+        acaoDestino = AcaoDestino.fromString(json['acao_destino'] ?? 'permanece'),
+        status = Status.fromString(json['status'] == 'ativo' ? 'on' : 'off'),
+        observacao = json['observacao'] ?? '',
+        lote = json['lote'] ?? '',
+        loteNome = json['lote_nome'] ?? '',
+        fazendaNome = json['fazenda_nome'] ?? '',
         super.fromJson();
+
+  // Factory method específico para respostas da API de inseminação
+  factory AnimalEntity.fromInseminacaoJson(Map<String, dynamic> json) {
+    return AnimalEntity(
+      id: json['id'],
+      idAnimal: json['identificacao_unica'] ?? '',
+      situacao: json['categoria'] ?? '',
+      dataNascimento: '',
+      sexo: Sexo.fromString(json['sexo'] ?? 'F'),
+      acaoDestino: AcaoDestino.permanece,
+      status: json['status'] == 'ativo' ? Status.ativo : Status.inativo,
+      observacao: '',
+      lote: '',
+      loteNome: '',
+      fazendaNome: '',
+    );
+  }
 }

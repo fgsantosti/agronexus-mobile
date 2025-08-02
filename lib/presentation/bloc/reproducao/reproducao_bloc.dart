@@ -65,9 +65,13 @@ class ReproducaoBloc extends Bloc<ReproducaoEvent, ReproducaoState> {
   Future<void> _onCreateInseminacao(CreateInseminacaoEvent event, Emitter<ReproducaoState> emit) async {
     emit(ReproducaoLoading());
     try {
+      print('DEBUG BLOC - Criando inseminação...');
       final inseminacao = await _service.createInseminacao(event.inseminacao);
+      print('DEBUG BLOC - Inseminação criada com sucesso: ${inseminacao.id}');
+      print('DEBUG BLOC - Emitindo estado InseminacaoCreated');
       emit(InseminacaoCreated(inseminacao));
     } catch (e) {
+      print('DEBUG BLOC - Erro ao criar inseminação: $e');
       emit(ReproducaoError(e.toString()));
     }
   }

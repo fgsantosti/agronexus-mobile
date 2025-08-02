@@ -211,10 +211,10 @@ class InseminacaoEntity extends BaseEntity {
   factory InseminacaoEntity.fromJson(Map<String, dynamic> json) {
     return InseminacaoEntity(
       id: json['id'],
-      animal: AnimalEntity.fromJson(json['animal']),
+      animal: AnimalEntity.fromInseminacaoJson(json['animal']),
       dataInseminacao: DateTime.parse(json['data_inseminacao']),
       tipo: TipoInseminacao.fromString(json['tipo']),
-      reprodutor: json['reprodutor'] != null ? AnimalEntity.fromJson(json['reprodutor']) : null,
+      reprodutor: json['reprodutor'] != null ? AnimalEntity.fromInseminacaoJson(json['reprodutor']) : null,
       semenUtilizado: json['semen_utilizado'],
       protocoloIatf: json['protocolo_iatf'] != null ? ProtocoloIATFEntity.fromJson(json['protocolo_iatf']) : null,
       estacaoMonta: json['estacao_monta'] != null ? EstacaoMontaEntity.fromJson(json['estacao_monta']) : null,
@@ -356,37 +356,9 @@ class OpcoesCadastroInseminacao {
   });
 
   factory OpcoesCadastroInseminacao.fromJson(Map<String, dynamic> json) {
-    final femeas = (json['femeas'] as List? ?? [])
-        .map((e) => AnimalEntity(
-              id: e['id'],
-              idAnimal: e['identificacao_unica'],
-              situacao: 'ativo',
-              dataNascimento: e['data_nascimento'] ?? DateTime.now().toIso8601String(),
-              sexo: Sexo.fromString(e['sexo'] ?? 'F'),
-              acaoDestino: AcaoDestino.permanece,
-              status: Status.ativo,
-              observacao: '',
-              lote: '',
-              loteNome: '',
-              fazendaNome: e['nome_registro'] ?? 'Animal ${e['identificacao_unica']}',
-            ))
-        .toList();
+    final femeas = (json['femeas'] as List? ?? []).map((e) => AnimalEntity.fromInseminacaoJson(e)).toList();
 
-    final reprodutores = (json['reprodutores'] as List? ?? [])
-        .map((e) => AnimalEntity(
-              id: e['id'],
-              idAnimal: e['identificacao_unica'],
-              situacao: 'ativo',
-              dataNascimento: e['data_nascimento'] ?? DateTime.now().toIso8601String(),
-              sexo: Sexo.fromString(e['sexo'] ?? 'M'),
-              acaoDestino: AcaoDestino.permanece,
-              status: Status.ativo,
-              observacao: '',
-              lote: '',
-              loteNome: '',
-              fazendaNome: e['nome_registro'] ?? 'Animal ${e['identificacao_unica']}',
-            ))
-        .toList();
+    final reprodutores = (json['reprodutores'] as List? ?? []).map((e) => AnimalEntity.fromInseminacaoJson(e)).toList();
 
     return OpcoesCadastroInseminacao(
       femeas: femeas,

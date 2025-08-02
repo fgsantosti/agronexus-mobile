@@ -128,7 +128,9 @@ class _CadastroInseminacaoScreenState extends State<CadastroInseminacaoScreen> {
               print('DEBUG CADASTRO - Reprodutor: ${reprodutor.idAnimal} - ${reprodutor.fazendaNome} - Sexo: ${reprodutor.sexo}');
             }
           } else if (state is InseminacaoCreated) {
+            print('DEBUG CADASTRO - Estado InseminacaoCreated recebido!');
             _mostrarSnackbar('Inseminação cadastrada com sucesso!');
+            print('DEBUG CADASTRO - Chamando Navigator.pop(true)');
             Navigator.of(context).pop(true); // Retorna true para indicar sucesso
           } else if (state is ReproducaoError) {
             _mostrarSnackbar('Erro: ${state.message}');

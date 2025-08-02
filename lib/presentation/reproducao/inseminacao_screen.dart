@@ -329,6 +329,7 @@ class _InseminacaoScreenState extends State<InseminacaoScreen> {
 
   void _navegarParaCadastro() async {
     final bloc = context.read<ReproducaoBloc>();
+    print('DEBUG LISTAGEM - Navegando para cadastro');
     final resultado = await Navigator.of(context).push<bool>(
       MaterialPageRoute(
         builder: (context) => BlocProvider.value(
@@ -338,8 +339,10 @@ class _InseminacaoScreenState extends State<InseminacaoScreen> {
       ),
     );
 
+    print('DEBUG LISTAGEM - Resultado recebido: $resultado');
     // Se o cadastro foi bem-sucedido, recarrega a lista
     if (resultado == true) {
+      print('DEBUG LISTAGEM - Recarregando lista de inseminações');
       _loadInseminacoes();
     }
   }

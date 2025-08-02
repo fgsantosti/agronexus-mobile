@@ -54,13 +54,23 @@ class ReproducaoRepositoryImpl implements ReproducaoRepository {
   @override
   Future<InseminacaoEntity> createInseminacao(InseminacaoEntity inseminacao) async {
     try {
+      print('DEBUG REPOSITORY - Enviando dados para API: ${inseminacao.toJson()}');
       Response response = await httpService.post(
         path: '/api/v1/inseminacoes/',
         data: inseminacao.toJson(),
         isAuth: true,
       );
-      return InseminacaoEntity.fromJson(response.data);
+      print('DEBUG REPOSITORY - Status Code: ${response.statusCode}');
+      print('DEBUG REPOSITORY - Response Data Type: ${response.data.runtimeType}');
+      print('DEBUG REPOSITORY - Response Data Length: ${response.data.toString().length}');
+      print('DEBUG REPOSITORY - Response Data: ${response.data}');
+
+      final inseminacaoEntity = InseminacaoEntity.fromJson(response.data);
+      print('DEBUG REPOSITORY - Parsing bem-sucedido');
+      return inseminacaoEntity;
     } catch (e) {
+      print('DEBUG REPOSITORY - Erro capturado: $e');
+      print('DEBUG REPOSITORY - Erro tipo: ${e.runtimeType}');
       throw await AgroNexusException.fromDioError(e);
     }
   }
