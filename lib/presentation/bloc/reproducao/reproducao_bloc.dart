@@ -12,6 +12,7 @@ class ReproducaoBloc extends Bloc<ReproducaoEvent, ReproducaoState> {
     on<CreateInseminacaoEvent>(_onCreateInseminacao);
     on<UpdateInseminacaoEvent>(_onUpdateInseminacao);
     on<DeleteInseminacaoEvent>(_onDeleteInseminacao);
+    on<LoadOpcoesCadastroInseminacaoEvent>(_onLoadOpcoesCadastroInseminacao);
 
     // Diagnóstico handlers
     on<LoadDiagnosticosGestacaoEvent>(_onLoadDiagnosticosGestacao);
@@ -86,6 +87,16 @@ class ReproducaoBloc extends Bloc<ReproducaoEvent, ReproducaoState> {
     try {
       await _service.deleteInseminacao(event.id);
       emit(InseminacaoDeleted(event.id));
+    } catch (e) {
+      emit(ReproducaoError(e.toString()));
+    }
+  }
+
+  Future<void> _onLoadOpcoesCadastroInseminacao(LoadOpcoesCadastroInseminacaoEvent event, Emitter<ReproducaoState> emit) async {
+    emit(ReproducaoLoading());
+    try {
+      final opcoes = await _service.getOpcoesCadastroInseminacao();
+      emit(OpcoesCadastroInseminacaoLoaded(opcoes));
     } catch (e) {
       emit(ReproducaoError(e.toString()));
     }

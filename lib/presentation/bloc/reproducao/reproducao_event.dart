@@ -255,3 +255,5 @@ class LoadResumoReproducaoEvent extends ReproducaoEvent {}
 class LoadInseminacoesPendenteDiagnosticoEvent extends ReproducaoEvent {}
 
 class LoadGestacoesPendentePartoEvent extends ReproducaoEvent {}
+
+class LoadOpcoesCadastroInseminacaoEvent extends ReproducaoEvent {}

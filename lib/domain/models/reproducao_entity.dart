@@ -194,6 +194,8 @@ class InseminacaoEntity extends BaseEntity {
   final EstacaoMontaEntity? estacaoMonta;
   final String? observacoes;
   final DateTime? dataDiagnosticoPrevista;
+  final double? custoMaterial;
+  final double? custoPessoal;
 
   InseminacaoEntity({
     required this.id,
@@ -206,6 +208,8 @@ class InseminacaoEntity extends BaseEntity {
     this.estacaoMonta,
     this.observacoes,
     this.dataDiagnosticoPrevista,
+    this.custoMaterial,
+    this.custoPessoal,
   });
 
   factory InseminacaoEntity.fromJson(Map<String, dynamic> json) {
@@ -220,20 +224,42 @@ class InseminacaoEntity extends BaseEntity {
       estacaoMonta: json['estacao_monta'] != null ? EstacaoMontaEntity.fromJson(json['estacao_monta']) : null,
       observacoes: json['observacoes'],
       dataDiagnosticoPrevista: json['data_diagnostico_prevista'] != null ? DateTime.parse(json['data_diagnostico_prevista']) : null,
+      custoMaterial: json['custo_material']?.toDouble(),
+      custoPessoal: json['custo_pessoal']?.toDouble(),
     );
   }
 
   Map<String, dynamic> toJson() {
-    return {
-      'animal_id': animal.idAnimal,
+    Map<String, dynamic> json = {
+      'animal_id': animal.id,
       'data_inseminacao': dataInseminacao.toIso8601String().split('T')[0],
       'tipo': tipo.value,
-      'reprodutor_id': reprodutor?.idAnimal,
-      'semen_utilizado': semenUtilizado,
-      'protocolo_iatf_id': protocoloIatf?.id,
-      'estacao_monta_id': estacaoMonta?.id,
-      'observacoes': observacoes,
     };
+
+    // Adiciona campos opcionais apenas se não forem null
+    if (reprodutor != null) {
+      json['reprodutor_id'] = reprodutor!.id;
+    }
+    if (semenUtilizado != null && semenUtilizado!.isNotEmpty) {
+      json['semen_utilizado'] = semenUtilizado;
+    }
+    if (protocoloIatf != null) {
+      json['protocolo_iatf_id'] = protocoloIatf!.id;
+    }
+    if (estacaoMonta != null) {
+      json['estacao_monta_id'] = estacaoMonta!.id;
+    }
+    if (observacoes != null && observacoes!.isNotEmpty) {
+      json['observacoes'] = observacoes;
+    }
+    if (custoMaterial != null) {
+      json['custo_material'] = custoMaterial.toString();
+    }
+    if (custoPessoal != null) {
+      json['custo_pessoal'] = custoPessoal.toString();
+    }
+
+    return json;
   }
 }
 
@@ -323,5 +349,57 @@ class PartoEntity extends BaseEntity {
       'peso_nascimento': pesoNascimento,
       'observacoes': observacoes,
     };
+  }
+}
+
+class OpcoesCadastroInseminacao {
+  final List<AnimalEntity> femeas;
+  final List<AnimalEntity> reprodutores;
+  final List<ProtocoloIATFEntity> protocolosIatf;
+  final List<EstacaoMontaEntity> estacoesMonta;
+  final List<TipoInseminacao> tiposInseminacao;
+
+  OpcoesCadastroInseminacao({
+    required this.femeas,
+    required this.reprodutores,
+    required this.protocolosIatf,
+    required this.estacoesMonta,
+    required this.tiposInseminacao,
+  });
+
+  factory OpcoesCadastroInseminacao.fromJson(Map<String, dynamic> json) {
+    return OpcoesCadastroInseminacao(
+      femeas: (json['femeas'] as List? ?? [])
+          .map((e) => AnimalEntity(
+                id: e['id'],
+                idAnimal: e['identificacao_unica'],
+                situacao: 'ativo',
+                dataNascimento: DateTime.now().toIso8601String(),
+                acaoDestino: AcaoDestino.permanece,
+                status: Status.ativo,
+                observacao: '',
+                lote: '',
+                loteNome: '',
+                fazendaNome: e['nome_registro'] ?? 'Animal ${e['identificacao_unica']}',
+              ))
+          .toList(),
+      reprodutores: (json['reprodutores'] as List? ?? [])
+          .map((e) => AnimalEntity(
+                id: e['id'],
+                idAnimal: e['identificacao_unica'],
+                situacao: 'ativo',
+                dataNascimento: DateTime.now().toIso8601String(),
+                acaoDestino: AcaoDestino.permanece,
+                status: Status.ativo,
+                observacao: '',
+                lote: '',
+                loteNome: '',
+                fazendaNome: e['nome_registro'] ?? 'Animal ${e['identificacao_unica']}',
+              ))
+          .toList(),
+      protocolosIatf: (json['protocolos_iatf'] as List? ?? []).map((e) => ProtocoloIATFEntity.fromJson(e)).toList(),
+      estacoesMonta: (json['estacoes_monta'] as List? ?? []).map((e) => EstacaoMontaEntity.fromJson(e)).toList(),
+      tiposInseminacao: (json['tipos_inseminacao'] as List? ?? []).map((e) => TipoInseminacao.fromString(e['value'])).toList(),
+    );
   }
 }

@@ -252,3 +252,12 @@ class GestacoesPendentePartoLoaded extends ReproducaoState {
   @override
   List<Object> get props => [gestacoes];
 }
+
+class OpcoesCadastroInseminacaoLoaded extends ReproducaoState {
+  final OpcoesCadastroInseminacao opcoes;
+
+  const OpcoesCadastroInseminacaoLoaded(this.opcoes);
+
+  @override
+  List<Object> get props => [opcoes];
+}

@@ -1,5 +1,5 @@
 import 'package:agronexus/domain/models/reproducao_entity.dart';
-import 'package:agronexus/domain/repositories/remote/reproducao/reproducao_repository.dart';
+import 'package:agronexus/domain/repositories/remote/reproducao/reproducao_remote_repository.dart';
 
 class ReproducaoService {
   final ReproducaoRepository _repository;
@@ -35,6 +35,10 @@ class ReproducaoService {
 
   Future<void> deleteInseminacao(String id) async {
     return await _repository.deleteInseminacao(id);
+  }
+
+  Future<OpcoesCadastroInseminacao> getOpcoesCadastroInseminacao() async {
+    return await _repository.getOpcoesCadastroInseminacao();
   }
 
   // Diagnósticos de Gestação

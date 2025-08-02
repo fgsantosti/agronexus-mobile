@@ -1,8 +1,9 @@
 import 'package:agronexus/config/exceptions.dart';
 import 'package:agronexus/config/services/http.dart';
 import 'package:agronexus/domain/models/reproducao_entity.dart';
-import 'package:agronexus/domain/repositories/remote/reproducao/reproducao_repository.dart';
+import 'package:agronexus/domain/repositories/remote/reproducao/reproducao_remote_repository.dart';
 import 'package:dio/dio.dart';
+import 'package:agronexus/config/api.dart';
 
 class ReproducaoRepositoryImpl implements ReproducaoRepository {
   final HttpService httpService;
@@ -25,7 +26,7 @@ class ReproducaoRepositoryImpl implements ReproducaoRepository {
       if (dataFim != null) queryParameters['data_fim'] = dataFim.toIso8601String().split('T')[0];
 
       Response response = await httpService.get(
-        path: '/api/v1/inseminacoes/',
+        path: API.inseminacoes,
         queryParameters: queryParameters,
         isAuth: true,
       );
@@ -85,6 +86,19 @@ class ReproducaoRepositoryImpl implements ReproducaoRepository {
         path: '/api/v1/inseminacoes/$id/',
         isAuth: true,
       );
+    } catch (e) {
+      throw await AgroNexusException.fromDioError(e);
+    }
+  }
+
+  @override
+  Future<OpcoesCadastroInseminacao> getOpcoesCadastroInseminacao() async {
+    try {
+      Response response = await httpService.get(
+        path: API.inseminacoesOpcoes,
+        isAuth: true,
+      );
+      return OpcoesCadastroInseminacao.fromJson(response.data);
     } catch (e) {
       throw await AgroNexusException.fromDioError(e);
     }
