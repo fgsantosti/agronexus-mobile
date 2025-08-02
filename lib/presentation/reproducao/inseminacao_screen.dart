@@ -4,6 +4,7 @@ import 'package:agronexus/presentation/bloc/reproducao/reproducao_bloc.dart';
 import 'package:agronexus/presentation/bloc/reproducao/reproducao_event.dart';
 import 'package:agronexus/presentation/bloc/reproducao/reproducao_state.dart';
 import 'package:agronexus/domain/models/reproducao_entity.dart';
+import 'package:agronexus/presentation/reproducao/cadastro_inseminacao_screen.dart';
 import 'package:intl/intl.dart';
 
 class InseminacaoScreen extends StatefulWidget {
@@ -109,9 +110,7 @@ class _InseminacaoScreenState extends State<InseminacaoScreen> {
       ),
       floatingActionButton: FloatingActionButton(
         backgroundColor: Colors.pink.shade400,
-        onPressed: () {
-          _showAddInseminacaoDialog();
-        },
+        onPressed: () => _navegarParaCadastro(),
         child: const Icon(Icons.add, color: Colors.white),
       ),
     );
@@ -328,19 +327,20 @@ class _InseminacaoScreenState extends State<InseminacaoScreen> {
     );
   }
 
-  void _showAddInseminacaoDialog() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Nova Inseminação'),
-        content: const Text('Funcionalidade em desenvolvimento'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Fechar'),
-          ),
-        ],
+  void _navegarParaCadastro() async {
+    final bloc = context.read<ReproducaoBloc>();
+    final resultado = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        builder: (context) => BlocProvider.value(
+          value: bloc,
+          child: const CadastroInseminacaoScreen(),
+        ),
       ),
     );
+
+    // Se o cadastro foi bem-sucedido, recarrega a lista
+    if (resultado == true) {
+      _loadInseminacoes();
+    }
   }
 }
