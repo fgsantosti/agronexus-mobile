@@ -1,6 +1,7 @@
 import 'package:agronexus/config/inject_dependencies.dart';
 import 'package:agronexus/config/routers/utils.dart';
 import 'package:agronexus/domain/models/fazenda_entity.dart';
+import 'package:agronexus/domain/services/reproducao_service.dart';
 import 'package:agronexus/presentation/bloc/fazenda/fazenda_bloc.dart';
 import 'package:agronexus/presentation/bloc/login/login_bloc.dart';
 import 'package:agronexus/presentation/bloc/propriedade/propriedade_bloc.dart';
@@ -255,7 +256,7 @@ enum AgroNexusRouter {
                 child: MultiBlocProvider(
                   providers: [
                     BlocProvider(
-                      create: (context) => ReproducaoBloc(getIt()),
+                      create: (context) => ReproducaoBloc(getIt<ReproducaoService>()),
                     ),
                   ],
                   child: ManejoReprodutivoScreen(),

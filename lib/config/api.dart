@@ -40,4 +40,17 @@ class API {
   static const String usuariosPassword = 'api/v1/usuarios/password/';
   static const String usuariosPasswordReset = 'api/v1/usuarios/password-reset/';
   static const String usuariosPasswordResetConfirm = 'api/v1/usuarios/password-reset-confirm/';
+
+  // Reproduções
+  static const String inseminacoes = 'api/v1/inseminacoes/';
+  static String inseminacaoById(String id) => 'api/v1/inseminacoes/$id/';
+  static const String diagnosticosGestacao = 'api/v1/diagnosticos-gestacao/';
+  static String diagnosticoGestacaoById(String id) => 'api/v1/diagnosticos-gestacao/$id/';
+  static const String partos = 'api/v1/partos/';
+  static String partoById(String id) => 'api/v1/partos/$id/';
+  static const String estacoesMonta = 'api/v1/estacoes-monta/';
+  static String estacaoMontaById(String id) => 'api/v1/estacoes-monta/$id/';
+  static const String protocolosIATF = 'api/v1/protocolos-iatf/';
+  static String protocoloIATFById(String id) => 'api/v1/protocolos-iatf/$id/';
+  static const String inseminacoesOpcoes = 'api/v1/inseminacoes/opcoes_cadastro/';
 }

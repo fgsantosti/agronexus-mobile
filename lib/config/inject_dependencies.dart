@@ -24,8 +24,8 @@ import 'package:agronexus/domain/repositories/remote/lote/lote_remote_repository
 import 'package:agronexus/domain/repositories/remote/lote/lote_remote_repository_impl.dart';
 import 'package:agronexus/domain/repositories/remote/propriedade/propriedade_remote_repository.dart';
 import 'package:agronexus/domain/repositories/remote/propriedade/propriedade_remote_repository_impl.dart';
-import 'package:agronexus/domain/repositories/remote/reproducao/reproducao_repository.dart';
-import 'package:agronexus/domain/repositories/remote/reproducao/reproducao_repository_impl.dart';
+import 'package:agronexus/domain/repositories/remote/reproducao/reproducao_remote_repository.dart';
+import 'package:agronexus/domain/repositories/remote/reproducao/reproducao_repository_remote_impl.dart';
 import 'package:agronexus/domain/repositories/remote/user/user_remote_repository.dart';
 import 'package:agronexus/domain/repositories/remote/user/user_remote_repository_impl.dart';
 import 'package:agronexus/domain/services/animal_service.dart';
