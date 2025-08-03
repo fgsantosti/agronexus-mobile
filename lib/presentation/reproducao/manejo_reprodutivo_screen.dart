@@ -96,8 +96,8 @@ class _ManejoReprodutivoScreenState extends State<ManejoReprodutivoScreen> with 
       },
       child: BlocBuilder<ReproducaoBloc, ReproducaoState>(
         builder: (context, state) {
-          // Mostrar loading apenas se não temos dados salvos
-          if (state is ReproducaoLoading && _resumoData == null) {
+          // Mostrar loading apenas se não temos dados salvos E é loading do resumo
+          if (state is ResumoReproducaoLoading && _resumoData == null) {
             return Container(
               margin: const EdgeInsets.all(16),
               child: const Card(

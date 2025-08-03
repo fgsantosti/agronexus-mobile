@@ -40,7 +40,7 @@ class _PartoScreenState extends State<PartoScreen> {
         onRefresh: () async => _loadPartos(),
         child: BlocBuilder<ReproducaoBloc, ReproducaoState>(
           builder: (context, state) {
-            if (state is ReproducaoLoading) {
+            if (state is PartosLoading) {
               return const Center(child: CircularProgressIndicator());
             }
 

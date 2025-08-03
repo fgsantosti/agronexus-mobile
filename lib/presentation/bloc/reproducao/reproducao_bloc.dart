@@ -48,7 +48,7 @@ class ReproducaoBloc extends Bloc<ReproducaoEvent, ReproducaoState> {
 
   // Inseminação handlers
   Future<void> _onLoadInseminacoes(LoadInseminacoesEvent event, Emitter<ReproducaoState> emit) async {
-    emit(ReproducaoLoading());
+    emit(InseminacoesLoading());
     try {
       final inseminacoes = await _service.getInseminacoes(
         animalId: event.animalId,
@@ -97,7 +97,7 @@ class ReproducaoBloc extends Bloc<ReproducaoEvent, ReproducaoState> {
   }
 
   Future<void> _onLoadOpcoesCadastroInseminacao(LoadOpcoesCadastroInseminacaoEvent event, Emitter<ReproducaoState> emit) async {
-    emit(ReproducaoLoading());
+    emit(OpcoesCadastroInseminacaoLoading());
     try {
       final opcoes = await _service.getOpcoesCadastroInseminacao();
       emit(OpcoesCadastroInseminacaoLoaded(opcoes));
@@ -108,7 +108,7 @@ class ReproducaoBloc extends Bloc<ReproducaoEvent, ReproducaoState> {
 
   // Diagnóstico handlers
   Future<void> _onLoadDiagnosticosGestacao(LoadDiagnosticosGestacaoEvent event, Emitter<ReproducaoState> emit) async {
-    emit(ReproducaoLoading());
+    emit(DiagnosticosGestacaoLoading());
     try {
       final diagnosticos = await _service.getDiagnosticosGestacao(
         animalId: event.animalId,
@@ -154,7 +154,7 @@ class ReproducaoBloc extends Bloc<ReproducaoEvent, ReproducaoState> {
 
   // Parto handlers
   Future<void> _onLoadPartos(LoadPartosEvent event, Emitter<ReproducaoState> emit) async {
-    emit(ReproducaoLoading());
+    emit(PartosLoading());
     try {
       final partos = await _service.getPartos(
         animalId: event.animalId,
@@ -199,7 +199,7 @@ class ReproducaoBloc extends Bloc<ReproducaoEvent, ReproducaoState> {
 
   // Estação de Monta handlers
   Future<void> _onLoadEstacoesMonta(LoadEstacoesMotaEvent event, Emitter<ReproducaoState> emit) async {
-    emit(ReproducaoLoading());
+    emit(EstacoesMotaLoading());
     try {
       final estacoes = await _service.getEstacoesMonta(ativa: event.ativa);
       emit(EstacoesMotaLoaded(estacoes));
@@ -240,7 +240,7 @@ class ReproducaoBloc extends Bloc<ReproducaoEvent, ReproducaoState> {
 
   // Protocolo IATF handlers
   Future<void> _onLoadProtocolosIATF(LoadProtocolosIATFEvent event, Emitter<ReproducaoState> emit) async {
-    emit(ReproducaoLoading());
+    emit(ProtocolosIATFLoading());
     try {
       final protocolos = await _service.getProtocolosIATF(ativo: event.ativo);
       emit(ProtocolosIATFLoaded(protocolos));
@@ -308,7 +308,7 @@ class ReproducaoBloc extends Bloc<ReproducaoEvent, ReproducaoState> {
   }
 
   Future<void> _onLoadResumoReproducao(LoadResumoReproducaoEvent event, Emitter<ReproducaoState> emit) async {
-    emit(ReproducaoLoading());
+    emit(ResumoReproducaoLoading());
     try {
       final resumo = await _service.getResumoReproducao();
       emit(ResumoReproducaoLoaded(resumo));

@@ -41,7 +41,7 @@ class _InseminacaoScreenState extends State<InseminacaoScreen> {
         onRefresh: () async => _loadInseminacoes(),
         child: BlocBuilder<ReproducaoBloc, ReproducaoState>(
           builder: (context, state) {
-            if (state is ReproducaoLoading) {
+            if (state is InseminacoesLoading) {
               return const Center(child: CircularProgressIndicator());
             }
 

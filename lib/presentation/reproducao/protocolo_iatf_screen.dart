@@ -30,7 +30,7 @@ class _ProtocoloIATFScreenState extends State<ProtocoloIATFScreen> {
         onRefresh: () async => _loadProtocolos(),
         child: BlocBuilder<ReproducaoBloc, ReproducaoState>(
           builder: (context, state) {
-            if (state is ReproducaoLoading) {
+            if (state is ProtocolosIATFLoading) {
               return const Center(child: CircularProgressIndicator());
             }
 

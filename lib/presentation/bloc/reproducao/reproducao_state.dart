@@ -22,6 +22,19 @@ class ReproducaoError extends ReproducaoState {
   List<Object> get props => [message];
 }
 
+// Loading states específicos para evitar conflitos
+class InseminacoesLoading extends ReproducaoState {}
+
+class DiagnosticosGestacaoLoading extends ReproducaoState {}
+
+class PartosLoading extends ReproducaoState {}
+
+class EstacoesMotaLoading extends ReproducaoState {}
+
+class ProtocolosIATFLoading extends ReproducaoState {}
+
+class ResumoReproducaoLoading extends ReproducaoState {}
+
 // Inseminação States
 class InseminacoesLoaded extends ReproducaoState {
   final List<InseminacaoEntity> inseminacoes;
@@ -227,7 +240,7 @@ class EstatisticasReproducaoLoaded extends ReproducaoState {
 }
 
 class ResumoReproducaoLoaded extends ReproducaoState {
-  final Map<String, int> resumo;
+  final Map<String, dynamic> resumo;
 
   const ResumoReproducaoLoaded(this.resumo);
 
@@ -252,6 +265,8 @@ class GestacoesPendentePartoLoaded extends ReproducaoState {
   @override
   List<Object> get props => [gestacoes];
 }
+
+class OpcoesCadastroInseminacaoLoading extends ReproducaoState {}
 
 class OpcoesCadastroInseminacaoLoaded extends ReproducaoState {
   final OpcoesCadastroInseminacao opcoes;

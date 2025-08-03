@@ -40,7 +40,7 @@ class _DiagnosticoGestacaoScreenState extends State<DiagnosticoGestacaoScreen> {
         onRefresh: () async => _loadDiagnosticos(),
         child: BlocBuilder<ReproducaoBloc, ReproducaoState>(
           builder: (context, state) {
-            if (state is ReproducaoLoading) {
+            if (state is DiagnosticosGestacaoLoading) {
               return const Center(child: CircularProgressIndicator());
             }
 

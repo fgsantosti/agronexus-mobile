@@ -466,4 +466,18 @@ class ReproducaoRepositoryImpl implements ReproducaoRepository {
       throw await AgroNexusException.fromDioError(e);
     }
   }
+
+  @override
+  Future<Map<String, dynamic>> getResumoReproducao() async {
+    try {
+      Response response = await httpService.get(
+        path: '/api/v1/inseminacoes/estatisticas_reproducao/',
+        isAuth: true,
+      );
+
+      return response.data;
+    } catch (e) {
+      throw await AgroNexusException.fromDioError(e);
+    }
+  }
 }

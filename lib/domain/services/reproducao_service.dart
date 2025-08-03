@@ -205,22 +205,7 @@ class ReproducaoService {
     }).toList();
   }
 
-  Future<Map<String, int>> getResumoReproducao() async {
-    final now = DateTime.now();
-    final inicioAno = DateTime(now.year, 1, 1);
-
-    final inseminacoes = await getInseminacoes(dataInicio: inicioAno, dataFim: now);
-    final diagnosticos = await getDiagnosticosGestacao(dataInicio: inicioAno, dataFim: now);
-    final partos = await getPartos(dataInicio: inicioAno, dataFim: now);
-
-    final diagnosticosPositivos = diagnosticos.where((d) => d.resultado == ResultadoDiagnostico.positivo).length;
-    final partosVivos = partos.where((p) => p.resultado == ResultadoParto.nascidoVivo).length;
-
-    return {
-      'inseminacoes': inseminacoes.length,
-      'diagnosticos_positivos': diagnosticosPositivos,
-      'partos_vivos': partosVivos,
-      'taxa_prenhez': inseminacoes.isNotEmpty ? ((diagnosticosPositivos / inseminacoes.length) * 100).round() : 0,
-    };
+  Future<Map<String, dynamic>> getResumoReproducao() async {
+    return await _repository.getResumoReproducao();
   }
 }

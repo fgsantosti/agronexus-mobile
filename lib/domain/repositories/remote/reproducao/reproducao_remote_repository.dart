@@ -65,4 +65,6 @@ abstract class ReproducaoRepository {
     DateTime? dataInicio,
     DateTime? dataFim,
   });
+
+  Future<Map<String, dynamic>> getResumoReproducao();
 }

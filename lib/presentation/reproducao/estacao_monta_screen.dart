@@ -33,7 +33,7 @@ class _EstacaoMontaScreenState extends State<EstacaoMontaScreen> {
         onRefresh: () async => _loadEstacoes(),
         child: BlocBuilder<ReproducaoBloc, ReproducaoState>(
           builder: (context, state) {
-            if (state is ReproducaoLoading) {
+            if (state is EstacoesMotaLoading) {
               return const Center(child: CircularProgressIndicator());
             }
 

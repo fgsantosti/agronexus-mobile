@@ -137,7 +137,7 @@ class _CadastroInseminacaoScreenState extends State<CadastroInseminacaoScreen> {
             setState(() {
               _isLoading = false;
             });
-          } else if (state is ReproducaoLoading) {
+          } else if (state is OpcoesCadastroInseminacaoLoading) {
             setState(() {
               _isLoading = true;
             });
