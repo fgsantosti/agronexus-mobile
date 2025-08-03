@@ -16,7 +16,7 @@ class _AnBottomAppBarState extends State<AnBottomAppBar> {
     return BlocBuilder<BottomBarCubit, BottomBarState>(
         builder: (context, state) {
       return Container(
-        height: 80,
+        height: 60,
         padding: const EdgeInsets.symmetric(horizontal: 30),
         decoration: BoxDecoration(
           color: Colors.green[800],

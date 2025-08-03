@@ -42,8 +42,8 @@ class _HomeScreenState extends State<HomeScreen> {
                 physics: NeverScrollableScrollPhysics(),
                 children: [
                   _buildDashboardCard(
-                    title: 'Calendário Inteligente',
-                    value: 'Hoje',
+                    title: 'Inteligente',
+                    value: 'Calendário',
                     subtitle: 'Próximas atividades',
                     icon: Icons.calendar_today,
                     color: Colors.green,

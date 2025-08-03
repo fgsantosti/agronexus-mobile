@@ -70,72 +70,81 @@ class _LoginScreenState extends State<LoginScreen> {
             router.pushReplacement(AgroNexusRouter.home.path);
           }
         },
-        builder: (context, state) => Container(
-          margin: EdgeInsets.all(10),
-          child: Column(
-            children: [
-              Container(
-                padding: EdgeInsets.only(top: 30, bottom: 30),
-                alignment: Alignment.center,
-                child: Image.asset(_assetBanner, height: 150),
+        builder: (context, state) => SafeArea(
+          child: SingleChildScrollView(
+            padding: EdgeInsets.all(16),
+            child: ConstrainedBox(
+              constraints: BoxConstraints(
+                minHeight: MediaQuery.of(context).size.height - 
+                    MediaQuery.of(context).padding.top - 
+                    MediaQuery.of(context).padding.bottom - 32,
               ),
-              Container(
-                alignment: Alignment.center,
-                padding: EdgeInsets.only(
-                  top: 40,
-                  bottom: 30,
-                  left: 20,
-                  right: 20,
-                ),
-                child: Form(
-                  key: _formKey,
-                  child: Column(
-                    children: [
-                      SizedBox(height: 40),
-                      TextFormField(
-                        controller: _userController,
-                        decoration: InputDecoration(
-                          label: Text(_userLabel),
-                          hintText: _userPlaceholder,
-                          prefixIcon: Icon(Icons.person),
-                        ),
-                        autovalidateMode: AutovalidateMode.onUnfocus,
-                        focusNode: _userFocusNode,
-                        validator: (value) {
-                          if (value == null) return _requiredField;
-                          if (value.isEmpty) return _requiredField;
-                          return null;
-                        },
-                        onFieldSubmitted: (_) {
-                          _userFocusNode.unfocus();
-                          _passwordFocusNode.requestFocus();
-                        },
+              child: IntrinsicHeight(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Flexible(
+                      child: Container(
+                        padding: EdgeInsets.symmetric(vertical: 20),
+                        alignment: Alignment.center,
+                        child: Image.asset(_assetBanner, height: 150),
                       ),
-                      SizedBox(height: 24),
-                      PasswordTextField(
-                        controller: _passwordController,
-                        focusNode: _passwordFocusNode,
-                        onFieldSubmitted: (_) async {
-                          _passwordFocusNode.unfocus();
+                    ),
+                    Container(
+                      constraints: BoxConstraints(maxWidth: 400),
+                      padding: EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+                      child: Form(
+                        key: _formKey,
+                        child: Column(
+                          children: [
+                            SizedBox(height: 20),
+                            TextFormField(
+                              controller: _userController,
+                              decoration: InputDecoration(
+                                label: Text(_userLabel),
+                                hintText: _userPlaceholder,
+                                prefixIcon: Icon(Icons.person),
+                              ),
+                              autovalidateMode: AutovalidateMode.onUnfocus,
+                              focusNode: _userFocusNode,
+                              validator: (value) {
+                                if (value == null) return _requiredField;
+                                if (value.isEmpty) return _requiredField;
+                                return null;
+                              },
+                              onFieldSubmitted: (_) {
+                                _userFocusNode.unfocus();
+                                _passwordFocusNode.requestFocus();
+                              },
+                            ),
+                            SizedBox(height: 24),
+                            PasswordTextField(
+                              controller: _passwordController,
+                              focusNode: _passwordFocusNode,
+                              onFieldSubmitted: (_) async {
+                                _passwordFocusNode.unfocus();
 
-                          await _performLogin();
-                        },
-                      ),
-                      SizedBox(height: 24),
-                      SizedBox(
-                        width: MediaQuery.of(context).size.width,
-                        child: ElevatedButton(
-                          onPressed: state.status == LoginStatus.loading
-                              ? null
-                              : _performLogin,
-                          child: Text(_login),
+                                await _performLogin();
+                              },
+                            ),
+                            SizedBox(height: 24),
+                            SizedBox(
+                              width: double.infinity,
+                              child: ElevatedButton(
+                                onPressed: state.status == LoginStatus.loading
+                                    ? null
+                                    : _performLogin,
+                                child: Text(_login),
+                              ),
+                            )
+                          ],
                         ),
-                      )
-                    ],
-                  ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
-            ],
+            ),
           ),
         ),
       ),
