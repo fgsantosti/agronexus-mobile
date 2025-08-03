@@ -42,7 +42,7 @@ class ReproducaoRepositoryImpl implements ReproducaoRepository {
   Future<InseminacaoEntity> getInseminacao(String id) async {
     try {
       Response response = await httpService.get(
-        path: '/api/v1/inseminacoes/$id/',
+        path: API.inseminacaoById(id),
         isAuth: true,
       );
       return InseminacaoEntity.fromJson(response.data);
@@ -56,7 +56,7 @@ class ReproducaoRepositoryImpl implements ReproducaoRepository {
     try {
       print('DEBUG REPOSITORY - Enviando dados para API: ${inseminacao.toJson()}');
       Response response = await httpService.post(
-        path: '/api/v1/inseminacoes/',
+        path: API.inseminacoes,
         data: inseminacao.toJson(),
         isAuth: true,
       );
@@ -79,7 +79,7 @@ class ReproducaoRepositoryImpl implements ReproducaoRepository {
   Future<InseminacaoEntity> updateInseminacao(String id, InseminacaoEntity inseminacao) async {
     try {
       Response response = await httpService.put(
-        path: '/api/v1/inseminacoes/$id/',
+        path: API.inseminacaoById(id),
         data: inseminacao.toJson(),
         isAuth: true,
       );
@@ -93,7 +93,7 @@ class ReproducaoRepositoryImpl implements ReproducaoRepository {
   Future<void> deleteInseminacao(String id) async {
     try {
       await httpService.delete(
-        path: '/api/v1/inseminacoes/$id/',
+        path: API.inseminacaoById(id),
         isAuth: true,
       );
     } catch (e) {

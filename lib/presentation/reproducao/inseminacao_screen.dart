@@ -49,6 +49,17 @@ class _InseminacaoScreenState extends State<InseminacaoScreen> {
             if (state is InseminacoesLoaded) {
               _cachedInseminacoes = state.inseminacoes;
             }
+            // Tratar sucesso na exclusão
+            else if (state is InseminacaoDeleted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Inseminação excluída com sucesso!'),
+                  backgroundColor: Colors.green,
+                ),
+              );
+              // Recarregar a lista de inseminações
+              _loadInseminacoes();
+            }
             // Apenas escutar erros e outros estados relevantes
             else if (state is ReproducaoError) {
               ScaffoldMessenger.of(context).showSnackBar(
@@ -517,9 +528,12 @@ class _InseminacaoScreenState extends State<InseminacaoScreen> {
   }
 
   void _confirmarExclusao(InseminacaoEntity inseminacao) {
+    // Obter referência ao bloc antes de criar o dialog
+    final reproductionBloc = context.read<ReproducaoBloc>();
+
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         title: const Text('Confirmar Exclusão'),
         content: Text(
           'Deseja realmente excluir a inseminação do animal '
@@ -527,13 +541,13 @@ class _InseminacaoScreenState extends State<InseminacaoScreen> {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(context).pop(),
+            onPressed: () => Navigator.of(dialogContext).pop(),
             child: const Text('Cancelar'),
           ),
           TextButton(
             onPressed: () {
-              Navigator.of(context).pop();
-              context.read<ReproducaoBloc>().add(DeleteInseminacaoEvent(inseminacao.id));
+              Navigator.of(dialogContext).pop();
+              reproductionBloc.add(DeleteInseminacaoEvent(inseminacao.id));
             },
             style: TextButton.styleFrom(foregroundColor: Colors.red),
             child: const Text('Excluir'),
