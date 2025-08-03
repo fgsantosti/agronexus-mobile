@@ -5,6 +5,7 @@ import 'package:agronexus/presentation/bloc/reproducao/reproducao_event.dart';
 import 'package:agronexus/presentation/bloc/reproducao/reproducao_state.dart';
 import 'package:agronexus/domain/models/reproducao_entity.dart';
 import 'package:agronexus/presentation/reproducao/cadastro_inseminacao_screen.dart';
+import 'package:agronexus/presentation/reproducao/editar_inseminacao_screen.dart';
 import 'package:intl/intl.dart';
 
 class InseminacaoScreen extends StatefulWidget {
@@ -294,10 +295,7 @@ class _InseminacaoScreenState extends State<InseminacaoScreen> {
           TextButton(
             onPressed: () {
               Navigator.of(context).pop();
-              // TODO: Implementar edição
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Edição em desenvolvimento')),
-              );
+              _navegarParaEdicao(inseminacao);
             },
             child: const Text('Editar'),
           ),
@@ -341,6 +339,26 @@ class _InseminacaoScreenState extends State<InseminacaoScreen> {
 
     print('DEBUG LISTAGEM - Resultado recebido: $resultado');
     // Se o cadastro foi bem-sucedido, recarrega a lista
+    if (resultado == true) {
+      print('DEBUG LISTAGEM - Recarregando lista de inseminações');
+      _loadInseminacoes();
+    }
+  }
+
+  void _navegarParaEdicao(InseminacaoEntity inseminacao) async {
+    final bloc = context.read<ReproducaoBloc>();
+    print('DEBUG LISTAGEM - Navegando para edição da inseminação ${inseminacao.id}');
+    final resultado = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        builder: (context) => BlocProvider.value(
+          value: bloc,
+          child: EditarInseminacaoScreen(inseminacao: inseminacao),
+        ),
+      ),
+    );
+
+    print('DEBUG LISTAGEM - Resultado da edição: $resultado');
+    // Se a edição foi bem-sucedida, recarrega a lista
     if (resultado == true) {
       print('DEBUG LISTAGEM - Recarregando lista de inseminações');
       _loadInseminacoes();
