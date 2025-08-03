@@ -17,6 +17,7 @@ class InseminacaoScreen extends StatefulWidget {
 
 class _InseminacaoScreenState extends State<InseminacaoScreen> {
   final DateFormat _dateFormat = DateFormat('dd/MM/yyyy');
+  bool _isInitialized = false;
 
   @override
   void initState() {
@@ -33,6 +34,7 @@ class _InseminacaoScreenState extends State<InseminacaoScreen> {
             dataFim: now,
           ),
         );
+    _isInitialized = true;
   }
 
   @override
@@ -40,73 +42,106 @@ class _InseminacaoScreenState extends State<InseminacaoScreen> {
     return Scaffold(
       body: RefreshIndicator(
         onRefresh: () async => _loadInseminacoes(),
-        child: BlocBuilder<ReproducaoBloc, ReproducaoState>(
-          builder: (context, state) {
-            if (state is InseminacoesLoading) {
-              return const Center(child: CircularProgressIndicator());
+        child: BlocListener<ReproducaoBloc, ReproducaoState>(
+          listener: (context, state) {
+            // Recarregar lista quando uma ação é completada
+            if (state is InseminacaoCreated || 
+                state is InseminacaoUpdated || 
+                state is InseminacaoDeleted) {
+              Future.delayed(const Duration(milliseconds: 500), () {
+                if (mounted) {
+                  _loadInseminacoes();
+                }
+              });
             }
+          },
+          child: BlocBuilder<ReproducaoBloc, ReproducaoState>(
+            builder: (context, state) {
+              // Se não foi inicializado e não está carregando, forçar carregamento
+              if (!_isInitialized && state is! InseminacoesLoading) {
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  if (mounted) {
+                    _loadInseminacoes();
+                  }
+                });
+              }
 
-            if (state is ReproducaoError) {
-              return Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.error_outline, size: 64, color: Colors.red.shade400),
-                    const SizedBox(height: 16),
-                    Text(
-                      'Erro ao carregar inseminações',
-                      style: TextStyle(fontSize: 18, color: Colors.red.shade400),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      state.message,
-                      style: TextStyle(color: Colors.grey.shade600),
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 16),
-                    ElevatedButton(
-                      onPressed: _loadInseminacoes,
-                      child: const Text('Tentar Novamente'),
-                    ),
-                  ],
-                ),
-              );
-            }
+              if (state is InseminacoesLoading) {
+                return const Center(child: CircularProgressIndicator());
+              }
 
-            if (state is InseminacoesLoaded) {
-              if (state.inseminacoes.isEmpty) {
+              if (state is ReproducaoError) {
                 return Center(
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(Icons.favorite_outline, size: 64, color: Colors.grey.shade400),
+                      Icon(Icons.error_outline, size: 64, color: Colors.red.shade400),
                       const SizedBox(height: 16),
                       Text(
-                        'Nenhuma inseminação encontrada',
-                        style: TextStyle(fontSize: 18, color: Colors.grey.shade600),
+                        'Erro ao carregar inseminações',
+                        style: TextStyle(fontSize: 18, color: Colors.red.shade400),
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        'Registre a primeira inseminação',
-                        style: TextStyle(color: Colors.grey.shade500),
+                        state.message,
+                        style: TextStyle(color: Colors.grey.shade600),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 16),
+                      ElevatedButton(
+                        onPressed: _loadInseminacoes,
+                        child: const Text('Tentar Novamente'),
                       ),
                     ],
                   ),
                 );
               }
 
-              return ListView.builder(
-                padding: const EdgeInsets.all(16),
-                itemCount: state.inseminacoes.length,
-                itemBuilder: (context, index) {
-                  final inseminacao = state.inseminacoes[index];
-                  return _buildInseminacaoCard(inseminacao);
-                },
-              );
-            }
+              if (state is InseminacoesLoaded) {
+                if (state.inseminacoes.isEmpty) {
+                  return Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.favorite_outline, size: 64, color: Colors.grey.shade400),
+                        const SizedBox(height: 16),
+                        Text(
+                          'Nenhuma inseminação encontrada',
+                          style: TextStyle(fontSize: 18, color: Colors.grey.shade600),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Registre a primeira inseminação',
+                          style: TextStyle(color: Colors.grey.shade500),
+                        ),
+                      ],
+                    ),
+                  );
+                }
 
-            return const Center(child: Text('Carregando...'));
-          },
+                return ListView.builder(
+                  padding: const EdgeInsets.all(16),
+                  itemCount: state.inseminacoes.length,
+                  itemBuilder: (context, index) {
+                    final inseminacao = state.inseminacoes[index];
+                    return _buildInseminacaoCard(inseminacao);
+                  },
+                );
+              }
+
+              // Para qualquer outro estado, mostrar loading
+              return const Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    CircularProgressIndicator(),
+                    SizedBox(height: 16),
+                    Text('Carregando inseminações...'),
+                  ],
+                ),
+              );
+            },
+          ),
         ),
       ),
       floatingActionButton: FloatingActionButton(
@@ -124,9 +159,7 @@ class _InseminacaoScreenState extends State<InseminacaoScreen> {
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: InkWell(
         borderRadius: BorderRadius.circular(12),
-        onTap: () {
-          _showInseminacaoDetails(inseminacao);
-        },
+        onTap: () => _mostrarDetalhes(inseminacao),
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Column(
@@ -134,13 +167,13 @@ class _InseminacaoScreenState extends State<InseminacaoScreen> {
             children: [
               Row(
                 children: [
-                  CircleAvatar(
-                    backgroundColor: _getTipoColor(inseminacao.tipo),
-                    child: Icon(
-                      _getTipoIcon(inseminacao.tipo),
-                      color: Colors.white,
-                      size: 20,
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.pink.shade50,
+                      borderRadius: BorderRadius.circular(8),
                     ),
+                    child: Icon(Icons.favorite, color: Colors.pink.shade400, size: 20),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
@@ -148,92 +181,128 @@ class _InseminacaoScreenState extends State<InseminacaoScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Animal ${inseminacao.animal.idAnimal}',
+                          inseminacao.animal.situacao.isNotEmpty 
+                            ? inseminacao.animal.situacao 
+                            : 'Animal ${inseminacao.animal.idAnimal}',
                           style: const TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
                         Text(
-                          inseminacao.tipo.label,
+                          'ID: ${inseminacao.animal.idAnimal}',
                           style: TextStyle(
+                            fontSize: 12,
                             color: Colors.grey.shade600,
-                            fontSize: 14,
                           ),
                         ),
                       ],
                     ),
                   ),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      Text(
-                        _dateFormat.format(inseminacao.dataInseminacao),
-                        style: const TextStyle(
-                          fontWeight: FontWeight.w600,
+                  PopupMenuButton<String>(
+                    onSelected: (value) => _executarAcao(value, inseminacao),
+                    itemBuilder: (context) => [
+                      const PopupMenuItem(
+                        value: 'detalhes',
+                        child: Row(
+                          children: [
+                            Icon(Icons.visibility, size: 20),
+                            SizedBox(width: 8),
+                            Text('Ver Detalhes'),
+                          ],
                         ),
                       ),
-                      if (inseminacao.dataDiagnosticoPrevista != null)
-                        Text(
-                          'Diag: ${_dateFormat.format(inseminacao.dataDiagnosticoPrevista!)}',
-                          style: TextStyle(
-                            color: Colors.orange.shade600,
-                            fontSize: 12,
-                          ),
+                      const PopupMenuItem(
+                        value: 'editar',
+                        child: Row(
+                          children: [
+                            Icon(Icons.edit, size: 20),
+                            SizedBox(width: 8),
+                            Text('Editar'),
+                          ],
                         ),
+                      ),
+                      const PopupMenuItem(
+                        value: 'excluir',
+                        child: Row(
+                          children: [
+                            Icon(Icons.delete, size: 20, color: Colors.red),
+                            SizedBox(width: 8),
+                            Text('Excluir', style: TextStyle(color: Colors.red)),
+                          ],
+                        ),
+                      ),
                     ],
                   ),
                 ],
               ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: _buildInfoChip(
+                      'Data',
+                      _dateFormat.format(inseminacao.dataInseminacao),
+                      Icons.calendar_today,
+                      Colors.blue,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: _buildInfoChip(
+                      'Tipo',
+                      inseminacao.tipo.name.toUpperCase(),
+                      Icons.science,
+                      Colors.green,
+                    ),
+                  ),
+                ],
+              ),
               if (inseminacao.reprodutor != null || inseminacao.semenUtilizado != null) ...[
-                const SizedBox(height: 12),
-                const Divider(height: 1),
-                const SizedBox(height: 12),
-                Row(
-                  children: [
-                    if (inseminacao.reprodutor != null) ...[
-                      Icon(Icons.male, size: 16, color: Colors.grey.shade600),
-                      const SizedBox(width: 4),
-                      Text(
-                        'Reprodutor: ${inseminacao.reprodutor!.idAnimal}',
-                        style: TextStyle(
-                          color: Colors.grey.shade600,
-                          fontSize: 13,
-                        ),
-                      ),
-                    ],
-                    if (inseminacao.semenUtilizado != null) ...[
-                      const SizedBox(width: 16),
-                      Icon(Icons.science, size: 16, color: Colors.grey.shade600),
-                      const SizedBox(width: 4),
-                      Expanded(
-                        child: Text(
-                          'Sêmen: ${inseminacao.semenUtilizado}',
-                          style: TextStyle(
-                            color: Colors.grey.shade600,
-                            fontSize: 13,
-                          ),
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                    ],
-                  ],
-                ),
-              ],
-              if (inseminacao.estacaoMonta != null) ...[
                 const SizedBox(height: 8),
                 Row(
                   children: [
-                    Icon(Icons.calendar_today, size: 16, color: Colors.grey.shade600),
-                    const SizedBox(width: 4),
-                    Text(
-                      'Estação: ${inseminacao.estacaoMonta!.nome}',
-                      style: TextStyle(
-                        color: Colors.grey.shade600,
-                        fontSize: 13,
+                    if (inseminacao.reprodutor != null)
+                      Expanded(
+                        child: _buildInfoChip(
+                          'Reprodutor',
+                          inseminacao.reprodutor!.situacao.isNotEmpty 
+                            ? inseminacao.reprodutor!.situacao
+                            : 'ID: ${inseminacao.reprodutor!.idAnimal}',
+                          Icons.pets,
+                          Colors.orange,
+                        ),
                       ),
-                    ),
+                    if (inseminacao.reprodutor != null && inseminacao.semenUtilizado != null)
+                      const SizedBox(width: 8),
+                    if (inseminacao.semenUtilizado != null)
+                      Expanded(
+                        child: _buildInfoChip(
+                          'Sêmen',
+                          inseminacao.semenUtilizado!,
+                          Icons.local_hospital,
+                          Colors.purple,
+                        ),
+                      ),
                   ],
+                ),
+              ],
+              if (inseminacao.observacoes != null) ...[
+                const SizedBox(height: 8),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade50,
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Text(
+                    'Obs: ${inseminacao.observacoes}',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.grey.shade700,
+                    ),
+                  ),
                 ),
               ],
             ],
@@ -243,82 +312,41 @@ class _InseminacaoScreenState extends State<InseminacaoScreen> {
     );
   }
 
-  Color _getTipoColor(TipoInseminacao tipo) {
-    switch (tipo) {
-      case TipoInseminacao.natural:
-        return Colors.green;
-      case TipoInseminacao.ia:
-        return Colors.blue;
-      case TipoInseminacao.iatf:
-        return Colors.purple;
-    }
-  }
-
-  IconData _getTipoIcon(TipoInseminacao tipo) {
-    switch (tipo) {
-      case TipoInseminacao.natural:
-        return Icons.nature;
-      case TipoInseminacao.ia:
-        return Icons.science;
-      case TipoInseminacao.iatf:
-        return Icons.schedule;
-    }
-  }
-
-  void _showInseminacaoDetails(InseminacaoEntity inseminacao) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text('Detalhes da Inseminação'),
-        content: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              _buildDetailRow('Animal', 'Animal ${inseminacao.animal.idAnimal}'),
-              _buildDetailRow('Tipo', inseminacao.tipo.label),
-              _buildDetailRow('Data', _dateFormat.format(inseminacao.dataInseminacao)),
-              if (inseminacao.reprodutor != null) _buildDetailRow('Reprodutor', inseminacao.reprodutor!.idAnimal),
-              if (inseminacao.semenUtilizado != null) _buildDetailRow('Sêmen', inseminacao.semenUtilizado!),
-              if (inseminacao.estacaoMonta != null) _buildDetailRow('Estação de Monta', inseminacao.estacaoMonta!.nome),
-              if (inseminacao.protocoloIatf != null) _buildDetailRow('Protocolo IATF', inseminacao.protocoloIatf!.nome),
-              if (inseminacao.dataDiagnosticoPrevista != null) _buildDetailRow('Diagnóstico Previsto', _dateFormat.format(inseminacao.dataDiagnosticoPrevista!)),
-              if (inseminacao.observacoes != null && inseminacao.observacoes!.isNotEmpty) _buildDetailRow('Observações', inseminacao.observacoes!),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Fechar'),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.of(context).pop();
-              _navegarParaEdicao(inseminacao);
-            },
-            child: const Text('Editar'),
-          ),
-        ],
+  Widget _buildInfoChip(String label, String value, IconData icon, Color color) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: color.withOpacity(0.3)),
       ),
-    );
-  }
-
-  Widget _buildDetailRow(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
         children: [
-          SizedBox(
-            width: 100,
-            child: Text(
-              '$label:',
-              style: const TextStyle(fontWeight: FontWeight.w600),
-            ),
-          ),
+          Icon(icon, size: 14, color: color),
+          const SizedBox(width: 4),
           Expanded(
-            child: Text(value),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 10,
+                    color: color,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                Text(
+                  value,
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: color,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
           ),
         ],
       ),
@@ -328,7 +356,7 @@ class _InseminacaoScreenState extends State<InseminacaoScreen> {
   void _navegarParaCadastro() async {
     final bloc = context.read<ReproducaoBloc>();
     print('DEBUG LISTAGEM - Navegando para cadastro');
-    final resultado = await Navigator.of(context).push<bool>(
+    await Navigator.of(context).push<bool>(
       MaterialPageRoute(
         builder: (context) => BlocProvider.value(
           value: bloc,
@@ -336,13 +364,7 @@ class _InseminacaoScreenState extends State<InseminacaoScreen> {
         ),
       ),
     );
-
-    print('DEBUG LISTAGEM - Resultado recebido: $resultado');
-    // Se o cadastro foi bem-sucedido, recarrega a lista
-    if (resultado == true) {
-      print('DEBUG LISTAGEM - Recarregando lista de inseminações');
-      _loadInseminacoes();
-    }
+    print('DEBUG LISTAGEM - Retornou da tela de cadastro');
   }
 
   void _navegarParaEdicao(InseminacaoEntity inseminacao) async {
@@ -358,10 +380,163 @@ class _InseminacaoScreenState extends State<InseminacaoScreen> {
     );
 
     print('DEBUG LISTAGEM - Resultado da edição: $resultado');
-    // Se a edição foi bem-sucedida, recarrega a lista
     if (resultado == true) {
-      print('DEBUG LISTAGEM - Recarregando lista de inseminações');
+      print('DEBUG LISTAGEM - Recarregando lista após edição');
       _loadInseminacoes();
     }
+  }
+
+  void _mostrarDetalhes(InseminacaoEntity inseminacao) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => DraggableScrollableSheet(
+        initialChildSize: 0.6,
+        maxChildSize: 0.9,
+        minChildSize: 0.3,
+        expand: false,
+        builder: (context, scrollController) => Container(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade300,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
+              Row(
+                children: [
+                  Icon(Icons.favorite, color: Colors.pink.shade400, size: 28),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      'Detalhes da Inseminação',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.pink.shade400,
+                      ),
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: () => _navegarParaEdicao(inseminacao),
+                    icon: const Icon(Icons.edit),
+                    tooltip: 'Editar',
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20),
+              Expanded(
+                child: ListView(
+                  controller: scrollController,
+                  children: [
+                    _buildDetalheItem('Animal', 
+                      inseminacao.animal.situacao.isNotEmpty 
+                        ? inseminacao.animal.situacao 
+                        : 'ID: ${inseminacao.animal.idAnimal}'),
+                    _buildDetalheItem('Data da Inseminação', 
+                      _dateFormat.format(inseminacao.dataInseminacao)),
+                    _buildDetalheItem('Tipo', inseminacao.tipo.name.toUpperCase()),
+                    if (inseminacao.reprodutor != null)
+                      _buildDetalheItem('Reprodutor', 
+                        inseminacao.reprodutor!.situacao.isNotEmpty 
+                          ? inseminacao.reprodutor!.situacao
+                          : 'ID: ${inseminacao.reprodutor!.idAnimal}'),
+                    if (inseminacao.semenUtilizado != null)
+                      _buildDetalheItem('Sêmen Utilizado', inseminacao.semenUtilizado!),
+                    if (inseminacao.protocoloIatf != null)
+                      _buildDetalheItem('Protocolo IATF', inseminacao.protocoloIatf!.nome),
+                    if (inseminacao.estacaoMonta != null)
+                      _buildDetalheItem('Estação de Monta', inseminacao.estacaoMonta!.nome),
+                    if (inseminacao.observacoes != null)
+                      _buildDetalheItem('Observações', inseminacao.observacoes!),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDetalheItem(String titulo, String valor) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            titulo,
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
+              color: Colors.grey.shade700,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            valor,
+            style: const TextStyle(
+              fontSize: 16,
+              color: Colors.black87,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Divider(color: Colors.grey.shade200, height: 1),
+        ],
+      ),
+    );
+  }
+
+  void _executarAcao(String acao, InseminacaoEntity inseminacao) {
+    switch (acao) {
+      case 'detalhes':
+        _mostrarDetalhes(inseminacao);
+        break;
+      case 'editar':
+        _navegarParaEdicao(inseminacao);
+        break;
+      case 'excluir':
+        _confirmarExclusao(inseminacao);
+        break;
+    }
+  }
+
+  void _confirmarExclusao(InseminacaoEntity inseminacao) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Confirmar Exclusão'),
+        content: Text(
+          'Deseja realmente excluir a inseminação do animal '
+          '${inseminacao.animal.situacao.isNotEmpty ? inseminacao.animal.situacao : inseminacao.animal.idAnimal}?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Cancelar'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+              context.read<ReproducaoBloc>().add(DeleteInseminacaoEvent(inseminacao.id));
+            },
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Excluir'),
+          ),
+        ],
+      ),
+    );
   }
 }

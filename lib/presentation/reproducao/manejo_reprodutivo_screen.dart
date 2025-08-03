@@ -143,13 +143,6 @@ class _ManejoReprodutivoScreenState extends State<ManejoReprodutivoScreen> with 
                               fontWeight: FontWeight.bold,
                             ),
                           ),
-                          const Spacer(),
-                          IconButton(
-                            icon: const Icon(Icons.refresh),
-                            onPressed: () {
-                              context.read<ReproducaoBloc>().add(LoadResumoReproducaoEvent());
-                            },
-                          ),
                         ],
                       ),
                       const SizedBox(height: 16),
