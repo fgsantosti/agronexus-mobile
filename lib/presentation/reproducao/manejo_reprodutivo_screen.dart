@@ -17,7 +17,7 @@ class ManejoReprodutivoScreen extends StatefulWidget {
   State<ManejoReprodutivoScreen> createState() => _ManejoReprodutivoScreenState();
 }
 
-class _ManejoReprodutivoScreenState extends State<ManejoReprodutivoScreen> with TickerProviderStateMixin {
+class _ManejoReprodutivoScreenState extends State<ManejoReprodutivoScreen> with TickerProviderStateMixin, WidgetsBindingObserver {
   late TabController _tabController;
   Map<String, dynamic>? _resumoData; // Armazenar o resumo localmente
 
@@ -25,15 +25,36 @@ class _ManejoReprodutivoScreenState extends State<ManejoReprodutivoScreen> with 
   void initState() {
     super.initState();
     _tabController = TabController(length: 6, vsync: this);
+    WidgetsBinding.instance.addObserver(this);
 
-    // Carregar resumo ao inicializar
-    context.read<ReproducaoBloc>().add(LoadResumoReproducaoEvent());
+    // Carregar resumo ao inicializar apenas se não existe ainda
+    if (_resumoData == null) {
+      context.read<ReproducaoBloc>().add(LoadResumoReproducaoEvent());
+    }
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _tabController.dispose();
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+
+    // Recarregar dados quando o app volta para o foreground
+    if (state == AppLifecycleState.resumed) {
+      _recarregarDadosSeNecessario();
+    }
+  }
+
+  void _recarregarDadosSeNecessario() {
+    // Recarregar resumo apenas se os dados estão muito antigos ou se não existem
+    if (_resumoData == null) {
+      context.read<ReproducaoBloc>().add(LoadResumoReproducaoEvent());
+    }
   }
 
   @override
@@ -91,6 +112,15 @@ class _ManejoReprodutivoScreenState extends State<ManejoReprodutivoScreen> with 
         if (state is ResumoReproducaoLoaded) {
           setState(() {
             _resumoData = state.resumo;
+          });
+        }
+        // Quando uma operação de inseminação for concluída, atualizar o resumo
+        else if (state is InseminacaoCreated || state is InseminacaoUpdated || state is InseminacaoDeleted) {
+          // Aguardar um pouco e recarregar o resumo
+          Future.delayed(const Duration(milliseconds: 1000), () {
+            if (mounted) {
+              context.read<ReproducaoBloc>().add(LoadResumoReproducaoEvent());
+            }
           });
         }
       },

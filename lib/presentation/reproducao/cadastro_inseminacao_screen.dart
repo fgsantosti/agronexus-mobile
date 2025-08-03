@@ -113,6 +113,13 @@ class _CadastroInseminacaoScreenState extends State<CadastroInseminacaoScreen> {
         title: const Text('Nova Inseminação'),
         backgroundColor: Theme.of(context).primaryColor,
         foregroundColor: Colors.white,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            // Não interferir no estado principal ao voltar
+            Navigator.of(context).pop();
+          },
+        ),
       ),
       body: BlocListener<ReproducaoBloc, ReproducaoState>(
         listener: (context, state) {

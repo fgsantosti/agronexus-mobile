@@ -18,6 +18,7 @@ class InseminacaoScreen extends StatefulWidget {
 class _InseminacaoScreenState extends State<InseminacaoScreen> {
   final DateFormat _dateFormat = DateFormat('dd/MM/yyyy');
   bool _isInitialized = false;
+  List<InseminacaoEntity>? _cachedInseminacoes; // Cache local das inseminações
 
   @override
   void initState() {
@@ -44,15 +45,18 @@ class _InseminacaoScreenState extends State<InseminacaoScreen> {
         onRefresh: () async => _loadInseminacoes(),
         child: BlocListener<ReproducaoBloc, ReproducaoState>(
           listener: (context, state) {
-            // Recarregar lista quando uma ação é completada
-            if (state is InseminacaoCreated || 
-                state is InseminacaoUpdated || 
-                state is InseminacaoDeleted) {
-              Future.delayed(const Duration(milliseconds: 500), () {
-                if (mounted) {
-                  _loadInseminacoes();
-                }
-              });
+            // Cache das inseminações para preservar estado
+            if (state is InseminacoesLoaded) {
+              _cachedInseminacoes = state.inseminacoes;
+            }
+            // Apenas escutar erros e outros estados relevantes
+            else if (state is ReproducaoError) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Erro: ${state.message}'),
+                  backgroundColor: Colors.red,
+                ),
+              );
             }
           },
           child: BlocBuilder<ReproducaoBloc, ReproducaoState>(
@@ -66,11 +70,12 @@ class _InseminacaoScreenState extends State<InseminacaoScreen> {
                 });
               }
 
-              if (state is InseminacoesLoading) {
+              // Mostrar loading apenas se não temos cache e está carregando
+              if (state is InseminacoesLoading && _cachedInseminacoes == null) {
                 return const Center(child: CircularProgressIndicator());
               }
 
-              if (state is ReproducaoError) {
+              if (state is ReproducaoError && _cachedInseminacoes == null) {
                 return Center(
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -97,8 +102,16 @@ class _InseminacaoScreenState extends State<InseminacaoScreen> {
                 );
               }
 
+              // Usar dados do estado atual ou cache
+              List<InseminacaoEntity>? inseminacoesToShow;
               if (state is InseminacoesLoaded) {
-                if (state.inseminacoes.isEmpty) {
+                inseminacoesToShow = state.inseminacoes;
+              } else if (_cachedInseminacoes != null) {
+                inseminacoesToShow = _cachedInseminacoes;
+              }
+
+              if (inseminacoesToShow != null) {
+                if (inseminacoesToShow.isEmpty) {
                   return Center(
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
@@ -121,9 +134,9 @@ class _InseminacaoScreenState extends State<InseminacaoScreen> {
 
                 return ListView.builder(
                   padding: const EdgeInsets.all(16),
-                  itemCount: state.inseminacoes.length,
+                  itemCount: inseminacoesToShow.length,
                   itemBuilder: (context, index) {
-                    final inseminacao = state.inseminacoes[index];
+                    final inseminacao = inseminacoesToShow![index];
                     return _buildInseminacaoCard(inseminacao);
                   },
                 );
@@ -181,9 +194,7 @@ class _InseminacaoScreenState extends State<InseminacaoScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          inseminacao.animal.situacao.isNotEmpty 
-                            ? inseminacao.animal.situacao 
-                            : 'Animal ${inseminacao.animal.idAnimal}',
+                          inseminacao.animal.situacao.isNotEmpty ? inseminacao.animal.situacao : 'Animal ${inseminacao.animal.idAnimal}',
                           style: const TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
@@ -266,15 +277,12 @@ class _InseminacaoScreenState extends State<InseminacaoScreen> {
                       Expanded(
                         child: _buildInfoChip(
                           'Reprodutor',
-                          inseminacao.reprodutor!.situacao.isNotEmpty 
-                            ? inseminacao.reprodutor!.situacao
-                            : 'ID: ${inseminacao.reprodutor!.idAnimal}',
+                          inseminacao.reprodutor!.situacao.isNotEmpty ? inseminacao.reprodutor!.situacao : 'ID: ${inseminacao.reprodutor!.idAnimal}',
                           Icons.pets,
                           Colors.orange,
                         ),
                       ),
-                    if (inseminacao.reprodutor != null && inseminacao.semenUtilizado != null)
-                      const SizedBox(width: 8),
+                    if (inseminacao.reprodutor != null && inseminacao.semenUtilizado != null) const SizedBox(width: 8),
                     if (inseminacao.semenUtilizado != null)
                       Expanded(
                         child: _buildInfoChip(
@@ -356,7 +364,7 @@ class _InseminacaoScreenState extends State<InseminacaoScreen> {
   void _navegarParaCadastro() async {
     final bloc = context.read<ReproducaoBloc>();
     print('DEBUG LISTAGEM - Navegando para cadastro');
-    await Navigator.of(context).push<bool>(
+    final resultado = await Navigator.of(context).push<bool>(
       MaterialPageRoute(
         builder: (context) => BlocProvider.value(
           value: bloc,
@@ -364,7 +372,13 @@ class _InseminacaoScreenState extends State<InseminacaoScreen> {
         ),
       ),
     );
-    print('DEBUG LISTAGEM - Retornou da tela de cadastro');
+    print('DEBUG LISTAGEM - Retornou da tela de cadastro, resultado: $resultado');
+
+    // Se o cadastro foi bem-sucedido ou se não temos certeza, recarregar a lista
+    if (resultado == true || resultado == null) {
+      print('DEBUG LISTAGEM - Recarregando lista de inseminações');
+      _loadInseminacoes();
+    }
   }
 
   void _navegarParaEdicao(InseminacaoEntity inseminacao) async {
@@ -440,26 +454,15 @@ class _InseminacaoScreenState extends State<InseminacaoScreen> {
                 child: ListView(
                   controller: scrollController,
                   children: [
-                    _buildDetalheItem('Animal', 
-                      inseminacao.animal.situacao.isNotEmpty 
-                        ? inseminacao.animal.situacao 
-                        : 'ID: ${inseminacao.animal.idAnimal}'),
-                    _buildDetalheItem('Data da Inseminação', 
-                      _dateFormat.format(inseminacao.dataInseminacao)),
+                    _buildDetalheItem('Animal', inseminacao.animal.situacao.isNotEmpty ? inseminacao.animal.situacao : 'ID: ${inseminacao.animal.idAnimal}'),
+                    _buildDetalheItem('Data da Inseminação', _dateFormat.format(inseminacao.dataInseminacao)),
                     _buildDetalheItem('Tipo', inseminacao.tipo.name.toUpperCase()),
                     if (inseminacao.reprodutor != null)
-                      _buildDetalheItem('Reprodutor', 
-                        inseminacao.reprodutor!.situacao.isNotEmpty 
-                          ? inseminacao.reprodutor!.situacao
-                          : 'ID: ${inseminacao.reprodutor!.idAnimal}'),
-                    if (inseminacao.semenUtilizado != null)
-                      _buildDetalheItem('Sêmen Utilizado', inseminacao.semenUtilizado!),
-                    if (inseminacao.protocoloIatf != null)
-                      _buildDetalheItem('Protocolo IATF', inseminacao.protocoloIatf!.nome),
-                    if (inseminacao.estacaoMonta != null)
-                      _buildDetalheItem('Estação de Monta', inseminacao.estacaoMonta!.nome),
-                    if (inseminacao.observacoes != null)
-                      _buildDetalheItem('Observações', inseminacao.observacoes!),
+                      _buildDetalheItem('Reprodutor', inseminacao.reprodutor!.situacao.isNotEmpty ? inseminacao.reprodutor!.situacao : 'ID: ${inseminacao.reprodutor!.idAnimal}'),
+                    if (inseminacao.semenUtilizado != null) _buildDetalheItem('Sêmen Utilizado', inseminacao.semenUtilizado!),
+                    if (inseminacao.protocoloIatf != null) _buildDetalheItem('Protocolo IATF', inseminacao.protocoloIatf!.nome),
+                    if (inseminacao.estacaoMonta != null) _buildDetalheItem('Estação de Monta', inseminacao.estacaoMonta!.nome),
+                    if (inseminacao.observacoes != null) _buildDetalheItem('Observações', inseminacao.observacoes!),
                   ],
                 ),
               ),
