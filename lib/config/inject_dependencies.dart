@@ -24,6 +24,8 @@ import 'package:agronexus/domain/repositories/remote/lote/lote_remote_repository
 import 'package:agronexus/domain/repositories/remote/lote/lote_remote_repository_impl.dart';
 import 'package:agronexus/domain/repositories/remote/propriedade/propriedade_remote_repository.dart';
 import 'package:agronexus/domain/repositories/remote/propriedade/propriedade_remote_repository_impl.dart';
+import 'package:agronexus/domain/repositories/remote/reproducao/reproducao_remote_repository.dart';
+import 'package:agronexus/domain/repositories/remote/reproducao/reproducao_repository_remote_impl.dart';
 import 'package:agronexus/domain/repositories/remote/user/user_remote_repository.dart';
 import 'package:agronexus/domain/repositories/remote/user/user_remote_repository_impl.dart';
 import 'package:agronexus/domain/services/animal_service.dart';
@@ -32,6 +34,7 @@ import 'package:agronexus/domain/services/dashboard_service.dart';
 import 'package:agronexus/domain/services/fazenda_service.dart';
 import 'package:agronexus/domain/services/lote_service.dart';
 import 'package:agronexus/domain/services/propriedade_service.dart';
+import 'package:agronexus/domain/services/reproducao_service.dart';
 import 'package:agronexus/domain/services/user_service.dart';
 import 'package:get_it/get_it.dart';
 
@@ -55,10 +58,7 @@ void configureDependencies() {
     ),
   );
   getIt.registerSingleton<AuthService>(
-    AuthService(
-        authLocalRepository: getIt(),
-        authRepository: getIt(),
-        userService: getIt()),
+    AuthService(authLocalRepository: getIt(), authRepository: getIt(), userService: getIt()),
   );
 
   getIt.registerSingleton<AnimalLocalRepository>(AnimalLocalRepositoryImpl());
@@ -69,8 +69,7 @@ void configureDependencies() {
     AnimalService(localRepository: getIt(), remoteRepository: getIt()),
   );
 
-  getIt.registerSingleton<DashboardLocalRepository>(
-      DashboardLocalRepositoryImpl());
+  getIt.registerSingleton<DashboardLocalRepository>(DashboardLocalRepositoryImpl());
   getIt.registerSingleton<DashboardRemoteRepository>(
     DashboardRemoteRepositoryImpl(httpService: getIt()),
   );
@@ -102,5 +101,13 @@ void configureDependencies() {
   );
   getIt.registerSingleton<PropriedadeService>(
     PropriedadeService(remoteRepository: getIt()),
+  );
+
+  // Reprodução
+  getIt.registerSingleton<ReproducaoRepository>(
+    ReproducaoRepositoryImpl(httpService: getIt()),
+  );
+  getIt.registerSingleton<ReproducaoService>(
+    ReproducaoService(getIt()),
   );
 }

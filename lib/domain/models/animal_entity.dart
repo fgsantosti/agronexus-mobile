@@ -45,10 +45,39 @@ enum Status {
   }
 }
 
+enum Sexo {
+  macho(label: 'Macho'),
+  femea(label: 'Fêmea');
+
+  final String label;
+
+  const Sexo({required this.label});
+  static Sexo fromString(String value) {
+    switch (value) {
+      case 'M':
+        return Sexo.macho;
+      case 'F':
+        return Sexo.femea;
+      default:
+        throw Exception('Invalid Sexo value: $value');
+    }
+  }
+
+  String get apiValue {
+    switch (this) {
+      case Sexo.macho:
+        return 'M';
+      case Sexo.femea:
+        return 'F';
+    }
+  }
+}
+
 class AnimalEntity extends BaseEntity {
   final String idAnimal;
   final String situacao;
   final String dataNascimento;
+  final Sexo sexo;
   final AcaoDestino acaoDestino;
   final Status status;
   final String observacao;
@@ -65,6 +94,7 @@ class AnimalEntity extends BaseEntity {
     required this.idAnimal,
     required this.situacao,
     required this.dataNascimento,
+    required this.sexo,
     required this.acaoDestino,
     required this.status,
     required this.observacao,
@@ -79,6 +109,7 @@ class AnimalEntity extends BaseEntity {
         idAnimal,
         situacao,
         dataNascimento,
+        sexo,
         acaoDestino,
         status,
         observacao,
@@ -96,6 +127,7 @@ class AnimalEntity extends BaseEntity {
     AgroNexusGetter<String>? idAnimal,
     AgroNexusGetter<String>? situacao,
     AgroNexusGetter<String>? dataNascimento,
+    AgroNexusGetter<Sexo>? sexo,
     AgroNexusGetter<AcaoDestino>? acaoDestino,
     AgroNexusGetter<Status>? status,
     AgroNexusGetter<String>? observacao,
@@ -111,8 +143,8 @@ class AnimalEntity extends BaseEntity {
       modifiedAt: modifiedAt != null ? modifiedAt() : this.modifiedAt,
       idAnimal: idAnimal != null ? idAnimal() : this.idAnimal,
       situacao: situacao != null ? situacao() : this.situacao,
-      dataNascimento:
-          dataNascimento != null ? dataNascimento() : this.dataNascimento,
+      dataNascimento: dataNascimento != null ? dataNascimento() : this.dataNascimento,
+      sexo: sexo != null ? sexo() : this.sexo,
       acaoDestino: acaoDestino != null ? acaoDestino() : this.acaoDestino,
       status: status != null ? status() : this.status,
       observacao: observacao != null ? observacao() : this.observacao,
@@ -128,6 +160,7 @@ class AnimalEntity extends BaseEntity {
     data['id_animal'] = idAnimal;
     data['situacao'] = situacao;
     data['data_nascimento'] = dataNascimento;
+    data['sexo'] = sexo.apiValue;
     data['acao_destino'] = acaoDestino.name;
     data['status'] = status.name;
     data['observacao'] = observacao;
@@ -142,6 +175,7 @@ class AnimalEntity extends BaseEntity {
     data['id_animal'] = idAnimal;
     data['situacao'] = situacao;
     data['data_nascimento'] = dataNascimento;
+    data['sexo'] = sexo.apiValue;
     data['acao_destino'] = acaoDestino.name;
     data['status'] = status.name;
     data['observacao'] = observacao;
@@ -154,6 +188,7 @@ class AnimalEntity extends BaseEntity {
   const AnimalEntity.empty()
       : idAnimal = '',
         situacao = '',
+        sexo = Sexo.femea,
         acaoDestino = AcaoDestino.leilao,
         status = Status.ativo,
         dataNascimento = '',
@@ -163,14 +198,32 @@ class AnimalEntity extends BaseEntity {
         fazendaNome = '';
 
   AnimalEntity.fromJson(super.json)
-      : idAnimal = json['id_animal'],
-        situacao = json['situacao'],
-        dataNascimento = json['data_nascimento'],
-        acaoDestino = AcaoDestino.fromString(json['acao_destino']),
-        status = Status.fromString(json['status']),
-        observacao = json['observacao'],
-        lote = json['lote'],
-        loteNome = json['lote_nome'],
-        fazendaNome = json['fazenda_nome'],
+      : idAnimal = json['id_animal'] ?? json['identificacao_unica'] ?? '',
+        situacao = json['situacao'] ?? json['categoria'] ?? '',
+        dataNascimento = json['data_nascimento'] ?? '',
+        sexo = Sexo.fromString(json['sexo'] ?? 'F'),
+        acaoDestino = AcaoDestino.fromString(json['acao_destino'] ?? 'permanece'),
+        status = Status.fromString(json['status'] == 'ativo' ? 'on' : 'off'),
+        observacao = json['observacao'] ?? '',
+        lote = json['lote'] ?? '',
+        loteNome = json['lote_nome'] ?? '',
+        fazendaNome = json['fazenda_nome'] ?? '',
         super.fromJson();
+
+  // Factory method específico para respostas da API de inseminação
+  factory AnimalEntity.fromInseminacaoJson(Map<String, dynamic> json) {
+    return AnimalEntity(
+      id: json['id'],
+      idAnimal: json['identificacao_unica'] ?? '',
+      situacao: json['categoria'] ?? '',
+      dataNascimento: '',
+      sexo: Sexo.fromString(json['sexo'] ?? 'F'),
+      acaoDestino: AcaoDestino.permanece,
+      status: json['status'] == 'ativo' ? Status.ativo : Status.inativo,
+      observacao: '',
+      lote: '',
+      loteNome: '',
+      fazendaNome: '',
+    );
+  }
 }

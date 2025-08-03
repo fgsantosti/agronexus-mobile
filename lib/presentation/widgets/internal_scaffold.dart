@@ -14,8 +14,7 @@ class InternalScaffold extends StatelessWidget {
     return BlocListener<LoginBloc, LoginState>(
       listener: (context, state) {
         // Quando o estado for initial (após logout), redireciona para login
-        if (state.status == LoginStatus.initial && 
-            state.user == null) {
+        if (state.status == LoginStatus.initial && state.user == null) {
           GoRouter.of(context).go(AgroNexusRouter.login.path);
         }
       },
@@ -46,31 +45,31 @@ class InternalScaffold extends StatelessWidget {
             color: Colors.white,
             size: 30,
           ),
-          shape: const RoundedRectangleBorder(
-            borderRadius: BorderRadius.only(
-              bottomLeft: Radius.circular(20),
-              bottomRight: Radius.circular(20),
-            ),
-          ),
+          // shape: const RoundedRectangleBorder(
+          //   borderRadius: BorderRadius.only(
+          //     bottomLeft: Radius.circular(20),
+          //     bottomRight: Radius.circular(20),
+          //   ),
+          // ),
           actions: [
             BlocBuilder<LoginBloc, LoginState>(
               builder: (context, state) {
                 return IconButton(
-                  onPressed: state.status == LoginStatus.loading 
-                    ? null  // Desabilita o botão durante o logout
-                    : () {
-                        context.read<LoginBloc>().add(LogoutLoginEvent());
-                      },
+                  onPressed: state.status == LoginStatus.loading
+                      ? null // Desabilita o botão durante o logout
+                      : () {
+                          context.read<LoginBloc>().add(LogoutLoginEvent());
+                        },
                   icon: state.status == LoginStatus.loading
-                    ? const SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                        ),
-                      )
-                    : const Icon(Icons.exit_to_app),
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                          ),
+                        )
+                      : const Icon(Icons.exit_to_app),
                 );
               },
             ),
