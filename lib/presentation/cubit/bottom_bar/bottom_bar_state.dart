@@ -6,10 +6,10 @@ enum BottomBarItems {
     icon: FontAwesomeIcons.house,
     route: AgroNexusRouter.homePath,
   ),
-  lotes(
-    label: "Lotes",
-    icon: FontAwesomeIcons.clone,
-    route: AgroNexusRouter.lotesPath,
+  propriedades(
+    label: "Propriedades",
+    icon: FontAwesomeIcons.mapLocationDot,
+    route: AgroNexusRouter.propriedadesPath,
   ),
   animais(
     label: "Animais",

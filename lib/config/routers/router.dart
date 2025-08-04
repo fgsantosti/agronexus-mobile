@@ -1,16 +1,24 @@
 import 'package:agronexus/config/inject_dependencies.dart';
 import 'package:agronexus/config/routers/utils.dart';
 import 'package:agronexus/domain/models/fazenda_entity.dart';
+import 'package:agronexus/domain/models/propriedade_entity.dart';
+import 'package:agronexus/domain/services/propriedade_service_new.dart';
 import 'package:agronexus/domain/services/reproducao_service.dart';
 import 'package:agronexus/presentation/bloc/fazenda/fazenda_bloc.dart';
 import 'package:agronexus/presentation/bloc/login/login_bloc.dart';
 import 'package:agronexus/presentation/bloc/propriedade/propriedade_bloc.dart';
+import 'package:agronexus/presentation/bloc/propriedade/propriedade_bloc_new.dart';
+import 'package:agronexus/presentation/bloc/propriedade/propriedade_event_new.dart';
 import 'package:agronexus/presentation/bloc/reproducao/reproducao_bloc.dart';
 import 'package:agronexus/presentation/cubit/bottom_bar/bottom_bar_cubit.dart';
 import 'package:agronexus/presentation/fazenda/screens/fazenda_add_screen.dart';
 import 'package:agronexus/presentation/fazenda/screens/fazenda_detail_screen.dart';
 import 'package:agronexus/presentation/home/home_screen.dart';
 import 'package:agronexus/presentation/login/login_screen.dart';
+import 'package:agronexus/presentation/propriedade/cadastro_propriedade_screen.dart';
+import 'package:agronexus/presentation/propriedade/detalhes_propriedade_screen.dart';
+import 'package:agronexus/presentation/propriedade/editar_propriedade_screen.dart';
+import 'package:agronexus/presentation/propriedade/propriedade_screen.dart';
 import 'package:agronexus/presentation/reproducao/manejo_reprodutivo_screen.dart';
 import 'package:agronexus/presentation/splash/splash_screen.dart';
 import 'package:agronexus/presentation/widgets/internal_scaffold.dart';
@@ -23,6 +31,7 @@ enum AgroNexusRouter {
   home(path: homePath),
   splash(path: splashPath),
   fazenda(path: fazendaPath),
+  propriedades(path: propriedadesPath),
   lotes(path: lotesPath),
   animais(path: animaisPath),
   perfil(path: perfilPath),
@@ -43,6 +52,7 @@ enum AgroNexusRouter {
   static const String splashPath = '/splash';
   static const String homePath = '/home';
   static const String fazendaPath = '/fazenda';
+  static const String propriedadesPath = '/propriedades';
   static const String lotesPath = "/lotes";
   static const String animaisPath = "/animais";
   static const String perfilPath = "/perfil";
@@ -203,6 +213,86 @@ enum AgroNexusRouter {
                         ),
                       ],
                       child: FazendaDetailScreen(),
+                    ),
+                  );
+                },
+              ),
+            ],
+          ),
+          // PROPRIEDADES SCREEN
+          GoRoute(
+            path: propriedades.path,
+            pageBuilder: (context, state) {
+              return CustomTransitionPage(
+                key: state.pageKey,
+                transitionDuration: RoutesUtils.duration,
+                transitionsBuilder: RoutesUtils.transitionBuilder,
+                child: MultiBlocProvider(
+                  providers: [
+                    BlocProvider(
+                      create: (context) => PropriedadeBlocNew(getIt<PropriedadeServiceNew>())..add(const LoadPropriedadesEvent()),
+                    ),
+                  ],
+                  child: PropriedadeScreen(),
+                ),
+              );
+            },
+            routes: [
+              // ADD
+              GoRoute(
+                path: add,
+                pageBuilder: (context, state) {
+                  return CustomTransitionPage(
+                    key: state.pageKey,
+                    transitionDuration: RoutesUtils.duration,
+                    transitionsBuilder: RoutesUtils.transitionBuilder,
+                    child: MultiBlocProvider(
+                      providers: [
+                        BlocProvider(
+                          create: (context) => PropriedadeBlocNew(getIt<PropriedadeServiceNew>()),
+                        ),
+                      ],
+                      child: CadastroPropriedadeScreen(),
+                    ),
+                  );
+                },
+              ),
+              // EDIT
+              GoRoute(
+                path: edit,
+                pageBuilder: (context, state) {
+                  final PropriedadeEntity propriedade = state.extra as PropriedadeEntity;
+                  return CustomTransitionPage(
+                    key: state.pageKey,
+                    transitionDuration: RoutesUtils.duration,
+                    transitionsBuilder: RoutesUtils.transitionBuilder,
+                    child: MultiBlocProvider(
+                      providers: [
+                        BlocProvider(
+                          create: (context) => PropriedadeBlocNew(getIt<PropriedadeServiceNew>()),
+                        ),
+                      ],
+                      child: EditarPropriedadeScreen(propriedade: propriedade),
+                    ),
+                  );
+                },
+              ),
+              // DETAIL
+              GoRoute(
+                path: detail,
+                pageBuilder: (context, state) {
+                  final PropriedadeEntity propriedade = state.extra as PropriedadeEntity;
+                  return CustomTransitionPage(
+                    key: state.pageKey,
+                    transitionDuration: RoutesUtils.duration,
+                    transitionsBuilder: RoutesUtils.transitionBuilder,
+                    child: MultiBlocProvider(
+                      providers: [
+                        BlocProvider(
+                          create: (context) => PropriedadeBlocNew(getIt<PropriedadeServiceNew>()),
+                        ),
+                      ],
+                      child: DetalhesPropriedadeScreen(propriedade: propriedade),
                     ),
                   );
                 },

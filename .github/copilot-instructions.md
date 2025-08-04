@@ -69,16 +69,17 @@ Este arquivo fornece orientações e boas práticas para gerar ou modificar cód
 - Siga Clean Architecture: `domain/` (entities, repositories, services) -> `presentation/` (UI, state)
 - **Camada Domain:**
   - `models/`: entidades que estendem `BaseEntity`
-  - `repositories/`: contratos divididos em `local/` e `remote/` por feature
-  - `services/`: coordenam repositories local e remote, verificam conectividade
+  - `repositories/remote/`: contratos e implementações para comunicação com API
+  - `services/`: coordenam repositories remote, atuam como passthrough
 - **Repositórios:**
-  - Remote repositories retornam `Either<AgroNexusException, T>` (dartz package)
-  - Local repositories têm métodos síncronos para CRUD e sincronização
-  - Implementem métodos padrão: `list`, `getById`, `create`, `update`, `delete`
+  - Remote repositories **não retornam** `Either<AgroNexusException, T>`
+  - Retornam diretamente os tipos (`List<T>`, `T`, `void`)
+  - Use `AgroNexusException.fromDioError()` em blocos try-catch
+  - Implementem métodos específicos da feature conforme necessário
 - **Serviços:**
-  - Verificam conectividade com `InternetConnection().hasInternetAccess`
-  - Priorizam dados remotos quando online, fallback para local quando offline
-  - Coordenam sincronização entre repositories local e remote
+  - **Não verificam** conectividade
+  - Atuam como passthrough para repositories remote
+  - Retornam tipos diretamente sem wrapping em `ListBaseEntity<T>`
 - Use injeção de dependência com GetIt (`lib/config/inject_dependencies.dart`)
 
 ## 3. Consumo de API
@@ -86,67 +87,112 @@ Este arquivo fornece orientações e boas práticas para gerar ou modificar cód
 - Use `dio` para requisições HTTP através de `HttpService` e `HttpServiceImpl`.
 - Baseie estruturas de modelos nos endpoints definidos pela API backend.
 - **Padrões de Repository Remote:**
-  - Retornem `Either<AgroNexusException, T>` para tratamento de erros
-  - Implementem métodos padrão: `list`, `getById`, `create`, `update`, `delete`
-  - Usem paginação com `limit` e `offset` para listagens
-  - Suportem busca com parâmetro `search` opcional
+  - **Não retornem** `Either<AgroNexusException, T>` - retorne diretamente os tipos
+  - Use `AgroNexusException.fromDioError()` em blocos try-catch para tratamento de erros
+  - Implementem métodos específicos da feature conforme necessário
+  - Usem query parameters para filtros (ex: `animalId`, `dataInicio`, `dataFim`)
 - **Tratamento de Erros:**
-  - Use `AgroNexusException` para erros customizados
-  - Implemente fallback para dados locais em caso de erro de rede
+  - Use `AgroNexusException.fromDioError()` para converter erros do Dio
+  - Propague exceções para serem tratadas nos BLoCs
+  - Implemente feedback visual adequado nas telas
 - Use `lib/config/api.dart` para centralizar URLs e endpoints.
 - Para novos campos, atualize o modelo no `domain` e implemente nos repositories correspondentes.
 
-## 4. Implementação Híbrida (API e Local)
+## 4. Estratégia de Cache e Estado
 
-### Estratégia de Dados Dual
-- Implemente sempre duas fontes de dados: **API remota** e **armazenamento local**
-- Use `shared_preferences` para dados simples (configurações, preferências do usuário)
-- Use SQLite (via `sqflite`) para dados complexos e relacionais quando necessário
-- Implemente sincronização offline-first: dados locais como fonte primária, sincronizando com API quando disponível
+### Cache Local no Estado dos Widgets
+- **Não implemente** repositories locais ou armazenamento local persistente
+- **Use** cache apenas no estado dos widgets para preservar dados durante navegação
+- **Implemente** variáveis de cache como `List<T>? _cachedData` nos StatefulWidgets
+- **Preserve** dados durante mudanças de estado do BLoC para melhor UX
 
-### Padrão Repository com Fontes Múltiplas
-- Crie repositories que abstraiam a origem dos dados (local vs remota)
-- Implemente cache inteligente: busque dados locais primeiro, depois da API
-- Use `connectivity_plus` para detectar status de conexão
-- Fallback automático para dados locais quando offline
-
-### Gestão de Estado Offline/Online
-- Estados devem refletir conectividade: `loading`, `loaded`, `offline`, `syncing`
-- Implemente filas de sincronização para ações pendentes quando offline
-- Use timestamps para resolver conflitos de sincronização
-- Notifique o usuário sobre status de sincronização
-
-### Estrutura de Implementação
+### Padrão de Cache em Widgets
 ```dart
-// Repository abstrato
-abstract class BaseRepository<T> {
-  Future<Either<Failure, List<T>>> getLocal();
-  Future<Either<Failure, List<T>>> getRemote();
-  Future<Either<Failure, T>> syncData(T entity);
-}
+class _FeatureScreenState extends State<FeatureScreen> {
+  List<EntityType>? _cachedEntities; // Cache local dos dados
 
-// Service para coordenar fontes
-class DataSyncService {
-  Future<void> syncAll();
-  Stream<SyncStatus> get syncStatus;
+  @override
+  void initState() {
+    super.initState();
+    _loadData();
+  }
+
+  void _loadData() {
+    context.read<FeatureBloc>().add(LoadDataEvent());
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocListener<FeatureBloc, FeatureState>(
+      listener: (context, state) {
+        // Atualizar cache quando dados são carregados
+        if (state is DataLoaded) {
+          _cachedEntities = state.entities;
+        }
+        
+        // Recarregar dados após operações CRUD
+        if (state is EntityCreated || state is EntityUpdated || state is EntityDeleted) {
+          _loadData();
+        }
+      },
+      child: BlocBuilder<FeatureBloc, FeatureState>(
+        builder: (context, state) {
+          // Mostrar loading apenas se não há cache
+          if (state is FeatureLoading && _cachedEntities == null) {
+            return const Center(child: CircularProgressIndicator());
+          }
+
+          // Usar dados do cache ou lista vazia
+          final entities = _cachedEntities ?? [];
+          
+          return RefreshIndicator(
+            onRefresh: () async => _loadData(),
+            child: ListView.builder(/* ... */),
+          );
+        },
+      ),
+    );
+  }
 }
 ```
 
-### Boas Práticas
-- Sempre implemente fallback local para funcionalidades críticas
-- Cache inteligente com verificação de conectividade via `InternetConnection()`
-- **Padrões de Repository Local:**
-  - Métodos síncronos para performance: `saveEntity`, `saveEntities`, `getAllEntities`
-  - Controle de sincronização: `getSynkedEntities`, `getNotSynkedEntities`
-  - Métodos de limpeza: `deleteSynkedEntities`, `deleteAllEntities`
-  - Parâmetro `isSynked` para controlar status de sincronização
-- **Serviços de Coordenação:**
-  - Verifiquem conectividade antes de decidir fonte de dados
-  - Usem remote repository quando online, local quando offline
-  - Retornem `ListBaseEntity<T>` para listagens consistentes
-- Sincronização incremental para otimizar performance
-- Feedback visual claro sobre status offline/online
-- Trate conflitos de dados de forma consistente
+### Gerenciamento de Estado com Cache
+- **Preserve** dados durante estados de loading para evitar telas em branco
+- **Recarregue** dados automaticamente após operações CRUD
+- **Use** `RefreshIndicator` para atualização manual
+- **Implemente** feedback visual adequado (SnackBar, CircularProgressIndicator)
+
+### Ciclo de Vida e Recarregamento
+```dart
+class _ScreenState extends State<Screen> with WidgetsBindingObserver {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _loadInitialData();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // Recarregar quando app volta para foreground
+    if (state == AppLifecycleState.resumed) {
+      _reloadDataIfNeeded();
+    }
+  }
+}
+```
+
+### Boas Práticas de Cache
+- **Não persista** dados além do ciclo de vida do widget
+- **Use** cache apenas para melhorar UX durante navegação
+- **Recarregue** dados sempre que necessário para manter atualização
+- **Implemente** tratamento de erro adequado quando API falha
 
 ## 5. Widgets e UI
 
@@ -211,91 +257,764 @@ class DataSyncService {
 ## 8. Implementação de Novas Features
 
 ### Checklist para Nova Feature
-Ao implementar uma nova feature (ex: `veterinario`), siga esta sequência:
+Ao implementar uma nova feature (ex: `veterinario`), siga esta sequência baseada no padrão implementado em **reprodução**:
 
 #### 1. Camada Domain
 - **Model**: `lib/domain/models/veterinario_entity.dart`
   - Estenda `BaseEntity`
   - Implemente `Equatable`
   - Use `copyWith` com `AgroNexusGetter<T>`
-  - Métodos `toJson()` e `fromJson()`
-  - Enums com `label` e `fromString()` se necessário
+  - Métodos `toJson()` e `fromJson()` seguindo snake_case para API
+  - Enums com `label`, `value` e `fromString()` se necessário
 
 #### 2. Repositories
 - **Remote**: `lib/domain/repositories/remote/veterinario/`
-  - `veterinario_remote_repository.dart`: contrato abstrato
-  - `veterinario_remote_repository_impl.dart`: implementação
-  - Retorne `Either<AgroNexusException, T>`
-  - Métodos: `list`, `getById`, `create`, `update`, `delete`
-- **Local**: `lib/domain/repositories/local/veterinario/`
-  - `veterinario_local_repository.dart`: contrato abstrato
-  - `veterinario_local_repository_impl.dart`: implementação
-  - Métodos síncronos com controle de `isSynked`
+  - `veterinario_remote_repository.dart`: contrato abstrato com métodos específicos
+  - `veterinario_repository_remote_impl.dart`: implementação com `HttpService`
+  - **Não use** `Either<AgroNexusException, T>` - retorne diretamente os tipos
+  - Use `AgroNexusException.fromDioError()` em blocos try-catch
+  - Métodos padrão: métodos específicos da feature conforme necessário
 
 #### 3. Service
 - **Service**: `lib/domain/services/veterinario_service.dart`
-  - Injete both repositories (remote e local)
-  - Verifique conectividade com `InternetConnection()`
-  - Priorize remote quando online, fallback para local
-  - Retorne `ListBaseEntity<T>` para listagens
+  - Injete apenas o remote repository
+  - **Não implemente** verificação de conectividade
+  - Service atua como passthrough para o repository
+  - Retorne os tipos diretamente sem `ListBaseEntity<T>`
 
 #### 4. Injeção de Dependências
 - **Registrar no GetIt**: `lib/config/inject_dependencies.dart`
-  - Registre repositories (local e remote)
+  - Registre repository remote
   - Registre service
   - Registre BLoC
 
 #### 5. Camada Presentation
 - **BLoC**: `lib/presentation/bloc/veterinario/`
-  - `veterinario_bloc.dart`: lógica principal
-  - `veterinario_events.dart`: eventos (Create, Update, Delete, List, etc.)
-  - `veterinario_state.dart`: estado com status enum
-  - Use `part of` e `part` para conectar arquivos
+  - `veterinario_bloc.dart`: lógica principal com handlers para cada evento
+  - `veterinario_event.dart`: eventos específicos estendendo classe base abstrata
+  - `veterinario_state.dart`: estados específicos estendendo classe base abstrata
+  - **Não use** `part of` e `part`
 - **Páginas**: `lib/presentation/veterinario/`
-  - Organize por funcionalidade
-  - Use `InternalScaffold` como base
-  - Implemente `BlocProvider` e `BlocListener`/`BlocBuilder`
+  - Organize por funcionalidade específica
+  - Use `Scaffold` como base
+  - Implemente `BlocProvider`, `BlocListener` e `BlocBuilder`
+  - Use `RefreshIndicator` para pull-to-refresh
+  - Implemente cache local de dados no estado do widget
 
 #### 6. Navegação
 - **Adicionar rotas**: `lib/config/routers/router.dart`
   - Defina rotas nomeadas
-  - Configure navegação no `AnBottomAppBar` se necessário
+  - Configure navegação conforme necessário
 
 ### Padrões de Nomeação para Features
-- Arquivos: `snake_case` (ex: `veterinario_entity.dart`)
+- Arquivos: `snake_case` (ex: `veterinario_entity.dart`, `veterinario_repository_remote_impl.dart`)
 - Classes: `PascalCase` (ex: `VeterinarioEntity`, `VeterinarioBloc`)
-- Enums: `PascalCase` (ex: `StatusVeterinario`)
+- Enums: `PascalCase` com `label` e `value` (ex: `StatusVeterinario`)
 - Variáveis: `camelCase` (ex: `veterinarioData`)
 - Pastas: `snake_case` (ex: `veterinario/`)
 
-### Template de Service
-```dart
-class VeterinarioService {
-  final VeterinarioRemoteRepository remoteRepository;
-  final VeterinarioLocalRepository localRepository;
+### Templates de Implementação
 
-  VeterinarioService({
-    required this.remoteRepository,
-    required this.localRepository,
+#### Template de Entity
+```dart
+import 'package:agronexus/domain/models/base_entity.dart';
+import 'package:agronexus/config/utils.dart';
+
+enum StatusVeterinario {
+  ativo(label: 'Ativo', value: 'ativo'),
+  inativo(label: 'Inativo', value: 'inativo');
+
+  final String label;
+  final String value;
+  const StatusVeterinario({required this.label, required this.value});
+
+  static StatusVeterinario fromString(String value) {
+    switch (value) {
+      case 'ativo':
+        return StatusVeterinario.ativo;
+      case 'inativo':
+        return StatusVeterinario.inativo;
+      default:
+        throw Exception('Invalid StatusVeterinario value: $value');
+    }
+  }
+}
+
+class VeterinarioEntity extends BaseEntity {
+  final String nome;
+  final String? crmv;
+  final StatusVeterinario status;
+
+  const VeterinarioEntity({
+    super.id,
+    super.createdById,
+    super.modifiedById,
+    super.createdAt,
+    super.modifiedAt,
+    required this.nome,
+    this.crmv,
+    required this.status,
   });
 
-  Future<ListBaseEntity<VeterinarioEntity>> listEntities({
-    int limit = 20,
-    int offset = 0,
-    String? search,
-  }) async {
-    bool hasConnection = await InternetConnection().hasInternetAccess;
-    if (hasConnection) {
-      final data = await remoteRepository.list(
-        limit: limit, offset: offset, search: search);
-      return data.getOrElse(() => throw Exception());
-    } else {
-      final List<VeterinarioEntity> data = await localRepository.getAllEntities();
-      return ListBaseEntity<VeterinarioEntity>.empty().copyWith(results: () => data);
+  @override
+  List<Object?> get props => [
+        ...super.props,
+        nome,
+        crmv,
+        status,
+      ];
+
+  VeterinarioEntity copyWith({
+    AgroNexusGetter<String?>? id,
+    AgroNexusGetter<String?>? createdById,
+    AgroNexusGetter<String?>? modifiedById,
+    AgroNexusGetter<String?>? createdAt,
+    AgroNexusGetter<String?>? modifiedAt,
+    AgroNexusGetter<String>? nome,
+    AgroNexusGetter<String?>? crmv,
+    AgroNexusGetter<StatusVeterinario>? status,
+  }) {
+    return VeterinarioEntity(
+      id: id != null ? id() : this.id,
+      createdById: createdById != null ? createdById() : this.createdById,
+      modifiedById: modifiedById != null ? modifiedById() : this.modifiedById,
+      createdAt: createdAt != null ? createdAt() : this.createdAt,
+      modifiedAt: modifiedAt != null ? modifiedAt() : this.modifiedAt,
+      nome: nome != null ? nome() : this.nome,
+      crmv: crmv != null ? crmv() : this.crmv,
+      status: status != null ? status() : this.status,
+    );
+  }
+
+  @override
+  Map<String, dynamic> toJson() {
+    final data = super.toJson();
+    data.addAll({
+      'nome': nome,
+      'crmv': crmv,
+      'status': status.value,
+    });
+    return data;
+  }
+
+  VeterinarioEntity.fromJson(Map<String, dynamic> json)
+      : nome = json['nome'] ?? '',
+        crmv = json['crmv'],
+        status = StatusVeterinario.fromString(json['status'] ?? 'ativo'),
+        super.fromJson(json);
+}
+```
+
+#### Template de Repository Remote
+```dart
+abstract class VeterinarioRepository {
+  Future<List<VeterinarioEntity>> getVeterinarios();
+  Future<VeterinarioEntity> getVeterinario(String id);
+  Future<VeterinarioEntity> createVeterinario(VeterinarioEntity veterinario);
+  Future<VeterinarioEntity> updateVeterinario(String id, VeterinarioEntity veterinario);
+  Future<void> deleteVeterinario(String id);
+}
+```
+
+#### Template de Repository Implementation
+```dart
+import 'package:agronexus/config/exceptions.dart';
+import 'package:agronexus/config/services/http.dart';
+import 'package:agronexus/domain/models/veterinario_entity.dart';
+import 'package:agronexus/domain/repositories/remote/veterinario/veterinario_remote_repository.dart';
+import 'package:dio/dio.dart';
+import 'package:agronexus/config/api.dart';
+
+class VeterinarioRepositoryImpl implements VeterinarioRepository {
+  final HttpService httpService;
+
+  VeterinarioRepositoryImpl({required this.httpService});
+
+  @override
+  Future<List<VeterinarioEntity>> getVeterinarios() async {
+    try {
+      Response response = await httpService.get(
+        path: API.veterinarios,
+        isAuth: true,
+      );
+      List<dynamic> data = response.data['results'] ?? response.data;
+      return data.map((json) => VeterinarioEntity.fromJson(json)).toList();
+    } catch (e) {
+      throw await AgroNexusException.fromDioError(e);
+    }
+  }
+
+  @override
+  Future<VeterinarioEntity> getVeterinario(String id) async {
+    try {
+      Response response = await httpService.get(
+        path: API.veterinarioById(id),
+        isAuth: true,
+      );
+      return VeterinarioEntity.fromJson(response.data);
+    } catch (e) {
+      throw await AgroNexusException.fromDioError(e);
+    }
+  }
+
+  // Implementar outros métodos seguindo o mesmo padrão...
+}
+```
+
+#### Template de Service
+```dart
+import 'package:agronexus/domain/models/veterinario_entity.dart';
+import 'package:agronexus/domain/repositories/remote/veterinario/veterinario_remote_repository.dart';
+
+class VeterinarioService {
+  final VeterinarioRepository _repository;
+
+  VeterinarioService(this._repository);
+
+  Future<List<VeterinarioEntity>> getVeterinarios() async {
+    return await _repository.getVeterinarios();
+  }
+
+  Future<VeterinarioEntity> getVeterinario(String id) async {
+    return await _repository.getVeterinario(id);
+  }
+
+  Future<VeterinarioEntity> createVeterinario(VeterinarioEntity veterinario) async {
+    return await _repository.createVeterinario(veterinario);
+  }
+
+  // Implementar outros métodos como passthrough...
+}
+```
+
+#### Template de BLoC Events
+```dart
+import 'package:equatable/equatable.dart';
+import 'package:agronexus/domain/models/veterinario_entity.dart';
+
+abstract class VeterinarioEvent extends Equatable {
+  const VeterinarioEvent();
+
+  @override
+  List<Object?> get props => [];
+}
+
+class LoadVeterinariosEvent extends VeterinarioEvent {
+  const LoadVeterinariosEvent();
+}
+
+class CreateVeterinarioEvent extends VeterinarioEvent {
+  final VeterinarioEntity veterinario;
+
+  const CreateVeterinarioEvent(this.veterinario);
+
+  @override
+  List<Object> get props => [veterinario];
+}
+
+class UpdateVeterinarioEvent extends VeterinarioEvent {
+  final String id;
+  final VeterinarioEntity veterinario;
+
+  const UpdateVeterinarioEvent(this.id, this.veterinario);
+
+  @override
+  List<Object> get props => [id, veterinario];
+}
+
+class DeleteVeterinarioEvent extends VeterinarioEvent {
+  final String id;
+
+  const DeleteVeterinarioEvent(this.id);
+
+  @override
+  List<Object> get props => [id];
+}
+```
+
+#### Template de BLoC States
+```dart
+import 'package:equatable/equatable.dart';
+import 'package:agronexus/domain/models/veterinario_entity.dart';
+
+abstract class VeterinarioState extends Equatable {
+  const VeterinarioState();
+
+  @override
+  List<Object?> get props => [];
+}
+
+class VeterinarioInitial extends VeterinarioState {}
+
+class VeterinarioLoading extends VeterinarioState {}
+
+class VeterinariosLoaded extends VeterinarioState {
+  final List<VeterinarioEntity> veterinarios;
+
+  const VeterinariosLoaded(this.veterinarios);
+
+  @override
+  List<Object> get props => [veterinarios];
+}
+
+class VeterinarioCreated extends VeterinarioState {
+  final VeterinarioEntity veterinario;
+
+  const VeterinarioCreated(this.veterinario);
+
+  @override
+  List<Object> get props => [veterinario];
+}
+
+class VeterinarioUpdated extends VeterinarioState {
+  final VeterinarioEntity veterinario;
+
+  const VeterinarioUpdated(this.veterinario);
+
+  @override
+  List<Object> get props => [veterinario];
+}
+
+class VeterinarioDeleted extends VeterinarioState {
+  final String id;
+
+  const VeterinarioDeleted(this.id);
+
+  @override
+  List<Object> get props => [id];
+}
+
+class VeterinarioError extends VeterinarioState {
+  final String message;
+
+  const VeterinarioError(this.message);
+
+  @override
+  List<Object> get props => [message];
+}
+```
+
+#### Template de BLoC Principal
+```dart
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:agronexus/domain/services/veterinario_service.dart';
+import 'package:agronexus/presentation/bloc/veterinario/veterinario_event.dart';
+import 'package:agronexus/presentation/bloc/veterinario/veterinario_state.dart';
+
+class VeterinarioBloc extends Bloc<VeterinarioEvent, VeterinarioState> {
+  final VeterinarioService _service;
+
+  VeterinarioBloc(this._service) : super(VeterinarioInitial()) {
+    on<LoadVeterinariosEvent>(_onLoadVeterinarios);
+    on<CreateVeterinarioEvent>(_onCreateVeterinario);
+    on<UpdateVeterinarioEvent>(_onUpdateVeterinario);
+    on<DeleteVeterinarioEvent>(_onDeleteVeterinario);
+  }
+
+  Future<void> _onLoadVeterinarios(LoadVeterinariosEvent event, Emitter<VeterinarioState> emit) async {
+    emit(VeterinarioLoading());
+    try {
+      final veterinarios = await _service.getVeterinarios();
+      emit(VeterinariosLoaded(veterinarios));
+    } catch (e) {
+      emit(VeterinarioError(e.toString()));
+    }
+  }
+
+  Future<void> _onCreateVeterinario(CreateVeterinarioEvent event, Emitter<VeterinarioState> emit) async {
+    emit(VeterinarioLoading());
+    try {
+      final veterinario = await _service.createVeterinario(event.veterinario);
+      emit(VeterinarioCreated(veterinario));
+    } catch (e) {
+      emit(VeterinarioError(e.toString()));
+    }
+  }
+
+  // Implementar outros handlers seguindo o mesmo padrão...
+}
+```
+
+### Padrões de UI
+
+#### Template de Tela de Listagem
+```dart
+import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:agronexus/presentation/bloc/veterinario/veterinario_bloc.dart';
+import 'package:agronexus/presentation/bloc/veterinario/veterinario_event.dart';
+import 'package:agronexus/presentation/bloc/veterinario/veterinario_state.dart';
+import 'package:agronexus/domain/models/veterinario_entity.dart';
+
+class VeterinarioScreen extends StatefulWidget {
+  const VeterinarioScreen({super.key});
+
+  @override
+  State<VeterinarioScreen> createState() => _VeterinarioScreenState();
+}
+
+class _VeterinarioScreenState extends State<VeterinarioScreen> {
+  List<VeterinarioEntity>? _cachedVeterinarios;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadVeterinarios();
+  }
+
+  void _loadVeterinarios() {
+    context.read<VeterinarioBloc>().add(const LoadVeterinariosEvent());
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Veterinários')),
+      body: RefreshIndicator(
+        onRefresh: () async => _loadVeterinarios(),
+        child: BlocListener<VeterinarioBloc, VeterinarioState>(
+          listener: (context, state) {
+            if (state is VeterinariosLoaded) {
+              _cachedVeterinarios = state.veterinarios;
+            }
+            // Implementar outros listeners conforme necessário...
+          },
+          child: BlocBuilder<VeterinarioBloc, VeterinarioState>(
+            builder: (context, state) {
+              if (state is VeterinarioLoading && _cachedVeterinarios == null) {
+                return const Center(child: CircularProgressIndicator());
+              }
+
+              final veterinarios = _cachedVeterinarios ?? [];
+
+              if (veterinarios.isEmpty) {
+                return const Center(child: Text('Nenhum veterinário encontrado'));
+              }
+
+              return ListView.builder(
+                itemCount: veterinarios.length,
+                itemBuilder: (context, index) {
+                  final veterinario = veterinarios[index];
+                  return ListTile(
+                    title: Text(veterinario.nome),
+                    subtitle: Text(veterinario.crmv ?? 'CRMV não informado'),
+                    trailing: Text(veterinario.status.label),
+                  );
+                },
+              );
+            },
+          ),
+        ),
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {
+          // Navegar para tela de cadastro
+        },
+        child: const Icon(Icons.add),
+      ),
+    );
+  }
+}
+```
+
+### Observações Importantes
+- **Não implemente** repositories locais nem verificação de conectividade
+- **Use** cache local apenas no estado dos widgets para preservar dados durante navegação
+- **Sempre** implemente `RefreshIndicator` para atualização manual
+- **Use** try-catch com `AgroNexusException.fromDioError()` nos repositories
+- **Mantenha** states específicos para cada ação (Loading, Loaded, Created, Updated, etc.)
+
+### Padrões de Implementação de Telas Complexas
+
+#### Estrutura de Telas com Múltiplas Funcionalidades (Baseado em Reprodução)
+
+**Tela Principal com Abas (ex: ManejoReprodutivoScreen)**
+```dart
+class ManejoReprodutivoScreen extends StatefulWidget {
+  const ManejoReprodutivoScreen({super.key});
+
+  @override
+  State<ManejoReprodutivoScreen> createState() => _ManejoReprodutivoScreenState();
+}
+
+class _ManejoReprodutivoScreenState extends State<ManejoReprodutivoScreen> with TickerProviderStateMixin, WidgetsBindingObserver {
+  late TabController _tabController;
+  Map<String, dynamic>? _resumoData; // Cache local de dados
+
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: 6, vsync: this);
+    WidgetsBinding.instance.addObserver(this);
+    
+    // Carregar dados apenas se cache não existe
+    if (_resumoData == null) {
+      context.read<ReproducaoBloc>().add(LoadResumoReproducaoEvent());
+    }
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _tabController.dispose();
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // Recarregar quando app volta para foreground
+    if (state == AppLifecycleState.resumed) {
+      _recarregarDadosSeNecessario();
     }
   }
 }
 ```
+
+**Tela de Listagem com Cache (ex: InseminacaoScreen)**
+```dart
+class InseminacaoScreen extends StatefulWidget {
+  const InseminacaoScreen({super.key});
+
+  @override
+  State<InseminacaoScreen> createState() => _InseminacaoScreenState();
+}
+
+class _InseminacaoScreenState extends State<InseminacaoScreen> {
+  final DateFormat _dateFormat = DateFormat('dd/MM/yyyy');
+  bool _isInitialized = false;
+  List<InseminacaoEntity>? _cachedInseminacoes; // Cache local
+
+  @override
+  void initState() {
+    super.initState();
+    _loadInseminacoes();
+  }
+
+  void _loadInseminacoes() {
+    final now = DateTime.now();
+    final inicio = DateTime(now.year, now.month - 3, 1);
+    context.read<ReproducaoBloc>().add(
+      LoadInseminacoesEvent(dataInicio: inicio, dataFim: now),
+    );
+    _isInitialized = true;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: RefreshIndicator(
+        onRefresh: () async => _loadInseminacoes(),
+        child: BlocListener<ReproducaoBloc, ReproducaoState>(
+          listener: (context, state) {
+            // Preservar cache durante mudanças de estado
+            if (state is InseminacoesLoaded) {
+              _cachedInseminacoes = state.inseminacoes;
+            }
+            
+            if (state is InseminacaoCreated || state is InseminacaoUpdated || state is InseminacaoDeleted) {
+              _loadInseminacoes(); // Recarregar lista após operações CRUD
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('Operação realizada com sucesso!')),
+              );
+            }
+            
+            if (state is ReproducaoError) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text(state.message)),
+              );
+            }
+          },
+          child: BlocBuilder<ReproducaoBloc, ReproducaoState>(
+            builder: (context, state) {
+              if (state is InseminacoesLoading && _cachedInseminacoes == null) {
+                return const Center(child: CircularProgressIndicator());
+              }
+
+              final inseminacoes = _cachedInseminacoes ?? [];
+              
+              if (inseminacoes.isEmpty) {
+                return const Center(child: Text('Nenhuma inseminação encontrada'));
+              }
+
+              return ListView.builder(
+                itemCount: inseminacoes.length,
+                itemBuilder: (context, index) {
+                  final inseminacao = inseminacoes[index];
+                  return Card(
+                    child: ListTile(
+                      title: Text(inseminacao.animal?.identificacao ?? 'Animal não identificado'),
+                      subtitle: Text(_dateFormat.format(DateTime.parse(inseminacao.dataInseminacao))),
+                      trailing: PopupMenuButton(
+                        itemBuilder: (context) => [
+                          PopupMenuItem(
+                            child: Text('Editar'),
+                            onTap: () {
+                              Navigator.push(context, MaterialPageRoute(
+                                builder: (context) => EditarInseminacaoScreen(inseminacao: inseminacao),
+                              ));
+                            },
+                          ),
+                          PopupMenuItem(
+                            child: Text('Excluir'),
+                            onTap: () => _confirmarExclusao(inseminacao.id!),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              );
+            },
+          ),
+        ),
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {
+          Navigator.push(context, MaterialPageRoute(
+            builder: (context) => const CadastroInseminacaoScreen(),
+          ));
+        },
+        child: const Icon(Icons.add),
+      ),
+    );
+  }
+}
+```
+
+**Tela de Formulário (ex: CadastroInseminacaoScreen)**
+```dart
+class CadastroInseminacaoScreen extends StatefulWidget {
+  const CadastroInseminacaoScreen({super.key});
+
+  @override
+  State<CadastroInseminacaoScreen> createState() => _CadastroInseminacaoScreenState();
+}
+
+class _CadastroInseminacaoScreenState extends State<CadastroInseminacaoScreen> {
+  final _formKey = GlobalKey<FormState>();
+  final DateFormat _dateFormat = DateFormat('dd/MM/yyyy');
+
+  // Controllers para campos de texto
+  final _dataInseminacaoController = TextEditingController();
+  final _semenUtilizadoController = TextEditingController();
+  final _observacoesController = TextEditingController();
+
+  // Campos selecionados
+  AnimalEntity? _animalSelecionado;
+  AnimalEntity? _reprodutorSelecionado;
+  TipoInseminacao? _tipoSelecionado;
+  
+  // Opções disponíveis (carregadas da API)
+  OpcoesCadastroInseminacao? _opcoes;
+
+  DateTime _dataSelecionada = DateTime.now();
+  bool _isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _dataInseminacaoController.text = _dateFormat.format(_dataSelecionada);
+    _carregarOpcoes();
+  }
+
+  void _carregarOpcoes() {
+    context.read<ReproducaoBloc>().add(LoadOpcoesCadastroInseminacaoEvent());
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Cadastrar Inseminação'),
+        actions: [
+          TextButton(
+            onPressed: _isLoading ? null : _salvar,
+            child: _isLoading 
+              ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+              : const Text('Salvar'),
+          ),
+        ],
+      ),
+      body: BlocListener<ReproducaoBloc, ReproducaoState>(
+        listener: (context, state) {
+          if (state is OpcoesCadastroInseminacaoLoaded) {
+            setState(() => _opcoes = state.opcoes);
+          }
+          
+          if (state is InseminacaoCreated) {
+            Navigator.pop(context);
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Inseminação cadastrada com sucesso!')),
+            );
+          }
+          
+          if (state is ReproducaoError) {
+            setState(() => _isLoading = false);
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text(state.message)),
+            );
+          }
+        },
+        child: Form(
+          key: _formKey,
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              children: [
+                // Campo de seleção de animal
+                AnimalSearchField(
+                  labelText: 'Selecionar Animal *',
+                  onAnimalSelected: (animal) => setState(() => _animalSelecionado = animal),
+                  validator: (value) => _animalSelecionado == null ? 'Selecione um animal' : null,
+                ),
+                
+                const SizedBox(height: 16),
+                
+                // Campo de data
+                TextFormField(
+                  controller: _dataInseminacaoController,
+                  decoration: const InputDecoration(
+                    labelText: 'Data da Inseminação *',
+                    suffixIcon: Icon(Icons.calendar_today),
+                  ),
+                  readOnly: true,
+                  onTap: _selecionarData,
+                  validator: (value) => value?.isEmpty == true ? 'Selecione a data' : null,
+                ),
+                
+                // Outros campos do formulário...
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _salvar() async {
+    if (!_formKey.currentState!.validate()) return;
+    
+    setState(() => _isLoading = true);
+    
+    final inseminacao = InseminacaoEntity(
+      animal: _animalSelecionado,
+      dataInseminacao: _dataSelecionada.toIso8601String(),
+      tipo: _tipoSelecionado!,
+      // outros campos...
+    );
+    
+    context.read<ReproducaoBloc>().add(CreateInseminacaoEvent(inseminacao));
+  }
+}
+```
+
+### Padrões de Navegação e Fluxo
+- **Use** `Navigator.push` para telas de CRUD individual
+- **Implemente** `AppLifecycleState` para recarregar dados quando app volta ao foreground
+- **Preserve** dados em cache local durante mudanças de estado
+- **Valide** formulários antes de enviar dados
+- **Mostre** feedback visual (SnackBar) para operações CRUD
+- **Use** `RefreshIndicator` em todas as listas para pull-to-refresh
 
 ## 9. Commits e Branches
 

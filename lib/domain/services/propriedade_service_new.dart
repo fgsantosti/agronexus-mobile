@@ -1,10 +1,10 @@
 import 'package:agronexus/domain/models/propriedade_entity.dart';
 import 'package:agronexus/domain/repositories/remote/propriedade/propriedade_remote_repository.dart';
 
-class PropriedadeService {
+class PropriedadeServiceNew {
   final PropriedadeRemoteRepository _repository;
 
-  PropriedadeService(this._repository);
+  PropriedadeServiceNew(this._repository);
 
   Future<List<PropriedadeEntity>> getPropriedades({
     int limit = 20,
@@ -32,30 +32,5 @@ class PropriedadeService {
 
   Future<void> deletePropriedade(String id) async {
     return await _repository.deletePropriedade(id);
-  }
-
-  // Métodos para compatibilidade com o BLoC legado
-  Future<List<PropriedadeEntity>> listEntities({
-    int limit = 20,
-    int offset = 0,
-    String? search,
-  }) async {
-    return await getPropriedades(limit: limit, offset: offset, search: search);
-  }
-
-  Future<PropriedadeEntity> createEntity({required PropriedadeEntity entity}) async {
-    return await createPropriedade(entity);
-  }
-
-  Future<PropriedadeEntity> updateEntity({required PropriedadeEntity entity}) async {
-    return await updatePropriedade(entity.id!, entity);
-  }
-
-  Future<void> deleteEntity({required String id}) async {
-    return await deletePropriedade(id);
-  }
-
-  Future<PropriedadeEntity> getEntity({required String id}) async {
-    return await getPropriedade(id);
   }
 }
