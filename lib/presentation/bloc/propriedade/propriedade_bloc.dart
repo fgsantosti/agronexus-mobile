@@ -26,15 +26,14 @@ class PropriedadeBloC extends Bloc<PropriedadeEvent, PropriedadeState> {
   ) async {
     emit(PropriedadeLoading());
     try {
-      final result = await service.listEntities(
+      final entities = await service.listEntities(
         limit: event.limit ?? 20,
         offset: event.offset ?? 0,
         search: event.search,
       );
 
-      final entities = result.results ?? [];
       final hasReachedMax = entities.length < (event.limit ?? 20);
-      
+
       emit(PropriedadeListLoaded(
         entities: entities,
         hasReachedMax: hasReachedMax,
