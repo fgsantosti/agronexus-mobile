@@ -2,18 +2,22 @@ import 'package:agronexus/config/inject_dependencies.dart';
 import 'package:agronexus/config/routers/utils.dart';
 import 'package:agronexus/domain/models/fazenda_entity.dart';
 import 'package:agronexus/domain/models/propriedade_entity.dart';
+import 'package:agronexus/domain/models/lote_entity.dart';
 import 'package:agronexus/domain/services/propriedade_service_new.dart';
 import 'package:agronexus/domain/services/reproducao_service.dart';
+import 'package:agronexus/domain/services/lote_service.dart';
 import 'package:agronexus/presentation/bloc/animal/animal_bloc.dart';
 import 'package:agronexus/presentation/bloc/fazenda/fazenda_bloc.dart';
 import 'package:agronexus/presentation/bloc/login/login_bloc.dart';
 import 'package:agronexus/presentation/bloc/propriedade/propriedade_bloc.dart';
 import 'package:agronexus/presentation/bloc/propriedade/propriedade_bloc_new.dart';
+import 'package:agronexus/presentation/bloc/lote/lote_bloc.dart';
 import 'package:agronexus/presentation/animal/animal_detail_screen.dart';
 import 'package:agronexus/presentation/animal/animal_edit_screen.dart';
 import 'package:agronexus/presentation/animal/animal_form_screen.dart';
 import 'package:agronexus/presentation/animal/animal_list_screen.dart';
 import 'package:agronexus/presentation/bloc/propriedade/propriedade_event_new.dart';
+import 'package:agronexus/presentation/bloc/lote/lote_events.dart';
 import 'package:agronexus/presentation/bloc/reproducao/reproducao_bloc.dart';
 import 'package:agronexus/presentation/cubit/bottom_bar/bottom_bar_cubit.dart';
 import 'package:agronexus/presentation/fazenda/screens/fazenda_add_screen.dart';
@@ -24,6 +28,10 @@ import 'package:agronexus/presentation/propriedade/cadastro_propriedade_screen.d
 import 'package:agronexus/presentation/propriedade/detalhes_propriedade_screen.dart';
 import 'package:agronexus/presentation/propriedade/editar_propriedade_screen.dart';
 import 'package:agronexus/presentation/propriedade/propriedade_screen.dart';
+import 'package:agronexus/presentation/lote/lote_screen.dart';
+import 'package:agronexus/presentation/lote/cadastro_lote_screen.dart';
+import 'package:agronexus/presentation/lote/detalhes_lote_screen.dart';
+import 'package:agronexus/presentation/lote/editar_lote_screen.dart';
 import 'package:agronexus/presentation/reproducao/manejo_reprodutivo_screen.dart';
 import 'package:agronexus/presentation/splash/splash_screen.dart';
 import 'package:agronexus/presentation/widgets/internal_scaffold.dart';
@@ -312,9 +320,70 @@ enum AgroNexusRouter {
                 key: state.pageKey,
                 transitionDuration: RoutesUtils.duration,
                 transitionsBuilder: RoutesUtils.transitionBuilder,
-                child: Center(child: Text("Lotes")),
+                child: MultiBlocProvider(
+                  providers: [
+                    BlocProvider(
+                      create: (context) => LoteBloc(getIt<LoteService>())..add(const LoadLotesEvent()),
+                    ),
+                  ],
+                  child: LoteScreen(),
+                ),
               );
             },
+            routes: [
+              // ADD
+              GoRoute(
+                path: add,
+                pageBuilder: (context, state) {
+                  return CustomTransitionPage(
+                    key: state.pageKey,
+                    transitionDuration: RoutesUtils.duration,
+                    transitionsBuilder: RoutesUtils.transitionBuilder,
+                    child: MultiBlocProvider(
+                      providers: [
+                        BlocProvider(
+                          create: (context) => LoteBloc(getIt<LoteService>()),
+                        ),
+                      ],
+                      child: CadastroLoteScreen(),
+                    ),
+                  );
+                },
+              ),
+              // EDIT
+              GoRoute(
+                path: edit,
+                pageBuilder: (context, state) {
+                  final LoteEntity lote = state.extra as LoteEntity;
+                  return CustomTransitionPage(
+                    key: state.pageKey,
+                    transitionDuration: RoutesUtils.duration,
+                    transitionsBuilder: RoutesUtils.transitionBuilder,
+                    child: MultiBlocProvider(
+                      providers: [
+                        BlocProvider(
+                          create: (context) => LoteBloc(getIt<LoteService>()),
+                        ),
+                      ],
+                      child: EditarLoteScreen(lote: lote),
+                    ),
+                  );
+                },
+              ),
+              // DETAIL
+              GoRoute(
+                path: detail,
+                pageBuilder: (context, state) {
+                  final LoteEntity lote = state.extra as LoteEntity;
+                  return CustomTransitionPage(
+                    key: state.pageKey,
+                    transitionDuration: RoutesUtils.duration,
+                    transitionsBuilder: RoutesUtils.transitionBuilder,
+                    child: DetalhesLoteScreen(lote: lote),
+                  );
+                },
+              ),
+            ],
           ),
           // ANIMAIS SCREEN
           GoRoute(

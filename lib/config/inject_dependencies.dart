@@ -8,8 +8,6 @@ import 'package:agronexus/domain/repositories/local/dashboard/dashboard_local_re
 import 'package:agronexus/domain/repositories/local/dashboard/dashboard_local_repository_impl.dart';
 import 'package:agronexus/domain/repositories/local/fazenda/fazenda_local_repository.dart';
 import 'package:agronexus/domain/repositories/local/fazenda/fazenda_local_repository_impl.dart';
-import 'package:agronexus/domain/repositories/local/lote/lote_local_repository.dart';
-import 'package:agronexus/domain/repositories/local/lote/lote_local_repository_impl.dart';
 import 'package:agronexus/domain/repositories/local/user/user_local_repository.dart';
 import 'package:agronexus/domain/repositories/local/user/user_local_repository_impl.dart';
 import 'package:agronexus/domain/repositories/remote/animal/animal_remote_repository.dart';
@@ -19,6 +17,7 @@ import 'package:agronexus/domain/repositories/remote/auth/auth_repository_impl.d
 import 'package:agronexus/domain/repositories/remote/dashboard/dashboard_remote_repository.dart';
 import 'package:agronexus/domain/repositories/remote/dashboard/dashboard_remote_repository_impl.dart';
 import 'package:agronexus/presentation/bloc/animal/animal_bloc.dart';
+import 'package:agronexus/presentation/bloc/lote/lote_bloc.dart';
 import 'package:agronexus/domain/repositories/remote/fazenda/fazenda_remote_repository.dart';
 import 'package:agronexus/domain/repositories/remote/fazenda/fazenda_remote_repository_impl.dart';
 import 'package:agronexus/domain/repositories/remote/lote/lote_remote_repository.dart';
@@ -90,12 +89,11 @@ void configureDependencies() {
     ),
   );
 
-  getIt.registerSingleton<LoteLocalRepository>(LoteLocalRepositoryImpl());
   getIt.registerSingleton<LoteRemoteRepository>(
     LoteRemoteRepositoryImpl(httpService: getIt()),
   );
   getIt.registerSingleton<LoteService>(
-    LoteService(localRepository: getIt(), remoteRepository: getIt()),
+    LoteService(getIt()),
   );
 
   getIt.registerSingleton<PropriedadeRemoteRepository>(
@@ -121,5 +119,8 @@ void configureDependencies() {
   // BLoCs
   getIt.registerFactory<AnimalBloc>(
     () => AnimalBloc(getIt()),
+  );
+  getIt.registerFactory<LoteBloc>(
+    () => LoteBloc(getIt()),
   );
 }
