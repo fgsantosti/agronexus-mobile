@@ -324,7 +324,10 @@ enum AgroNexusRouter {
                 key: state.pageKey,
                 transitionDuration: RoutesUtils.duration,
                 transitionsBuilder: RoutesUtils.transitionBuilder,
-                child: const AnimalListScreen(),
+                child: BlocProvider<AnimalBloc>(
+                  create: (context) => getIt<AnimalBloc>(),
+                  child: const AnimalListScreen(),
+                ),
               );
             },
             routes: [

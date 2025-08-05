@@ -1,22 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:agronexus/presentation/bloc/animal/animal_bloc.dart';
-import 'package:agronexus/presentation/bloc/animal/animal_event.dart';
-import 'package:agronexus/presentation/bloc/animal/animal_state.dart';
-import 'package:agronexus/domain/models/animal_entity.dart';
-import 'package:agronexus/presentation/screens/animal/animal_form_screen.dart';
-import 'package:agronexus/presentation/screens/animal/animal_detail_screen.dart';
-import 'package:agronexus/config/inject_dependencies.dart';
+import 'package:go_router/go_router.dart';
+import '../../../domain/models/animal_entity.dart';
+import '../../bloc/animal/animal_bloc.dart';
+import '../../bloc/animal/animal_event.dart';
+import '../../bloc/animal/animal_state.dart';
+import 'animal_form_screen.dart';
 
 class AnimalListScreen extends StatelessWidget {
-  const AnimalListScreen({Key? key}) : super(key: key);
+  const AnimalListScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider<AnimalBloc>(
-      create: (context) => getIt<AnimalBloc>(),
-      child: const _AnimalListContent(),
-    );
+    return const _AnimalListContent();
   }
 }
 
@@ -27,35 +23,47 @@ class _AnimalListContent extends StatefulWidget {
   State<_AnimalListContent> createState() => _AnimalListContentState();
 }
 
-class _AnimalListContentState extends State<_AnimalListContent> {
+class _AnimalListContentState extends State<_AnimalListContent> with WidgetsBindingObserver {
   final ScrollController _scrollController = ScrollController();
   final TextEditingController _searchController = TextEditingController();
+
+  // Cache local dos dados conforme padrão das instruções
+  List<AnimalEntity>? _cachedAnimais;
 
   @override
   void initState() {
     super.initState();
-
-    // Aguardar o próximo frame para garantir que o BLoC está pronto
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) {
-        context.read<AnimalBloc>().add(const LoadAnimaisEvent());
-      }
-    });
-
-    _scrollController.addListener(() {
-      if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent * 0.8) {
-        if (mounted) {
-          context.read<AnimalBloc>().add(const NextPageAnimaisEvent());
-        }
-      }
-    });
+    WidgetsBinding.instance.addObserver(this);
+    _scrollController.addListener(_scrollListener);
+    _loadAnimais();
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _scrollController.dispose();
     _searchController.dispose();
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // Recarregar quando app volta para foreground
+    if (state == AppLifecycleState.resumed) {
+      _loadAnimais();
+    }
+  }
+
+  void _loadAnimais() {
+    context.read<AnimalBloc>().add(const LoadAnimaisEvent());
+  }
+
+  void _scrollListener() {
+    if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent * 0.8) {
+      if (mounted) {
+        context.read<AnimalBloc>().add(const NextPageAnimaisEvent());
+      }
+    }
   }
 
   void _onSearch(String query) {
@@ -81,112 +89,135 @@ class _AnimalListContentState extends State<_AnimalListContent> {
               )
                   .then((_) {
                 // Recarregar lista após voltar do cadastro
-                context.read<AnimalBloc>().add(const LoadAnimaisEvent());
+                _loadAnimais();
               });
             },
           ),
         ],
       ),
-      body: Column(
-        children: [
-          // Barra de pesquisa
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: TextField(
-              controller: _searchController,
-              decoration: InputDecoration(
-                hintText: 'Pesquisar animais...',
-                prefixIcon: const Icon(Icons.search),
-                suffixIcon: _searchController.text.isNotEmpty
-                    ? IconButton(
-                        icon: const Icon(Icons.clear),
-                        onPressed: () {
-                          _searchController.clear();
-                          _onSearch('');
-                        },
-                      )
-                    : null,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(10),
-                ),
-              ),
-              onChanged: _onSearch,
-            ),
-          ),
-
-          // Lista de animais
-          Expanded(
-            child: BlocBuilder<AnimalBloc, AnimalState>(
-              builder: (context, state) {
-                if (state is AnimalLoading) {
-                  return const Center(child: CircularProgressIndicator());
-                }
-
-                if (state is AnimalError) {
-                  return Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.error, size: 64, color: Colors.red),
-                        const SizedBox(height: 16),
-                        Text(
-                          state.message,
-                          style: const TextStyle(fontSize: 16),
-                          textAlign: TextAlign.center,
-                        ),
-                        const SizedBox(height: 16),
-                        ElevatedButton(
+      body: RefreshIndicator(
+        onRefresh: () async => _loadAnimais(),
+        child: Column(
+          children: [
+            // Barra de pesquisa
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: TextField(
+                controller: _searchController,
+                decoration: InputDecoration(
+                  hintText: 'Pesquisar animais...',
+                  prefixIcon: const Icon(Icons.search),
+                  suffixIcon: _searchController.text.isNotEmpty
+                      ? IconButton(
+                          icon: const Icon(Icons.clear),
                           onPressed: () {
-                            context.read<AnimalBloc>().add(const LoadAnimaisEvent());
+                            _searchController.clear();
+                            _onSearch('');
                           },
-                          child: const Text('Tentar novamente'),
-                        ),
-                      ],
-                    ),
-                  );
-                }
+                        )
+                      : null,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+                onChanged: _onSearch,
+              ),
+            ),
 
-                if (state is AnimaisLoaded) {
-                  if (state.animais.isEmpty) {
-                    return const Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(Icons.pets, size: 64, color: Colors.grey),
-                          SizedBox(height: 16),
-                          Text(
-                            'Nenhum animal encontrado',
-                            style: TextStyle(fontSize: 16, color: Colors.grey),
-                          ),
-                        ],
-                      ),
+            // Lista de animais
+            Expanded(
+              child: BlocListener<AnimalBloc, AnimalState>(
+                listener: (context, state) {
+                  // Atualizar cache quando dados são carregados
+                  if (state is AnimaisLoaded) {
+                    _cachedAnimais = state.animais;
+                  }
+
+                  // Mostrar mensagens de feedback
+                  if (state is AnimalCreated || state is AnimalUpdated || state is AnimalDeleted) {
+                    _loadAnimais();
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Operação realizada com sucesso!')),
                     );
                   }
 
-                  return ListView.builder(
-                    controller: _scrollController,
-                    itemCount: state.animais.length + (state.hasMore ? 1 : 0),
-                    itemBuilder: (context, index) {
-                      if (index == state.animais.length) {
-                        return const Center(
-                          child: Padding(
-                            padding: EdgeInsets.all(16.0),
-                            child: CircularProgressIndicator(),
-                          ),
-                        );
-                      }
+                  if (state is AnimalError) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text(state.message)),
+                    );
+                  }
+                },
+                child: BlocBuilder<AnimalBloc, AnimalState>(
+                  builder: (context, state) {
+                    // Mostrar loading apenas se não há cache
+                    if (state is AnimalLoading && _cachedAnimais == null) {
+                      return const Center(child: CircularProgressIndicator());
+                    }
 
-                      final animal = state.animais[index];
-                      return _buildAnimalCard(animal);
-                    },
-                  );
-                }
+                    // Usar dados do cache ou lista vazia
+                    final animais = _cachedAnimais ?? [];
 
-                return const SizedBox.shrink();
-              },
+                    if (state is AnimalError && _cachedAnimais == null) {
+                      return Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(Icons.error, size: 64, color: Colors.red),
+                            const SizedBox(height: 16),
+                            Text(
+                              state.message,
+                              style: const TextStyle(fontSize: 16),
+                              textAlign: TextAlign.center,
+                            ),
+                            const SizedBox(height: 16),
+                            ElevatedButton(
+                              onPressed: _loadAnimais,
+                              child: const Text('Tentar novamente'),
+                            ),
+                          ],
+                        ),
+                      );
+                    }
+
+                    if (animais.isEmpty) {
+                      return const Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.pets, size: 64, color: Colors.grey),
+                            SizedBox(height: 16),
+                            Text(
+                              'Nenhum animal encontrado',
+                              style: TextStyle(fontSize: 16, color: Colors.grey),
+                            ),
+                          ],
+                        ),
+                      );
+                    }
+
+                    return ListView.builder(
+                      controller: _scrollController,
+                      itemCount: animais.length + ((state is AnimaisLoaded && state.hasMore) ? 1 : 0),
+                      itemBuilder: (context, index) {
+                        if (index == animais.length) {
+                          return const Center(
+                            child: Padding(
+                              padding: EdgeInsets.all(16.0),
+                              child: CircularProgressIndicator(),
+                            ),
+                          );
+                        }
+
+                        final animal = animais[index];
+                        return _buildAnimalCard(animal);
+                      },
+                    );
+                  },
+                ),
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -238,11 +269,7 @@ class _AnimalListContentState extends State<_AnimalListContent> {
           ],
         ),
         onTap: () {
-          Navigator.of(context).push(
-            MaterialPageRoute(
-              builder: (context) => AnimalDetailScreen(animalId: animal.id!),
-            ),
-          );
+          context.go('/animais/detalhes/${animal.id}');
         },
       ),
     );
