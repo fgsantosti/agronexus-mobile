@@ -5,11 +5,14 @@ import 'package:agronexus/domain/models/propriedade_entity.dart';
 import 'package:agronexus/domain/services/propriedade_service_new.dart';
 import 'package:agronexus/domain/services/reproducao_service.dart';
 import 'package:agronexus/presentation/bloc/animal/animal_bloc.dart';
-import 'package:agronexus/presentation/bloc/animal/animal_event.dart';
 import 'package:agronexus/presentation/bloc/fazenda/fazenda_bloc.dart';
 import 'package:agronexus/presentation/bloc/login/login_bloc.dart';
 import 'package:agronexus/presentation/bloc/propriedade/propriedade_bloc.dart';
 import 'package:agronexus/presentation/bloc/propriedade/propriedade_bloc_new.dart';
+import 'package:agronexus/presentation/screens/animal/animal_detail_screen.dart';
+import 'package:agronexus/presentation/screens/animal/animal_edit_screen.dart';
+import 'package:agronexus/presentation/screens/animal/animal_form_screen.dart';
+import 'package:agronexus/presentation/screens/animal/animal_list_screen.dart';
 import 'package:agronexus/presentation/bloc/propriedade/propriedade_event_new.dart';
 import 'package:agronexus/presentation/bloc/reproducao/reproducao_bloc.dart';
 import 'package:agronexus/presentation/cubit/bottom_bar/bottom_bar_cubit.dart';
@@ -22,9 +25,6 @@ import 'package:agronexus/presentation/propriedade/detalhes_propriedade_screen.d
 import 'package:agronexus/presentation/propriedade/editar_propriedade_screen.dart';
 import 'package:agronexus/presentation/propriedade/propriedade_screen.dart';
 import 'package:agronexus/presentation/reproducao/manejo_reprodutivo_screen.dart';
-import 'package:agronexus/presentation/screens/animal/animal_list_screen.dart';
-import 'package:agronexus/presentation/screens/animal/animal_form_screen.dart';
-import 'package:agronexus/presentation/screens/animal/animal_detail_screen.dart';
 import 'package:agronexus/presentation/splash/splash_screen.dart';
 import 'package:agronexus/presentation/widgets/internal_scaffold.dart';
 import 'package:flutter/material.dart';
@@ -369,8 +369,8 @@ enum AgroNexusRouter {
                     transitionDuration: RoutesUtils.duration,
                     transitionsBuilder: RoutesUtils.transitionBuilder,
                     child: BlocProvider<AnimalBloc>(
-                      create: (context) => getIt<AnimalBloc>()..add(LoadAnimalDetailEvent(animalId)),
-                      child: const AnimalFormScreen(),
+                      create: (context) => getIt<AnimalBloc>(),
+                      child: AnimalEditScreen(animalId: animalId),
                     ),
                   );
                 },

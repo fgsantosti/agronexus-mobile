@@ -65,7 +65,6 @@ class _AnimalFormScreenState extends State<AnimalFormScreen> {
     final animal = widget.animal!;
     _identificacaoController.text = animal.identificacaoUnica;
     _nomeRegistroController.text = animal.nomeRegistro ?? '';
-    _dataNascimentoController.text = animal.dataNascimento;
     _origemController.text = animal.origem ?? '';
     _observacoesController.text = animal.observacoes ?? '';
 
@@ -87,8 +86,11 @@ class _AnimalFormScreenState extends State<AnimalFormScreen> {
     if (animal.dataNascimento.isNotEmpty) {
       try {
         _dataNascimento = DateTime.parse(animal.dataNascimento);
+        _dataNascimentoController.text = '${_dataNascimento!.day.toString().padLeft(2, '0')}/'
+            '${_dataNascimento!.month.toString().padLeft(2, '0')}/'
+            '${_dataNascimento!.year}';
       } catch (e) {
-        // Ignore parse errors
+        print('Erro ao fazer parse da data de nascimento: $e');
       }
     }
 
@@ -96,7 +98,7 @@ class _AnimalFormScreenState extends State<AnimalFormScreen> {
       try {
         _dataCompra = DateTime.parse(animal.dataCompra!);
       } catch (e) {
-        // Ignore parse errors
+        print('Erro ao fazer parse da data de compra: $e');
       }
     }
   }
@@ -126,13 +128,52 @@ class _AnimalFormScreenState extends State<AnimalFormScreen> {
           if (state is OpcoesCadastroLoaded) {
             setState(() {
               _opcoesCadastro = state.opcoes;
+
+              // Se estivermos editando, encontrar e atualizar referências corretas
+              if (widget.animal != null) {
+                // Encontrar a espécie correta na lista de opções
+                if (_especieSelecionada != null) {
+                  final especieCorreta = state.opcoes.especies.firstWhere(
+                    (e) => e.id == _especieSelecionada!.id,
+                    orElse: () => _especieSelecionada!,
+                  );
+                  _especieSelecionada = especieCorreta;
+
+                  // Carregar raças e categorias para a espécie
+                  context.read<AnimalBloc>().add(LoadRacasByEspecieEvent(_especieSelecionada!.id));
+                  context.read<AnimalBloc>().add(LoadCategoriasByEspecieEvent(_especieSelecionada!.id));
+                }
+
+                // Encontrar a propriedade correta na lista de opções
+                if (_propriedadeSelecionada != null) {
+                  final propriedadeCorreta = state.opcoes.propriedades.firstWhere(
+                    (p) => p.id == _propriedadeSelecionada!.id,
+                    orElse: () => _propriedadeSelecionada!,
+                  );
+                  _propriedadeSelecionada = propriedadeCorreta;
+                }
+
+                // Encontrar o lote correto na lista de opções
+                if (_loteSelecionado != null) {
+                  final loteCorreto = state.opcoes.lotes.firstWhere(
+                    (l) => l.id == _loteSelecionado!.id,
+                    orElse: () => _loteSelecionado!,
+                  );
+                  _loteSelecionado = loteCorreto;
+                }
+              }
             });
           } else if (state is RacasLoaded) {
             setState(() {
               _racasDisponiveis = state.racas;
-              // Reset raça selecionada se não estiver na lista
-              if (_racaSelecionada != null && !state.racas.any((r) => r.id == _racaSelecionada!.id)) {
-                _racaSelecionada = null;
+
+              // Se estivermos editando, encontrar a raça correta na lista
+              if (widget.animal != null && _racaSelecionada != null) {
+                final racaCorreta = state.racas.firstWhere(
+                  (r) => r.id == _racaSelecionada!.id,
+                  orElse: () => _racaSelecionada!,
+                );
+                _racaSelecionada = racaCorreta;
               }
             });
           } else if (state is CategoriasLoaded) {
@@ -144,13 +185,13 @@ class _AnimalFormScreenState extends State<AnimalFormScreen> {
               }
             });
           } else if (state is AnimalCreated || state is AnimalUpdated) {
+            Navigator.of(context).pop();
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text(widget.animal == null ? 'Animal cadastrado com sucesso!' : 'Animal atualizado com sucesso!'),
                 backgroundColor: Colors.green,
               ),
             );
-            Navigator.of(context).pop();
           } else if (state is AnimalError) {
             // Mostrar apenas dialog de erro
             _showErrorDialog(context, state.message);
