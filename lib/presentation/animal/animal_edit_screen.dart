@@ -3,7 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:agronexus/presentation/bloc/animal/animal_bloc.dart';
 import 'package:agronexus/presentation/bloc/animal/animal_event.dart';
 import 'package:agronexus/presentation/bloc/animal/animal_state.dart';
-import 'package:agronexus/presentation/screens/animal/animal_form_screen.dart';
+import 'package:agronexus/presentation/animal/animal_form_screen.dart';
 import 'package:agronexus/domain/models/animal_entity.dart';
 
 class AnimalEditScreen extends StatefulWidget {

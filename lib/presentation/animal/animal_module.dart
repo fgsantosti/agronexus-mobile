@@ -4,7 +4,7 @@ import 'package:agronexus/domain/services/animal_service.dart';
 import 'package:agronexus/domain/repositories/remote/animal/animal_remote_repository_impl.dart';
 import 'package:agronexus/config/services/http_impl.dart';
 import 'package:agronexus/presentation/bloc/animal/animal_bloc.dart';
-import 'package:agronexus/presentation/screens/animal/animal_list_screen.dart';
+import 'package:agronexus/presentation/animal/animal_list_screen.dart';
 
 class AnimalModule extends StatelessWidget {
   const AnimalModule({Key? key}) : super(key: key);

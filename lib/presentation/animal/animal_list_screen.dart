@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
-import 'package:agronexus/config/api.dart';
-import 'package:agronexus/domain/models/animal_entity.dart';
+import '../../domain/models/animal_entity.dart';
 import '../bloc/animal/animal_bloc.dart';
 import '../bloc/animal/animal_event.dart';
 import '../bloc/animal/animal_state.dart';
@@ -81,7 +80,7 @@ class _AnimalListContentState extends State<_AnimalListContent> with WidgetsBind
           IconButton(
             icon: const Icon(Icons.add),
             onPressed: () {
-              context.go(API.animalCadastroRoute);
+              context.go('/animais/cadastro');
             },
           ),
         ],
@@ -212,7 +211,7 @@ class _AnimalListContentState extends State<_AnimalListContent> with WidgetsBind
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
-          context.go(API.animalCadastroRoute);
+          context.go('/animais/cadastro');
         },
         backgroundColor: Colors.green,
         child: const Icon(Icons.add, color: Colors.white),
@@ -267,7 +266,7 @@ class _AnimalListContentState extends State<_AnimalListContent> with WidgetsBind
               onSelected: (value) {
                 switch (value) {
                   case 'editar':
-                    context.go(API.animalEditRoute(animal.id!));
+                    context.go('/animais/editar/${animal.id}');
                     break;
                   case 'deletar':
                     _showDeleteConfirmDialog(animal);
@@ -301,7 +300,7 @@ class _AnimalListContentState extends State<_AnimalListContent> with WidgetsBind
           ],
         ),
         onTap: () {
-          context.go(API.animalDetailRoute(animal.id!));
+          context.go('/animais/detalhes/${animal.id}');
         },
       ),
     );

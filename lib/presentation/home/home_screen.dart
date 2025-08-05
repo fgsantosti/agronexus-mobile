@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:agronexus/config/api.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -126,7 +127,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 icon: Icons.favorite,
                 color: Colors.pink,
                 onTap: () {
-                  context.go('/manejo-reprodutivo');
+                  context.go(API.manejoReprodutivoRoute);
                 },
               ),
               _buildDashboardCard(
@@ -135,7 +136,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 icon: Icons.home_work,
                 color: Colors.green,
                 onTap: () {
-                  context.go('/propriedades');
+                  context.go(API.propriedadesRoute);
                 },
               ),
               _buildDashboardCard(
@@ -144,7 +145,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 icon: Icons.pets,
                 color: Colors.brown,
                 onTap: () {
-                  context.go('/animais');
+                  context.go(API.animaisRoute);
                 },
               ),
             ],
