@@ -198,9 +198,9 @@ class AnimalRemoteRepositoryImpl implements AnimalRemoteRepository {
   @override
   Future<List<String>> getCategoriasByEspecie(String especieId) async {
     try {
-      // Como não há endpoint específico, retorna categorias baseadas na espécie
-      // Pode ser melhorado futuramente se houver categorias específicas por espécie na API
-      return ['Bezerro', 'Bezerro desmamado', 'Garrote', 'Boi', 'Touro', 'Bezerra', 'Bezerra desmamada', 'Novilha', 'Vaca', 'Matriz'];
+      // Retorna categorias com os valores que a API espera (em minúscula)
+      // Baseado nas categorias disponíveis retornadas pela API
+      return ['bezerro', 'bezerra', 'novilho', 'novilha', 'touro', 'vaca'];
     } catch (e) {
       throw await AgroNexusException.fromDioError(e);
     }

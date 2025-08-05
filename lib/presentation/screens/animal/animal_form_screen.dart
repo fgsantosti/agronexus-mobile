@@ -28,15 +28,15 @@ class _AnimalFormScreenState extends State<AnimalFormScreen> {
   final _nomeRegistroController = TextEditingController();
   final _dataNascimentoController = TextEditingController();
   final _valorCompraController = TextEditingController();
-  final _origemController = TextEditingController();
   final _observacoesController = TextEditingController();
 
   // Estado do formulário
   Sexo? _sexoSelecionado;
   EspecieAnimal? _especieSelecionada;
   RacaAnimal? _racaSelecionada;
-  String? _categoriaSelecionada;
+  CategoriaAnimal? _categoriaSelecionada;
   StatusAnimal _statusSelecionado = StatusAnimal.ativo;
+  OrigemAnimal? _origemSelecionada;
   PropriedadeSimples? _propriedadeSelecionada;
   LoteSimples? _loteSelecionado;
   AnimalEntity? _paiSelecionado;
@@ -46,7 +46,6 @@ class _AnimalFormScreenState extends State<AnimalFormScreen> {
 
   OpcoesCadastroAnimal? _opcoesCadastro;
   List<RacaAnimal> _racasDisponiveis = [];
-  List<String> _categoriasDisponiveis = [];
 
   @override
   void initState() {
@@ -65,7 +64,6 @@ class _AnimalFormScreenState extends State<AnimalFormScreen> {
     final animal = widget.animal!;
     _identificacaoController.text = animal.identificacaoUnica;
     _nomeRegistroController.text = animal.nomeRegistro ?? '';
-    _origemController.text = animal.origem ?? '';
     _observacoesController.text = animal.observacoes ?? '';
 
     if (animal.valorCompra != null) {
@@ -77,6 +75,7 @@ class _AnimalFormScreenState extends State<AnimalFormScreen> {
     _racaSelecionada = animal.raca;
     _categoriaSelecionada = animal.categoria;
     _statusSelecionado = animal.status;
+    _origemSelecionada = animal.origem;
     _propriedadeSelecionada = animal.propriedade;
     _loteSelecionado = animal.loteAtual;
     _paiSelecionado = animal.pai;
@@ -110,7 +109,6 @@ class _AnimalFormScreenState extends State<AnimalFormScreen> {
     _nomeRegistroController.dispose();
     _dataNascimentoController.dispose();
     _valorCompraController.dispose();
-    _origemController.dispose();
     _observacoesController.dispose();
     super.dispose();
   }
@@ -139,9 +137,8 @@ class _AnimalFormScreenState extends State<AnimalFormScreen> {
                   );
                   _especieSelecionada = especieCorreta;
 
-                  // Carregar raças e categorias para a espécie
+                  // Carregar raças para a espécie
                   context.read<AnimalBloc>().add(LoadRacasByEspecieEvent(_especieSelecionada!.id));
-                  context.read<AnimalBloc>().add(LoadCategoriasByEspecieEvent(_especieSelecionada!.id));
                 }
 
                 // Encontrar a propriedade correta na lista de opções
@@ -174,14 +171,6 @@ class _AnimalFormScreenState extends State<AnimalFormScreen> {
                   orElse: () => _racaSelecionada!,
                 );
                 _racaSelecionada = racaCorreta;
-              }
-            });
-          } else if (state is CategoriasLoaded) {
-            setState(() {
-              _categoriasDisponiveis = state.categorias;
-              // Reset categoria se não estiver na lista
-              if (_categoriaSelecionada != null && !state.categorias.contains(_categoriaSelecionada)) {
-                _categoriaSelecionada = null;
               }
             });
           } else if (state is AnimalCreated || state is AnimalUpdated) {
@@ -457,12 +446,10 @@ class _AnimalFormScreenState extends State<AnimalFormScreen> {
                   _racaSelecionada = null;
                   _categoriaSelecionada = null;
                   _racasDisponiveis = [];
-                  _categoriasDisponiveis = [];
                 });
 
                 if (value != null) {
                   context.read<AnimalBloc>().add(LoadRacasByEspecieEvent(value.id));
-                  context.read<AnimalBloc>().add(LoadCategoriasByEspecieEvent(value.id));
                 }
               },
               validator: (value) {
@@ -501,17 +488,17 @@ class _AnimalFormScreenState extends State<AnimalFormScreen> {
           const SizedBox(height: 16),
 
           // Categoria
-          DropdownButtonFormField<String>(
+          DropdownButtonFormField<CategoriaAnimal>(
             value: _categoriaSelecionada,
             decoration: const InputDecoration(
               labelText: 'Categoria *',
               border: OutlineInputBorder(),
               prefixIcon: Icon(Icons.label),
             ),
-            items: _categoriasDisponiveis.map((categoria) {
+            items: CategoriaAnimal.values.map((categoria) {
               return DropdownMenuItem(
                 value: categoria,
-                child: Text(categoria),
+                child: Text(categoria.label),
               );
             }).toList(),
             onChanged: _especieSelecionada != null
@@ -522,7 +509,7 @@ class _AnimalFormScreenState extends State<AnimalFormScreen> {
                   }
                 : null,
             validator: (value) {
-              if (value == null || value.isEmpty) {
+              if (value == null) {
                 return 'Campo obrigatório';
               }
               return null;
@@ -710,14 +697,25 @@ class _AnimalFormScreenState extends State<AnimalFormScreen> {
           const SizedBox(height: 16),
 
           // Origem
-          TextFormField(
-            controller: _origemController,
+          DropdownButtonFormField<OrigemAnimal>(
+            value: _origemSelecionada,
             decoration: const InputDecoration(
-              labelText: 'Origem',
-              hintText: 'Local de origem do animal',
+              labelText: 'Origem do Animal',
               border: OutlineInputBorder(),
               prefixIcon: Icon(Icons.location_city),
             ),
+            hint: const Text('Selecione a origem'),
+            items: OrigemAnimal.values.map((origem) {
+              return DropdownMenuItem<OrigemAnimal>(
+                value: origem,
+                child: Text(origem.label),
+              );
+            }).toList(),
+            onChanged: (OrigemAnimal? novaOrigemSelecionada) {
+              setState(() {
+                _origemSelecionada = novaOrigemSelecionada;
+              });
+            },
           ),
 
           const SizedBox(height: 16),
@@ -832,11 +830,11 @@ class _AnimalFormScreenState extends State<AnimalFormScreen> {
       mae: _maeSelecionada,
       dataCompra: _dataCompra?.toIso8601String().split('T')[0],
       valorCompra: _valorCompraController.text.isNotEmpty ? double.tryParse(_valorCompraController.text) : null,
-      origem: _origemController.text.isNotEmpty ? _origemController.text : null,
+      origem: _origemSelecionada,
       observacoes: _observacoesController.text.isNotEmpty ? _observacoesController.text : null,
       // Campos legados para compatibilidade
       idAnimal: _identificacaoController.text,
-      situacao: _categoriaSelecionada!,
+      situacao: _categoriaSelecionada!.value,
       acaoDestino: AcaoDestino.permanece,
       lote: _loteSelecionado?.id ?? '',
       loteNome: _loteSelecionado?.nome ?? '',

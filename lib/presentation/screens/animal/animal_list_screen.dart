@@ -238,7 +238,7 @@ class _AnimalListContentState extends State<_AnimalListContent> with WidgetsBind
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             if (animal.nomeRegistro != null && animal.nomeRegistro!.isNotEmpty) Text('Nome: ${animal.nomeRegistro}'),
-            Text('Categoria: ${animal.categoria}'),
+            Text('Categoria: ${animal.categoria.label}'),
             Text('Status: ${animal.status.label}'),
             if (animal.especie != null) Text('Espécie: ${animal.especie!.nomeDisplay}'),
           ],

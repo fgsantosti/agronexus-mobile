@@ -51,6 +51,72 @@ enum Sexo {
   String get apiValue => value;
 }
 
+enum OrigemAnimal {
+  proprio(label: 'Próprio', value: 'proprio'),
+  compra(label: 'Compra', value: 'compra'),
+  leilao(label: 'Leilão', value: 'leilao'),
+  doacao(label: 'Doação', value: 'doacao'),
+  parceria(label: 'Parceria', value: 'parceria');
+
+  final String label;
+  final String value;
+
+  const OrigemAnimal({required this.label, required this.value});
+
+  static OrigemAnimal fromString(String value) {
+    if (value.isEmpty) {
+      throw Exception('Invalid OrigemAnimal value: $value');
+    }
+    switch (value) {
+      case 'proprio':
+        return OrigemAnimal.proprio;
+      case 'compra':
+        return OrigemAnimal.compra;
+      case 'leilao':
+        return OrigemAnimal.leilao;
+      case 'doacao':
+        return OrigemAnimal.doacao;
+      case 'parceria':
+        return OrigemAnimal.parceria;
+      default:
+        throw Exception('Invalid OrigemAnimal value: $value');
+    }
+  }
+}
+
+enum CategoriaAnimal {
+  bezerro(label: 'Bezerro', value: 'bezerro'),
+  bezerra(label: 'Bezerra', value: 'bezerra'),
+  novilho(label: 'Novilho', value: 'novilho'),
+  novilha(label: 'Novilha', value: 'novilha'),
+  touro(label: 'Touro', value: 'touro'),
+  vaca(label: 'Vaca', value: 'vaca');
+
+  final String label;
+  final String value;
+
+  const CategoriaAnimal({required this.label, required this.value});
+
+  static CategoriaAnimal fromString(String value) {
+    switch (value) {
+      case 'bezerro':
+        return CategoriaAnimal.bezerro;
+      case 'bezerra':
+        return CategoriaAnimal.bezerra;
+      case 'novilho':
+        return CategoriaAnimal.novilho;
+      case 'novilha':
+        return CategoriaAnimal.novilha;
+      case 'touro':
+        return CategoriaAnimal.touro;
+      case 'vaca':
+        return CategoriaAnimal.vaca;
+      default:
+        throw Exception('Invalid CategoriaAnimal value: $value');
+    }
+  }
+}
+
 class EspecieAnimal {
   final String id;
   final String nome;
@@ -337,7 +403,7 @@ class AnimalEntity extends BaseEntity {
   final String? nomeRegistro;
   final Sexo sexo;
   final String dataNascimento;
-  final String categoria;
+  final CategoriaAnimal categoria;
   final StatusAnimal status;
 
   // Espécie e raça
@@ -355,7 +421,7 @@ class AnimalEntity extends BaseEntity {
   // Dados comerciais
   final String? dataCompra;
   final double? valorCompra;
-  final String? origem;
+  final OrigemAnimal? origem;
   final String? dataVenda;
   final double? valorVenda;
   final String? destino;
@@ -459,7 +525,7 @@ class AnimalEntity extends BaseEntity {
     AgroNexusGetter<String?>? nomeRegistro,
     AgroNexusGetter<Sexo>? sexo,
     AgroNexusGetter<String>? dataNascimento,
-    AgroNexusGetter<String>? categoria,
+    AgroNexusGetter<CategoriaAnimal>? categoria,
     AgroNexusGetter<StatusAnimal>? status,
     AgroNexusGetter<EspecieAnimal?>? especie,
     AgroNexusGetter<RacaAnimal?>? raca,
@@ -469,7 +535,7 @@ class AnimalEntity extends BaseEntity {
     AgroNexusGetter<AnimalEntity?>? mae,
     AgroNexusGetter<String?>? dataCompra,
     AgroNexusGetter<double?>? valorCompra,
-    AgroNexusGetter<String?>? origem,
+    AgroNexusGetter<OrigemAnimal?>? origem,
     AgroNexusGetter<String?>? dataVenda,
     AgroNexusGetter<double?>? valorVenda,
     AgroNexusGetter<String?>? destino,
@@ -530,7 +596,7 @@ class AnimalEntity extends BaseEntity {
     data['nome_registro'] = nomeRegistro;
     data['sexo'] = sexo.value;
     data['data_nascimento'] = dataNascimento;
-    data['categoria'] = categoria;
+    data['categoria'] = categoria.value;
     data['status'] = status.value;
     data['especie'] = especie?.id;
     data['raca'] = raca?.id;
@@ -540,7 +606,7 @@ class AnimalEntity extends BaseEntity {
     data['mae'] = mae?.id;
     data['data_compra'] = dataCompra;
     data['valor_compra'] = valorCompra;
-    data['origem'] = origem;
+    data['origem'] = origem?.value;
     data['data_venda'] = dataVenda;
     data['valor_venda'] = valorVenda;
     data['destino'] = destino;
@@ -564,7 +630,7 @@ class AnimalEntity extends BaseEntity {
       'identificacao_unica': identificacaoUnica,
       'sexo': sexo.value,
       'data_nascimento': dataNascimento,
-      'categoria': categoria,
+      'categoria': categoria.value,
       'status': status.value,
       'propriedade_id': propriedade?.id,
       'especie_id': especie?.id,
@@ -594,8 +660,8 @@ class AnimalEntity extends BaseEntity {
       data['valor_compra'] = valorCompra;
     }
 
-    if (origem != null && origem!.isNotEmpty) {
-      data['origem'] = origem;
+    if (origem != null) {
+      data['origem'] = origem!.value;
     }
 
     if (dataVenda != null) {
@@ -634,7 +700,7 @@ class AnimalEntity extends BaseEntity {
         nomeRegistro = null,
         sexo = Sexo.femea,
         dataNascimento = '',
-        categoria = '',
+        categoria = CategoriaAnimal.bezerro,
         status = StatusAnimal.ativo,
         especie = null,
         raca = null,
@@ -671,7 +737,7 @@ class AnimalEntity extends BaseEntity {
       nomeRegistro: json['nome_registro'],
       sexo: Sexo.fromString(json['sexo'] ?? 'F'),
       dataNascimento: json['data_nascimento'] ?? '',
-      categoria: json['categoria'] ?? '',
+      categoria: CategoriaAnimal.fromString(json['categoria'] ?? 'bezerro'),
       status: StatusAnimal.fromString(json['status'] ?? 'ativo'),
       especie: _parseEspecieAnimal(json['especie']),
       raca: _parseRacaAnimal(json['raca']),
@@ -681,7 +747,7 @@ class AnimalEntity extends BaseEntity {
       mae: json['mae'] != null && json['mae'] is Map<String, dynamic> ? AnimalEntity.fromJson(json['mae']) : null,
       dataCompra: json['data_compra'],
       valorCompra: _parseDouble(json['valor_compra']),
-      origem: json['origem'],
+      origem: json['origem'] != null && json['origem'].toString().isNotEmpty ? OrigemAnimal.fromString(json['origem']) : null,
       dataVenda: json['data_venda'],
       valorVenda: _parseDouble(json['valor_venda']),
       destino: json['destino'],
@@ -771,7 +837,7 @@ class AnimalEntity extends BaseEntity {
       nomeRegistro: json['nome_registro'],
       sexo: Sexo.fromString(json['sexo'] ?? 'F'),
       dataNascimento: '',
-      categoria: json['categoria'] ?? '',
+      categoria: CategoriaAnimal.fromString(json['categoria'] ?? 'bezerro'),
       status: StatusAnimal.fromString(json['status'] ?? 'ativo'),
       observacoes: '',
       // Campos legados

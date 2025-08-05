@@ -207,7 +207,7 @@ class _AnimalDetailScreenState extends State<AnimalDetailScreen> {
             [
               _buildInfoRow('Sexo', animal.sexo.label),
               _buildInfoRow('Data de Nascimento', animal.dataNascimento),
-              _buildInfoRow('Categoria', animal.categoria),
+              _buildInfoRow('Categoria', animal.categoria.label),
               if (animal.especie != null) _buildInfoRow('Espécie', animal.especie!.nomeDisplay),
               if (animal.raca != null) _buildInfoRow('Raça', animal.raca!.nome),
             ],
@@ -240,7 +240,7 @@ class _AnimalDetailScreenState extends State<AnimalDetailScreen> {
               [
                 if (animal.dataCompra != null) _buildInfoRow('Data de Compra', animal.dataCompra!),
                 if (animal.valorCompra != null) _buildInfoRow('Valor de Compra', 'R\$ ${animal.valorCompra!.toStringAsFixed(2)}'),
-                if (animal.origem != null && animal.origem!.isNotEmpty) _buildInfoRow('Origem', animal.origem!),
+                if (animal.origem != null) _buildInfoRow('Origem', animal.origem!.label),
                 if (animal.dataVenda != null) _buildInfoRow('Data de Venda', animal.dataVenda!),
                 if (animal.valorVenda != null) _buildInfoRow('Valor de Venda', 'R\$ ${animal.valorVenda!.toStringAsFixed(2)}'),
                 if (animal.destino != null && animal.destino!.isNotEmpty) _buildInfoRow('Destino', animal.destino!),
