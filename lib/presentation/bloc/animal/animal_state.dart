@@ -1,59 +1,101 @@
-part of 'animal_bloc.dart';
+import 'package:equatable/equatable.dart';
+import 'package:agronexus/domain/models/animal_entity.dart';
+import 'package:agronexus/domain/models/opcoes_cadastro_animal.dart';
 
-enum AnimalStatus { initial, loading, success, failure, created, updated }
-
-class AnimalState extends Equatable {
-  final AnimalStatus status;
-  final List<AnimalEntity> entities;
-  final AnimalEntity? entity;
-  final String? errorMessage;
-  final int limit;
-  final int offset;
-  final int count;
-  final String? search;
-
-  const AnimalState({
-    this.status = AnimalStatus.initial,
-    this.entities = const [],
-    this.entity,
-    this.errorMessage,
-    this.limit = 20,
-    this.offset = 0,
-    this.count = 0,
-    this.search,
-  });
-
-  AnimalState copyWith({
-    AgroNexusGetter<AnimalStatus>? status,
-    AgroNexusGetter<List<AnimalEntity>>? entities,
-    AgroNexusGetter<AnimalEntity?>? entity,
-    AgroNexusGetter<String?>? errorMessage,
-    AgroNexusGetter<int>? limit,
-    AgroNexusGetter<int>? offset,
-    AgroNexusGetter<int>? count,
-    AgroNexusGetter<String?>? search,
-  }) {
-    return AnimalState(
-      status: status != null ? status() : this.status,
-      entities: entities != null ? entities() : this.entities,
-      entity: entity != null ? entity() : this.entity,
-      errorMessage: errorMessage != null ? errorMessage() : this.errorMessage,
-      limit: limit != null ? limit() : this.limit,
-      offset: offset != null ? offset() : this.offset,
-      count: count != null ? count() : this.count,
-      search: search != null ? search() : this.search,
-    );
-  }
+abstract class AnimalState extends Equatable {
+  const AnimalState();
 
   @override
-  List<Object?> get props => [
-        status,
-        ...entities,
-        entity,
-        errorMessage,
-        limit,
-        offset,
-        count,
-        search,
-      ];
+  List<Object?> get props => [];
+}
+
+class AnimalInitial extends AnimalState {}
+
+class AnimalLoading extends AnimalState {}
+
+class AnimaisLoaded extends AnimalState {
+  final List<AnimalEntity> animais;
+  final int count;
+  final bool hasMore;
+
+  const AnimaisLoaded({
+    required this.animais,
+    required this.count,
+    required this.hasMore,
+  });
+
+  @override
+  List<Object> get props => [animais, count, hasMore];
+}
+
+class AnimalDetailLoaded extends AnimalState {
+  final AnimalEntity animal;
+
+  const AnimalDetailLoaded(this.animal);
+
+  @override
+  List<Object> get props => [animal];
+}
+
+class AnimalCreated extends AnimalState {
+  final AnimalEntity animal;
+
+  const AnimalCreated(this.animal);
+
+  @override
+  List<Object> get props => [animal];
+}
+
+class AnimalUpdated extends AnimalState {
+  final AnimalEntity animal;
+
+  const AnimalUpdated(this.animal);
+
+  @override
+  List<Object> get props => [animal];
+}
+
+class AnimalDeleted extends AnimalState {
+  final String id;
+
+  const AnimalDeleted(this.id);
+
+  @override
+  List<Object> get props => [id];
+}
+
+class OpcoesCadastroLoaded extends AnimalState {
+  final OpcoesCadastroAnimal opcoes;
+
+  const OpcoesCadastroLoaded(this.opcoes);
+
+  @override
+  List<Object> get props => [opcoes];
+}
+
+class RacasLoaded extends AnimalState {
+  final List<RacaAnimal> racas;
+
+  const RacasLoaded(this.racas);
+
+  @override
+  List<Object> get props => [racas];
+}
+
+class CategoriasLoaded extends AnimalState {
+  final List<String> categorias;
+
+  const CategoriasLoaded(this.categorias);
+
+  @override
+  List<Object> get props => [categorias];
+}
+
+class AnimalError extends AnimalState {
+  final String message;
+
+  const AnimalError(this.message);
+
+  @override
+  List<Object> get props => [message];
 }

@@ -4,10 +4,15 @@ import 'package:agronexus/domain/models/fazenda_entity.dart';
 import 'package:agronexus/domain/models/propriedade_entity.dart';
 import 'package:agronexus/domain/services/propriedade_service_new.dart';
 import 'package:agronexus/domain/services/reproducao_service.dart';
+import 'package:agronexus/presentation/bloc/animal/animal_bloc.dart';
 import 'package:agronexus/presentation/bloc/fazenda/fazenda_bloc.dart';
 import 'package:agronexus/presentation/bloc/login/login_bloc.dart';
 import 'package:agronexus/presentation/bloc/propriedade/propriedade_bloc.dart';
 import 'package:agronexus/presentation/bloc/propriedade/propriedade_bloc_new.dart';
+import 'package:agronexus/presentation/animal/animal_detail_screen.dart';
+import 'package:agronexus/presentation/animal/animal_edit_screen.dart';
+import 'package:agronexus/presentation/animal/animal_form_screen.dart';
+import 'package:agronexus/presentation/animal/animal_list_screen.dart';
 import 'package:agronexus/presentation/bloc/propriedade/propriedade_event_new.dart';
 import 'package:agronexus/presentation/bloc/reproducao/reproducao_bloc.dart';
 import 'package:agronexus/presentation/cubit/bottom_bar/bottom_bar_cubit.dart';
@@ -319,9 +324,58 @@ enum AgroNexusRouter {
                 key: state.pageKey,
                 transitionDuration: RoutesUtils.duration,
                 transitionsBuilder: RoutesUtils.transitionBuilder,
-                child: Center(child: Text("Animais")),
+                child: BlocProvider<AnimalBloc>(
+                  create: (context) => getIt<AnimalBloc>(),
+                  child: const AnimalListScreen(),
+                ),
               );
             },
+            routes: [
+              GoRoute(
+                path: '/cadastro',
+                pageBuilder: (context, state) {
+                  return CustomTransitionPage(
+                    key: state.pageKey,
+                    transitionDuration: RoutesUtils.duration,
+                    transitionsBuilder: RoutesUtils.transitionBuilder,
+                    child: BlocProvider<AnimalBloc>(
+                      create: (context) => getIt<AnimalBloc>(),
+                      child: const AnimalFormScreen(),
+                    ),
+                  );
+                },
+              ),
+              GoRoute(
+                path: '/detalhes/:id',
+                pageBuilder: (context, state) {
+                  final animalId = state.pathParameters['id']!;
+                  return CustomTransitionPage(
+                    key: state.pageKey,
+                    transitionDuration: RoutesUtils.duration,
+                    transitionsBuilder: RoutesUtils.transitionBuilder,
+                    child: BlocProvider<AnimalBloc>(
+                      create: (context) => getIt<AnimalBloc>(),
+                      child: AnimalDetailScreen(animalId: animalId),
+                    ),
+                  );
+                },
+              ),
+              GoRoute(
+                path: '/editar/:id',
+                pageBuilder: (context, state) {
+                  final animalId = state.pathParameters['id']!;
+                  return CustomTransitionPage(
+                    key: state.pageKey,
+                    transitionDuration: RoutesUtils.duration,
+                    transitionsBuilder: RoutesUtils.transitionBuilder,
+                    child: BlocProvider<AnimalBloc>(
+                      create: (context) => getIt<AnimalBloc>(),
+                      child: AnimalEditScreen(animalId: animalId),
+                    ),
+                  );
+                },
+              ),
+            ],
           ),
           // Perfil SCREEN
           GoRoute(

@@ -1,24 +1,27 @@
-import 'package:agronexus/config/exceptions.dart';
 import 'package:agronexus/domain/models/animal_entity.dart';
-import 'package:agronexus/domain/models/list_base_entity.dart';
-import 'package:dartz/dartz.dart';
+import 'package:agronexus/domain/models/opcoes_cadastro_animal.dart';
 
 abstract class AnimalRemoteRepository {
-  Future<Either<AgroNexusException, ListBaseEntity<AnimalEntity>>> list({
+  Future<List<AnimalEntity>> getAnimais({
     int limit = 20,
     int offset = 0,
     String? search,
+    String? especieId,
+    String? status,
+    String? propriedadeId,
   });
-  Future<Either<AgroNexusException, AnimalEntity>> getById({
-    required String id,
-  });
-  Future<Either<AgroNexusException, AnimalEntity>> create({
-    required AnimalEntity entity,
-  });
-  Future<Either<AgroNexusException, AnimalEntity>> update({
-    required AnimalEntity entity,
-  });
-  Future<Either<AgroNexusException, Map<String, dynamic>>> delete({
-    required String id,
-  });
+
+  Future<AnimalEntity> getAnimal(String id);
+
+  Future<AnimalEntity> createAnimal(AnimalEntity animal);
+
+  Future<AnimalEntity> updateAnimal(String id, AnimalEntity animal);
+
+  Future<void> deleteAnimal(String id);
+
+  Future<OpcoesCadastroAnimal> getOpcoesCadastro();
+
+  Future<List<RacaAnimal>> getRacasByEspecie(String especieId);
+
+  Future<List<String>> getCategoriasByEspecie(String especieId);
 }

@@ -1,99 +1,55 @@
 import 'package:agronexus/domain/models/animal_entity.dart';
-import 'package:agronexus/domain/models/list_base_entity.dart';
-import 'package:agronexus/domain/repositories/local/animal/animal_local_repository.dart';
+import 'package:agronexus/domain/models/opcoes_cadastro_animal.dart';
 import 'package:agronexus/domain/repositories/remote/animal/animal_remote_repository.dart';
-import 'package:flutter/foundation.dart';
-import 'package:internet_connection_checker_plus/internet_connection_checker_plus.dart';
 
 class AnimalService {
-  final AnimalRemoteRepository remoteRepository;
-  final AnimalLocalRepository localRepository;
+  final AnimalRemoteRepository _repository;
 
-  AnimalService({
-    required this.remoteRepository,
-    required this.localRepository,
-  });
+  AnimalService(this._repository);
 
-  Future<ListBaseEntity<AnimalEntity>> listEntities({
+  Future<List<AnimalEntity>> getAnimais({
     int limit = 20,
     int offset = 0,
     String? search,
+    String? especieId,
+    String? status,
+    String? propriedadeId,
   }) async {
-    bool hasConnetion = await InternetConnection().hasInternetAccess;
-    if (hasConnetion == true) {
-      final data = await remoteRepository.list(
-          limit: limit, offset: offset, search: search);
-      return data.getOrElse(() => throw Exception());
-    } else {
-      final List<AnimalEntity> data = await localRepository.getAllEntities();
-      return ListBaseEntity<AnimalEntity>.empty().copyWith(results: () => data);
-    }
+    return await _repository.getAnimais(
+      limit: limit,
+      offset: offset,
+      search: search,
+      especieId: especieId,
+      status: status,
+      propriedadeId: propriedadeId,
+    );
   }
 
-  Future<AnimalEntity> createEntity({required AnimalEntity entity}) async {
-    bool hasConnetion = await InternetConnection().hasInternetAccess;
-    if (hasConnetion == true) {
-      final result = await remoteRepository.create(entity: entity);
-      result.fold((l) => throw l, (r) {});
-      return result.getOrElse(() => throw Exception());
-    }
-    localRepository.saveEntity(entity: entity, isSynked: false);
-    return entity;
+  Future<AnimalEntity> getAnimal(String id) async {
+    return await _repository.getAnimal(id);
   }
 
-  Future<AnimalEntity> updateEntity({required AnimalEntity entity}) async {
-    bool hasConnetion = await InternetConnection().hasInternetAccess;
-    if (hasConnetion == true) {
-      final result = await remoteRepository.update(entity: entity);
-      result.fold((l) => throw l, (r) {});
-      return result.getOrElse(() => throw Exception());
-    }
-    localRepository.saveEntity(entity: entity, isSynked: false);
-    return entity;
+  Future<AnimalEntity> createAnimal(AnimalEntity animal) async {
+    return await _repository.createAnimal(animal);
   }
 
-  Future<void> deleteEntity({required AnimalEntity entity}) async {
-    bool hasConnetion = await InternetConnection().hasInternetAccess;
-    if (hasConnetion == true) {
-      final result = await remoteRepository.delete(id: entity.id!);
-      result.fold((l) => throw l, (r) {});
-    }
+  Future<AnimalEntity> updateAnimal(String id, AnimalEntity animal) async {
+    return await _repository.updateAnimal(id, animal);
   }
 
-  Future<void> sync() async {
-    if (await InternetConnection().hasInternetAccess) {
-      final List<AnimalEntity> notSynkedEntities =
-          await localRepository.getNotSynkedEntities();
-      if (notSynkedEntities.isEmpty) return;
-      for (int index = 0; index < notSynkedEntities.length; index++) {
-        final result = await remoteRepository.create(
-          entity: notSynkedEntities[index],
-        );
-        try {
-          result.fold(
-            (l) => throw l,
-            (r) {
-              notSynkedEntities.removeAt(index);
-              localRepository.saveEntities(
-                entities: notSynkedEntities,
-                isSynked: false,
-              );
-            },
-          );
-        } catch (e) {
-          if (kDebugMode) print(e);
-        }
-      }
-    }
+  Future<void> deleteAnimal(String id) async {
+    return await _repository.deleteAnimal(id);
   }
 
-  Future<AnimalEntity> getEntity({required String id}) async {
-    bool hasConnetion = await InternetConnection().hasInternetAccess;
-    if (hasConnetion == true) {
-      final result = await remoteRepository.getById(id: id);
-      return result.getOrElse(() => throw Exception());
-    }
+  Future<OpcoesCadastroAnimal> getOpcoesCadastro() async {
+    return await _repository.getOpcoesCadastro();
+  }
 
-    return AnimalEntity.empty();
+  Future<List<RacaAnimal>> getRacasByEspecie(String especieId) async {
+    return await _repository.getRacasByEspecie(especieId);
+  }
+
+  Future<List<String>> getCategoriasByEspecie(String especieId) async {
+    return await _repository.getCategoriasByEspecie(especieId);
   }
 }

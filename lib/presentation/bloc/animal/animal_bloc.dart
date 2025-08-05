@@ -1,135 +1,223 @@
-import 'package:agronexus/config/utils.dart';
-import 'package:agronexus/domain/models/animal_entity.dart';
-import 'package:agronexus/domain/models/list_base_entity.dart';
-import 'package:agronexus/domain/services/animal_service.dart';
-import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-
-part 'animal_events.dart';
-part 'animal_state.dart';
+import 'package:agronexus/domain/services/animal_service.dart';
+import 'package:agronexus/config/exceptions.dart';
+import 'animal_event.dart';
+import 'animal_state.dart';
 
 class AnimalBloc extends Bloc<AnimalEvent, AnimalState> {
-  final AnimalService service;
+  final AnimalService _animalService;
+  List<dynamic> _allAnimais = [];
+  int _currentOffset = 0;
+  static const int _limit = 20;
 
-  AnimalBloc({required this.service}) : super(const AnimalState()) {
-    on<CreateAnimalEvent>(_onCreateEvent);
-    on<UpdateAnimalEvent>(_onUpdateEvent);
-    on<DeleteAnimalEvent>(_onDeleteEvent);
-    on<ListAnimalEvent>(_onListEvent);
-    on<NextPageAnimalEvent>(_onNextPageAnimalEvent);
-    on<UpdateLoadedAnimalEvent>(_onUpdateLoadedAnimalEvent);
-    on<AnimalDetailEvent>(_onAnimalDetailEvent);
+  AnimalBloc(this._animalService) : super(AnimalInitial()) {
+    on<LoadAnimaisEvent>(_onLoadAnimais);
+    on<LoadAnimalDetailEvent>(_onLoadAnimalDetail);
+    on<CreateAnimalEvent>(_onCreateAnimal);
+    on<UpdateAnimalEvent>(_onUpdateAnimal);
+    on<DeleteAnimalEvent>(_onDeleteAnimal);
+    on<LoadOpcoesCadastroEvent>(_onLoadOpcoesCadastro);
+    on<LoadRacasByEspecieEvent>(_onLoadRacasByEspecie);
+    on<LoadCategoriasByEspecieEvent>(_onLoadCategoriasByEspecie);
+    on<NextPageAnimaisEvent>(_onNextPageAnimais);
   }
 
-  Future<void> _onCreateEvent(
-    CreateAnimalEvent event,
+  Future<void> _onLoadAnimais(
+    LoadAnimaisEvent event,
     Emitter<AnimalState> emit,
   ) async {
-    emit(state.copyWith(status: () => AnimalStatus.loading));
     try {
-      await service.createEntity(entity: event.entity);
-      emit(state.copyWith(status: () => AnimalStatus.created));
-    } catch (e) {
-      emit(state.copyWith(status: () => AnimalStatus.failure));
-    }
-  }
+      emit(AnimalLoading());
 
-  Future<void> _onUpdateEvent(
-    UpdateAnimalEvent event,
-    Emitter<AnimalState> emit,
-  ) async {
-    emit(state.copyWith(status: () => AnimalStatus.loading));
-    try {
-      await service.updateEntity(entity: event.entity);
-      emit(state.copyWith(status: () => AnimalStatus.updated));
-    } catch (e) {
-      emit(state.copyWith(status: () => AnimalStatus.failure));
-    }
-  }
-
-  Future<void> _onDeleteEvent(
-    DeleteAnimalEvent event,
-    Emitter<AnimalState> emit,
-  ) async {
-    emit(state.copyWith(status: () => AnimalStatus.loading));
-    try {
-      await service.deleteEntity(entity: event.entity);
-      emit(state.copyWith(status: () => AnimalStatus.success));
-    } catch (e) {
-      emit(state.copyWith(status: () => AnimalStatus.failure));
-    }
-  }
-
-  Future<void> _onListEvent(
-    ListAnimalEvent event,
-    Emitter<AnimalState> emit,
-  ) async {
-    emit(
-      state.copyWith(
-        status: () => AnimalStatus.loading,
-        search: () => event.search,
-      ),
-    );
-    try {
-      final ListBaseEntity<AnimalEntity> result = await service.listEntities(
+      final animais = await _animalService.getAnimais(
         limit: event.limit,
         offset: event.offset,
         search: event.search,
+        especieId: event.especieId,
+        status: event.status,
+        propriedadeId: event.propriedadeId,
       );
-      emit(
-        state.copyWith(
-          status: () => AnimalStatus.success,
-          entities: () => event.isLoadingMore
-              ? [...state.entities, ...result.results]
-              : result.results,
-          limit: () => event.limit,
-          offset: () => event.offset + event.limit,
-          search: () => event.search ?? state.search,
-          count: () => result.count,
-        ),
-      );
+
+      if (event.offset == 0) {
+        _allAnimais = List.from(animais);
+        _currentOffset = 0;
+      } else {
+        _allAnimais.addAll(animais);
+      }
+
+      _currentOffset += animais.length;
+
+      emit(AnimaisLoaded(
+        animais: List.from(_allAnimais),
+        count: _allAnimais.length,
+        hasMore: animais.length == event.limit,
+      ));
     } catch (e) {
-      emit(state.copyWith(status: () => AnimalStatus.failure));
+      String errorMessage;
+      if (e is AgroNexusException) {
+        errorMessage = e.message;
+      } else {
+        errorMessage = 'Erro ao carregar animais: ${e.toString()}';
+      }
+      emit(AnimalError(errorMessage));
     }
   }
 
-  void _onNextPageAnimalEvent(
-    NextPageAnimalEvent event,
-    Emitter<AnimalState> emit,
-  ) {
-    if (state.offset >= state.count) return;
-    add(
-      ListAnimalEvent(
-        limit: state.limit,
-        offset: state.offset,
-        search: state.search,
-        isLoadingMore: true,
-      ),
-    );
-  }
-
-  void _onUpdateLoadedAnimalEvent(
-    UpdateLoadedAnimalEvent event,
-    Emitter<AnimalState> emit,
-  ) {
-    emit(state.copyWith(entity: () => event.entity));
-  }
-
-  void _onAnimalDetailEvent(
-    AnimalDetailEvent event,
+  Future<void> _onLoadAnimalDetail(
+    LoadAnimalDetailEvent event,
     Emitter<AnimalState> emit,
   ) async {
-    emit(state.copyWith(status: () => AnimalStatus.loading));
     try {
-      final AnimalEntity result = await service.getEntity(id: event.id);
-      emit(
-        state.copyWith(
-          status: () => AnimalStatus.success,
-          entity: () => result,
-        ),
-      );
+      emit(AnimalLoading());
+
+      final animal = await _animalService.getAnimal(event.id);
+
+      emit(AnimalDetailLoaded(animal));
     } catch (e) {
-      emit(state.copyWith(status: () => AnimalStatus.failure));
+      String errorMessage;
+      if (e is AgroNexusException) {
+        errorMessage = e.message;
+      } else {
+        errorMessage = 'Erro ao carregar detalhes do animal: ${e.toString()}';
+      }
+      emit(AnimalError(errorMessage));
+    }
+  }
+
+  Future<void> _onCreateAnimal(
+    CreateAnimalEvent event,
+    Emitter<AnimalState> emit,
+  ) async {
+    try {
+      emit(AnimalLoading());
+
+      final animal = await _animalService.createAnimal(event.animal);
+
+      emit(AnimalCreated(animal));
+    } catch (e) {
+      String errorMessage;
+
+      // Extrair a mensagem correta da AgroNexusException
+      if (e is AgroNexusException) {
+        errorMessage = e.message;
+      } else {
+        errorMessage = 'Erro ao criar animal: ${e.toString()}';
+      }
+
+      emit(AnimalError(errorMessage));
+    }
+  }
+
+  Future<void> _onUpdateAnimal(
+    UpdateAnimalEvent event,
+    Emitter<AnimalState> emit,
+  ) async {
+    try {
+      emit(AnimalLoading());
+
+      final animal = await _animalService.updateAnimal(event.id, event.animal);
+
+      emit(AnimalUpdated(animal));
+    } catch (e) {
+      String errorMessage;
+      if (e is AgroNexusException) {
+        errorMessage = e.message;
+      } else {
+        errorMessage = 'Erro ao atualizar animal: ${e.toString()}';
+      }
+      emit(AnimalError(errorMessage));
+    }
+  }
+
+  Future<void> _onDeleteAnimal(
+    DeleteAnimalEvent event,
+    Emitter<AnimalState> emit,
+  ) async {
+    try {
+      emit(AnimalLoading());
+
+      await _animalService.deleteAnimal(event.id);
+
+      emit(AnimalDeleted(event.id));
+    } catch (e) {
+      String errorMessage;
+      if (e is AgroNexusException) {
+        errorMessage = e.message;
+      } else {
+        errorMessage = 'Erro ao deletar animal: ${e.toString()}';
+      }
+      emit(AnimalError(errorMessage));
+    }
+  }
+
+  Future<void> _onLoadOpcoesCadastro(
+    LoadOpcoesCadastroEvent event,
+    Emitter<AnimalState> emit,
+  ) async {
+    try {
+      emit(AnimalLoading());
+
+      final opcoes = await _animalService.getOpcoesCadastro();
+
+      emit(OpcoesCadastroLoaded(opcoes));
+    } catch (e) {
+      String errorMessage;
+      if (e is AgroNexusException) {
+        errorMessage = e.message;
+      } else {
+        errorMessage = 'Erro ao carregar opções de cadastro: ${e.toString()}';
+      }
+      emit(AnimalError(errorMessage));
+    }
+  }
+
+  Future<void> _onLoadRacasByEspecie(
+    LoadRacasByEspecieEvent event,
+    Emitter<AnimalState> emit,
+  ) async {
+    try {
+      final racas = await _animalService.getRacasByEspecie(event.especieId);
+
+      emit(RacasLoaded(racas));
+    } catch (e) {
+      String errorMessage;
+      if (e is AgroNexusException) {
+        errorMessage = e.message;
+      } else {
+        errorMessage = 'Erro ao carregar raças: ${e.toString()}';
+      }
+      emit(AnimalError(errorMessage));
+    }
+  }
+
+  Future<void> _onLoadCategoriasByEspecie(
+    LoadCategoriasByEspecieEvent event,
+    Emitter<AnimalState> emit,
+  ) async {
+    try {
+      final categorias = await _animalService.getCategoriasByEspecie(event.especieId);
+
+      emit(CategoriasLoaded(categorias));
+    } catch (e) {
+      String errorMessage;
+      if (e is AgroNexusException) {
+        errorMessage = e.message;
+      } else {
+        errorMessage = 'Erro ao carregar categorias: ${e.toString()}';
+      }
+      emit(AnimalError(errorMessage));
+    }
+  }
+
+  Future<void> _onNextPageAnimais(
+    NextPageAnimaisEvent event,
+    Emitter<AnimalState> emit,
+  ) async {
+    if (state is AnimaisLoaded) {
+      final currentState = state as AnimaisLoaded;
+      if (currentState.hasMore) {
+        add(LoadAnimaisEvent(offset: _currentOffset, limit: _limit));
+      }
     }
   }
 }

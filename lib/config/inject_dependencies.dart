@@ -18,6 +18,7 @@ import 'package:agronexus/domain/repositories/remote/auth/auth_repository.dart';
 import 'package:agronexus/domain/repositories/remote/auth/auth_repository_impl.dart';
 import 'package:agronexus/domain/repositories/remote/dashboard/dashboard_remote_repository.dart';
 import 'package:agronexus/domain/repositories/remote/dashboard/dashboard_remote_repository_impl.dart';
+import 'package:agronexus/presentation/bloc/animal/animal_bloc.dart';
 import 'package:agronexus/domain/repositories/remote/fazenda/fazenda_remote_repository.dart';
 import 'package:agronexus/domain/repositories/remote/fazenda/fazenda_remote_repository_impl.dart';
 import 'package:agronexus/domain/repositories/remote/lote/lote_remote_repository.dart';
@@ -67,7 +68,7 @@ void configureDependencies() {
     AnimalRemoteRepositoryImpl(httpService: getIt()),
   );
   getIt.registerSingleton<AnimalService>(
-    AnimalService(localRepository: getIt(), remoteRepository: getIt()),
+    AnimalService(getIt()),
   );
 
   getIt.registerSingleton<DashboardLocalRepository>(DashboardLocalRepositoryImpl());
@@ -115,5 +116,10 @@ void configureDependencies() {
   );
   getIt.registerSingleton<ReproducaoService>(
     ReproducaoService(getIt()),
+  );
+
+  // BLoCs
+  getIt.registerFactory<AnimalBloc>(
+    () => AnimalBloc(getIt()),
   );
 }

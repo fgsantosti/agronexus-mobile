@@ -53,4 +53,40 @@ class API {
   static const String protocolosIATF = 'api/v1/protocolos-iatf/';
   static String protocoloIATFById(String id) => 'api/v1/protocolos-iatf/$id/';
   static const String inseminacoesOpcoes = 'api/v1/inseminacoes/opcoes_cadastro/';
+
+  // ROTAS DE NAVEGAÇÃO
+  // Auth Routes
+  static const String loginRoute = '/login';
+  static const String splashRoute = '/splash';
+
+  // Main Routes
+  static const String homeRoute = '/home';
+  static const String perfilRoute = '/perfil';
+
+  // Propriedades Routes
+  static const String propriedadesRoute = '/propriedades';
+  static String propriedadeDetailRoute(String id) => '/propriedades/detalhes/$id';
+  static String propriedadeEditRoute(String id) => '/propriedades/editar/$id';
+  static const String propriedadeCadastroRoute = '/propriedades/cadastro';
+
+  // Lotes Routes
+  static const String lotesRoute = '/lotes';
+  static String loteDetailRoute(String id) => '/lotes/detalhes/$id';
+  static String loteEditRoute(String id) => '/lotes/editar/$id';
+  static const String loteCadastroRoute = '/lotes/cadastro';
+
+  // Animais Routes
+  static const String animaisRoute = '/animais';
+  static String animalDetailRoute(String id) => '/animais/detalhes/$id';
+  static String animalEditRoute(String id) => '/animais/editar/$id';
+  static const String animalCadastroRoute = '/animais/cadastro';
+
+  // Manejo Reprodutivo Routes
+  static const String manejoReprodutivoRoute = '/manejo-reprodutivo';
+
+  // Fazenda Routes
+  static const String fazendaRoute = '/fazenda';
+  static String fazendaDetailRoute(String id) => '/fazenda/detalhes/$id';
+  static String fazendaEditRoute(String id) => '/fazenda/editar/$id';
+  static const String fazendaCadastroRoute = '/fazenda/cadastro';
 }
