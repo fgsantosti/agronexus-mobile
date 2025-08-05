@@ -322,7 +322,7 @@ class _AnimalListContentState extends State<_AnimalListContent> with WidgetsBind
   void _showDeleteConfirmDialog(AnimalEntity animal) {
     showDialog(
       context: context,
-      builder: (BuildContext context) {
+      builder: (BuildContext dialogContext) {
         return AlertDialog(
           title: const Row(
             children: [
@@ -352,13 +352,14 @@ class _AnimalListContentState extends State<_AnimalListContent> with WidgetsBind
           actions: [
             TextButton(
               onPressed: () {
-                Navigator.of(context).pop();
+                Navigator.of(dialogContext).pop();
               },
               child: const Text('Cancelar'),
             ),
             TextButton(
               onPressed: () {
-                Navigator.of(context).pop();
+                Navigator.of(dialogContext).pop();
+                // Use o context da tela principal, não do dialog
                 context.read<AnimalBloc>().add(DeleteAnimalEvent(animal.id!));
               },
               style: TextButton.styleFrom(foregroundColor: Colors.red),

@@ -353,19 +353,20 @@ class _AnimalDetailScreenState extends State<AnimalDetailScreen> {
   void _deleteAnimal(AnimalEntity animal) {
     showDialog(
       context: context,
-      builder: (BuildContext context) {
+      builder: (BuildContext dialogContext) {
         return AlertDialog(
           title: const Text('Confirmar Exclusão'),
           content: Text('Tem certeza que deseja excluir o animal ${animal.identificacaoUnica}?'),
           actions: [
             TextButton(
-              onPressed: () => Navigator.of(context).pop(),
+              onPressed: () => Navigator.of(dialogContext).pop(),
               child: const Text('Cancelar'),
             ),
             ElevatedButton(
               style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
               onPressed: () {
-                Navigator.of(context).pop();
+                Navigator.of(dialogContext).pop();
+                // Use o context da tela principal, não do dialog
                 context.read<AnimalBloc>().add(DeleteAnimalEvent(animal.id!));
               },
               child: const Text('Excluir', style: TextStyle(color: Colors.white)),
