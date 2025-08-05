@@ -71,15 +71,21 @@ class EspecieAnimal {
   });
 
   factory EspecieAnimal.fromJson(Map<String, dynamic> json) {
-    return EspecieAnimal(
-      id: json['id'],
-      nome: json['nome'],
-      nomeDisplay: json['nome_display'],
-      pesoUaReferencia: _parseDoubleEspecie(json['peso_ua_referencia']),
-      periodoGestacaoDias: json['periodo_gestacao_dias'] ?? 0,
-      idadePrimeiraCoberturasMeses: json['idade_primeira_cobertura_meses'] ?? 0,
-      ativo: json['ativo'] ?? true,
-    );
+    try {
+      return EspecieAnimal(
+        id: json['id'] ?? '',
+        nome: json['nome'] ?? '',
+        nomeDisplay: json['nome_display'] ?? '',
+        pesoUaReferencia: _parseDoubleEspecie(json['peso_ua_referencia']),
+        periodoGestacaoDias: json['periodo_gestacao_dias'] ?? 0,
+        idadePrimeiraCoberturasMeses: json['idade_primeira_cobertura_meses'] ?? 0,
+        ativo: json['ativo'] ?? true,
+      );
+    } catch (e) {
+      print('❌ Erro ao fazer parse de EspecieAnimal: $e');
+      print('❌ JSON problemático: $json');
+      rethrow;
+    }
   }
 
   static double _parseDoubleEspecie(dynamic value) {
@@ -125,15 +131,21 @@ class RacaAnimal {
   });
 
   factory RacaAnimal.fromJson(Map<String, dynamic> json) {
-    return RacaAnimal(
-      id: json['id'],
-      nome: json['nome'],
-      origem: json['origem'],
-      caracteristicas: json['caracteristicas'],
-      pesoMedioAdultoKg: _parseDoubleRaca(json['peso_medio_adulto_kg']),
-      especie: _parseEspecieAnimalFromRaca(json['especie']),
-      ativo: json['ativo'] ?? true,
-    );
+    try {
+      return RacaAnimal(
+        id: json['id'] ?? '',
+        nome: json['nome'] ?? '',
+        origem: json['origem'],
+        caracteristicas: json['caracteristicas'],
+        pesoMedioAdultoKg: _parseDoubleRaca(json['peso_medio_adulto_kg']),
+        especie: _parseEspecieAnimalFromRaca(json['especie']),
+        ativo: json['ativo'] ?? true,
+      );
+    } catch (e) {
+      print('❌ Erro ao fazer parse de RacaAnimal: $e');
+      print('❌ JSON problemático: $json');
+      rethrow;
+    }
   }
 
   static double? _parseDoubleRaca(dynamic value) {
@@ -224,10 +236,16 @@ class PropriedadeSimples {
   });
 
   factory PropriedadeSimples.fromJson(Map<String, dynamic> json) {
-    return PropriedadeSimples(
-      id: json['id'],
-      nome: json['nome'],
-    );
+    try {
+      return PropriedadeSimples(
+        id: json['id'] ?? '',
+        nome: json['nome'] ?? '',
+      );
+    } catch (e) {
+      print('❌ Erro ao fazer parse de PropriedadeSimples: $e');
+      print('❌ JSON problemático: $json');
+      rethrow;
+    }
   }
 
   Map<String, dynamic> toJson() {
@@ -248,10 +266,16 @@ class LoteSimples {
   });
 
   factory LoteSimples.fromJson(Map<String, dynamic> json) {
-    return LoteSimples(
-      id: json['id'],
-      nome: json['nome'],
-    );
+    try {
+      return LoteSimples(
+        id: json['id'] ?? '',
+        nome: json['nome'] ?? '',
+      );
+    } catch (e) {
+      print('❌ Erro ao fazer parse de LoteSimples: $e');
+      print('❌ JSON problemático: $json');
+      rethrow;
+    }
   }
 
   Map<String, dynamic> toJson() {
@@ -536,30 +560,73 @@ class AnimalEntity extends BaseEntity {
   }
 
   Map<String, dynamic> toJsonSend() {
-    return {
+    final data = <String, dynamic>{
       'identificacao_unica': identificacaoUnica,
-      'nome_registro': nomeRegistro,
       'sexo': sexo.value,
       'data_nascimento': dataNascimento,
       'categoria': categoria,
       'status': status.value,
-      'especie': especie?.id,
-      'raca': raca?.id,
-      'propriedade': propriedade?.id,
-      'lote_atual': loteAtual?.id,
-      'pai': pai?.id,
-      'mae': mae?.id,
-      'data_compra': dataCompra,
-      'valor_compra': valorCompra,
-      'origem': origem,
-      'data_venda': dataVenda,
-      'valor_venda': valorVenda,
-      'destino': destino,
-      'data_morte': dataMorte,
-      'causa_morte': causaMorte,
-      'observacoes': observacoes,
-      'fotos_evolucao': fotosEvolucao,
+      'propriedade_id': propriedade?.id,
+      'especie_id': especie?.id,
     };
+
+    // Campos opcionais - só adiciona se não for nulo
+    if (nomeRegistro != null && nomeRegistro!.isNotEmpty) {
+      data['nome_registro'] = nomeRegistro;
+    }
+
+    if (raca?.id != null) {
+      data['raca_id'] = raca!.id;
+    }
+
+    if (loteAtual?.id != null) {
+      data['lote_atual_id'] = loteAtual!.id;
+    }
+
+    // pai e mae não têm campos _id no serializer, são read-only
+    // Não incluir pai_id e mae_id
+
+    if (dataCompra != null) {
+      data['data_compra'] = dataCompra;
+    }
+
+    if (valorCompra != null) {
+      data['valor_compra'] = valorCompra;
+    }
+
+    if (origem != null && origem!.isNotEmpty) {
+      data['origem'] = origem;
+    }
+
+    if (dataVenda != null) {
+      data['data_venda'] = dataVenda;
+    }
+
+    if (valorVenda != null) {
+      data['valor_venda'] = valorVenda;
+    }
+
+    if (destino != null && destino!.isNotEmpty) {
+      data['destino'] = destino;
+    }
+
+    if (dataMorte != null) {
+      data['data_morte'] = dataMorte;
+    }
+
+    if (causaMorte != null && causaMorte!.isNotEmpty) {
+      data['causa_morte'] = causaMorte;
+    }
+
+    if (observacoes != null && observacoes!.isNotEmpty) {
+      data['observacoes'] = observacoes;
+    }
+
+    if (fotosEvolucao != null && fotosEvolucao!.isNotEmpty) {
+      data['fotos_evolucao'] = fotosEvolucao;
+    }
+
+    return data;
   }
 
   const AnimalEntity.empty()

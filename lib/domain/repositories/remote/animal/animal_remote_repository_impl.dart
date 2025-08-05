@@ -123,12 +123,58 @@ class AnimalRemoteRepositoryImpl implements AnimalRemoteRepository {
   @override
   Future<OpcoesCadastroAnimal> getOpcoesCadastro() async {
     try {
-      Response response = await httpService.get(
-        path: '${API.animais}opcoes-cadastro/',
+      print('🔍 Iniciando carregamento de opções de cadastro...');
+
+      // Faz chamadas separadas para cada endpoint
+      final especiesResponse = await httpService.get(
+        path: 'api/v1/especies/',
         isAuth: true,
       );
-      return OpcoesCadastroAnimal.fromJson(response.data);
+      print('✅ Espécies carregadas: ${especiesResponse.data is List ? especiesResponse.data.length : especiesResponse.data['results']?.length ?? 0}');
+
+      final racasResponse = await httpService.get(
+        path: 'api/v1/racas/',
+        isAuth: true,
+      );
+      print('✅ Raças carregadas: ${racasResponse.data is List ? racasResponse.data.length : racasResponse.data['results']?.length ?? 0}');
+
+      final propriedadesResponse = await httpService.get(
+        path: 'api/v1/propriedades/',
+        isAuth: true,
+      );
+      print('✅ Propriedades carregadas: ${propriedadesResponse.data is List ? propriedadesResponse.data.length : propriedadesResponse.data['results']?.length ?? 0}');
+
+      final lotesResponse = await httpService.get(
+        path: 'api/v1/lotes/',
+        isAuth: true,
+      );
+      print('✅ Lotes carregados: ${lotesResponse.data is List ? lotesResponse.data.length : lotesResponse.data['results']?.length ?? 0}');
+
+      final animaisResponse = await httpService.get(
+        path: API.animais,
+        isAuth: true,
+      );
+      print('✅ Animais carregados: ${animaisResponse.data is List ? animaisResponse.data.length : animaisResponse.data['results']?.length ?? 0}');
+
+      // Combina os dados em uma única estrutura
+      final opcoes = {
+        'especies': especiesResponse.data is List ? especiesResponse.data : (especiesResponse.data['results'] ?? []),
+        'racas': racasResponse.data is List ? racasResponse.data : (racasResponse.data['results'] ?? []),
+        'propriedades': propriedadesResponse.data is List ? propriedadesResponse.data : (propriedadesResponse.data['results'] ?? []),
+        'lotes': lotesResponse.data is List ? lotesResponse.data : (lotesResponse.data['results'] ?? []),
+        'possiveis_pais': animaisResponse.data is List ? animaisResponse.data : (animaisResponse.data['results'] ?? []),
+        'possiveis_maes': animaisResponse.data is List ? animaisResponse.data : (animaisResponse.data['results'] ?? []),
+        'categorias': ['Bezerro', 'Bezerro desmamado', 'Garrote', 'Boi', 'Touro', 'Bezerra', 'Bezerra desmamada', 'Novilha', 'Vaca', 'Matriz'], // Categorias fixas
+      };
+
+      print('🔍 Tentando fazer parse das opções...');
+      final result = OpcoesCadastroAnimal.fromJson(opcoes);
+      print('✅ Parse das opções concluído com sucesso!');
+
+      return result;
     } catch (e) {
+      print('❌ Erro ao carregar opções: $e');
+      print('❌ Stack trace: ${StackTrace.current}');
       throw await AgroNexusException.fromDioError(e);
     }
   }
@@ -137,11 +183,12 @@ class AnimalRemoteRepositoryImpl implements AnimalRemoteRepository {
   Future<List<RacaAnimal>> getRacasByEspecie(String especieId) async {
     try {
       Response response = await httpService.get(
-        path: '${API.animais}racas-por-especie/',
+        path: 'api/v1/racas/',
         queryParameters: {'especie': especieId},
         isAuth: true,
       );
-      List<dynamic> data = response.data;
+
+      List<dynamic> data = response.data is List ? response.data : (response.data['results'] ?? []);
       return data.map((json) => RacaAnimal.fromJson(json)).toList();
     } catch (e) {
       throw await AgroNexusException.fromDioError(e);
@@ -151,13 +198,9 @@ class AnimalRemoteRepositoryImpl implements AnimalRemoteRepository {
   @override
   Future<List<String>> getCategoriasByEspecie(String especieId) async {
     try {
-      Response response = await httpService.get(
-        path: '${API.animais}categorias-por-especie/',
-        queryParameters: {'especie': especieId},
-        isAuth: true,
-      );
-      List<dynamic> data = response.data;
-      return data.map((e) => e.toString()).toList();
+      // Como não há endpoint específico, retorna categorias baseadas na espécie
+      // Pode ser melhorado futuramente se houver categorias específicas por espécie na API
+      return ['Bezerro', 'Bezerro desmamado', 'Garrote', 'Boi', 'Touro', 'Bezerra', 'Bezerra desmamada', 'Novilha', 'Vaca', 'Matriz'];
     } catch (e) {
       throw await AgroNexusException.fromDioError(e);
     }

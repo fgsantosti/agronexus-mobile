@@ -1,5 +1,6 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:agronexus/domain/services/animal_service.dart';
+import 'package:agronexus/config/exceptions.dart';
 import 'animal_event.dart';
 import 'animal_state.dart';
 
@@ -52,7 +53,13 @@ class AnimalBloc extends Bloc<AnimalEvent, AnimalState> {
         hasMore: animais.length == event.limit,
       ));
     } catch (e) {
-      emit(AnimalError('Erro ao carregar animais: ${e.toString()}'));
+      String errorMessage;
+      if (e is AgroNexusException) {
+        errorMessage = e.message;
+      } else {
+        errorMessage = 'Erro ao carregar animais: ${e.toString()}';
+      }
+      emit(AnimalError(errorMessage));
     }
   }
 
@@ -67,7 +74,13 @@ class AnimalBloc extends Bloc<AnimalEvent, AnimalState> {
 
       emit(AnimalDetailLoaded(animal));
     } catch (e) {
-      emit(AnimalError('Erro ao carregar detalhes do animal: ${e.toString()}'));
+      String errorMessage;
+      if (e is AgroNexusException) {
+        errorMessage = e.message;
+      } else {
+        errorMessage = 'Erro ao carregar detalhes do animal: ${e.toString()}';
+      }
+      emit(AnimalError(errorMessage));
     }
   }
 
@@ -82,7 +95,16 @@ class AnimalBloc extends Bloc<AnimalEvent, AnimalState> {
 
       emit(AnimalCreated(animal));
     } catch (e) {
-      emit(AnimalError('Erro ao criar animal: ${e.toString()}'));
+      String errorMessage;
+
+      // Extrair a mensagem correta da AgroNexusException
+      if (e is AgroNexusException) {
+        errorMessage = e.message;
+      } else {
+        errorMessage = 'Erro ao criar animal: ${e.toString()}';
+      }
+
+      emit(AnimalError(errorMessage));
     }
   }
 
@@ -97,7 +119,13 @@ class AnimalBloc extends Bloc<AnimalEvent, AnimalState> {
 
       emit(AnimalUpdated(animal));
     } catch (e) {
-      emit(AnimalError('Erro ao atualizar animal: ${e.toString()}'));
+      String errorMessage;
+      if (e is AgroNexusException) {
+        errorMessage = e.message;
+      } else {
+        errorMessage = 'Erro ao atualizar animal: ${e.toString()}';
+      }
+      emit(AnimalError(errorMessage));
     }
   }
 
@@ -112,7 +140,13 @@ class AnimalBloc extends Bloc<AnimalEvent, AnimalState> {
 
       emit(AnimalDeleted(event.id));
     } catch (e) {
-      emit(AnimalError('Erro ao deletar animal: ${e.toString()}'));
+      String errorMessage;
+      if (e is AgroNexusException) {
+        errorMessage = e.message;
+      } else {
+        errorMessage = 'Erro ao deletar animal: ${e.toString()}';
+      }
+      emit(AnimalError(errorMessage));
     }
   }
 
@@ -127,7 +161,13 @@ class AnimalBloc extends Bloc<AnimalEvent, AnimalState> {
 
       emit(OpcoesCadastroLoaded(opcoes));
     } catch (e) {
-      emit(AnimalError('Erro ao carregar opções de cadastro: ${e.toString()}'));
+      String errorMessage;
+      if (e is AgroNexusException) {
+        errorMessage = e.message;
+      } else {
+        errorMessage = 'Erro ao carregar opções de cadastro: ${e.toString()}';
+      }
+      emit(AnimalError(errorMessage));
     }
   }
 
@@ -140,7 +180,13 @@ class AnimalBloc extends Bloc<AnimalEvent, AnimalState> {
 
       emit(RacasLoaded(racas));
     } catch (e) {
-      emit(AnimalError('Erro ao carregar raças: ${e.toString()}'));
+      String errorMessage;
+      if (e is AgroNexusException) {
+        errorMessage = e.message;
+      } else {
+        errorMessage = 'Erro ao carregar raças: ${e.toString()}';
+      }
+      emit(AnimalError(errorMessage));
     }
   }
 
@@ -153,7 +199,13 @@ class AnimalBloc extends Bloc<AnimalEvent, AnimalState> {
 
       emit(CategoriasLoaded(categorias));
     } catch (e) {
-      emit(AnimalError('Erro ao carregar categorias: ${e.toString()}'));
+      String errorMessage;
+      if (e is AgroNexusException) {
+        errorMessage = e.message;
+      } else {
+        errorMessage = 'Erro ao carregar categorias: ${e.toString()}';
+      }
+      emit(AnimalError(errorMessage));
     }
   }
 

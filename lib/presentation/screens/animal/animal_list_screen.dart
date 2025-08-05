@@ -5,7 +5,6 @@ import '../../../domain/models/animal_entity.dart';
 import '../../bloc/animal/animal_bloc.dart';
 import '../../bloc/animal/animal_event.dart';
 import '../../bloc/animal/animal_state.dart';
-import 'animal_form_screen.dart';
 
 class AnimalListScreen extends StatelessWidget {
   const AnimalListScreen({super.key});
@@ -81,16 +80,7 @@ class _AnimalListContentState extends State<_AnimalListContent> with WidgetsBind
           IconButton(
             icon: const Icon(Icons.add),
             onPressed: () {
-              Navigator.of(context)
-                  .push(
-                MaterialPageRoute(
-                  builder: (context) => const AnimalFormScreen(),
-                ),
-              )
-                  .then((_) {
-                // Recarregar lista após voltar do cadastro
-                _loadAnimais();
-              });
+              context.go('/animais/cadastro');
             },
           ),
         ],
@@ -218,6 +208,13 @@ class _AnimalListContentState extends State<_AnimalListContent> with WidgetsBind
             ),
           ],
         ),
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {
+          context.go('/animais/cadastro');
+        },
+        backgroundColor: Colors.green,
+        child: const Icon(Icons.add, color: Colors.white),
       ),
     );
   }

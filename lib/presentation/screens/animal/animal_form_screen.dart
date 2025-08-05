@@ -152,12 +152,8 @@ class _AnimalFormScreenState extends State<AnimalFormScreen> {
             );
             Navigator.of(context).pop();
           } else if (state is AnimalError) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(state.message),
-                backgroundColor: Colors.red,
-              ),
-            );
+            // Mostrar apenas dialog de erro
+            _showErrorDialog(context, state.message);
           }
         },
         child: Column(
@@ -811,5 +807,37 @@ class _AnimalFormScreenState extends State<AnimalFormScreen> {
     } else {
       context.read<AnimalBloc>().add(UpdateAnimalEvent(widget.animal!.id!, animal));
     }
+  }
+
+  void _showErrorDialog(BuildContext context, String message) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Row(
+            children: [
+              Icon(Icons.error, color: Colors.red),
+              SizedBox(width: 8),
+              Text('Erro', style: TextStyle(color: Colors.red)),
+            ],
+          ),
+          content: Text(
+            message,
+            style: TextStyle(fontSize: 16),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: Text('OK', style: TextStyle(color: Colors.blue)),
+            ),
+          ],
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        );
+      },
+    );
   }
 }
