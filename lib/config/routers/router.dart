@@ -15,11 +15,13 @@ import 'package:agronexus/presentation/animal/animal_form_screen.dart';
 import 'package:agronexus/presentation/animal/animal_list_screen.dart';
 import 'package:agronexus/presentation/bloc/propriedade/propriedade_event_new.dart';
 import 'package:agronexus/presentation/bloc/reproducao/reproducao_bloc.dart';
+import 'package:agronexus/presentation/bloc/user/user_bloc.dart';
 import 'package:agronexus/presentation/cubit/bottom_bar/bottom_bar_cubit.dart';
 import 'package:agronexus/presentation/fazenda/screens/fazenda_add_screen.dart';
 import 'package:agronexus/presentation/fazenda/screens/fazenda_detail_screen.dart';
 import 'package:agronexus/presentation/home/home_screen.dart';
 import 'package:agronexus/presentation/login/login_screen.dart';
+import 'package:agronexus/presentation/perfil/perfil_screen.dart';
 import 'package:agronexus/presentation/propriedade/cadastro_propriedade_screen.dart';
 import 'package:agronexus/presentation/propriedade/detalhes_propriedade_screen.dart';
 import 'package:agronexus/presentation/propriedade/editar_propriedade_screen.dart';
@@ -385,7 +387,14 @@ enum AgroNexusRouter {
                 key: state.pageKey,
                 transitionDuration: RoutesUtils.duration,
                 transitionsBuilder: RoutesUtils.transitionBuilder,
-                child: Center(child: Text("Perfil")),
+                child: MultiBlocProvider(
+                  providers: [
+                    BlocProvider(
+                      create: (context) => UserBloc(userService: getIt()),
+                    ),
+                  ],
+                  child: const PerfilScreen(),
+                ),
               );
             },
           ),

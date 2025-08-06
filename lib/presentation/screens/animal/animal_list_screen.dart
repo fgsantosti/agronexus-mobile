@@ -3,9 +3,9 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:agronexus/config/api.dart';
 import 'package:agronexus/domain/models/animal_entity.dart';
-import '../bloc/animal/animal_bloc.dart';
-import '../bloc/animal/animal_event.dart';
-import '../bloc/animal/animal_state.dart';
+import '../../bloc/animal/animal_bloc.dart';
+import '../../bloc/animal/animal_event.dart';
+import '../../bloc/animal/animal_state.dart';
 
 class AnimalListScreen extends StatelessWidget {
   const AnimalListScreen({super.key});
