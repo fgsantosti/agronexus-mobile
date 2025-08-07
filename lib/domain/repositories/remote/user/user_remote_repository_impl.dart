@@ -23,13 +23,19 @@ class UserRemoteRepositoryImpl implements UserRemoteRepository {
       Map<String, dynamic> data = entity.toJsonSend();
       data["password1"] = password;
       data["password2"] = password2;
+      
+      // Log para debug
+      print('Dados sendo enviados para API /api/auth/registro/:');
+      print('Data: $data');
+      
       Response response = await _httpService.post(
-        path: API.usuarios,
+        path: API.registro,
         isAuth: false,
         data: data,
       );
       return Right(UserEntity.fromJson(response.data));
     } catch (e) {
+      print('Erro no cadastro de usuário: $e');
       return Left(await AgroNexusException.fromDioError(e));
     }
   }

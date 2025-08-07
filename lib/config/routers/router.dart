@@ -20,6 +20,7 @@ import 'package:agronexus/presentation/cubit/bottom_bar/bottom_bar_cubit.dart';
 import 'package:agronexus/presentation/fazenda/screens/fazenda_add_screen.dart';
 import 'package:agronexus/presentation/fazenda/screens/fazenda_detail_screen.dart';
 import 'package:agronexus/presentation/home/home_screen.dart';
+import 'package:agronexus/presentation/login/cadastro_usuario_screen.dart';
 import 'package:agronexus/presentation/login/login_screen.dart';
 import 'package:agronexus/presentation/perfil/perfil_screen.dart';
 import 'package:agronexus/presentation/propriedade/cadastro_propriedade_screen.dart';
@@ -35,6 +36,7 @@ import 'package:go_router/go_router.dart';
 
 enum AgroNexusRouter {
   login(path: loginPath),
+  cadastro(path: cadastroPath),
   home(path: homePath),
   splash(path: splashPath),
   fazenda(path: fazendaPath),
@@ -56,6 +58,7 @@ enum AgroNexusRouter {
   String get detailPath => '$path$detail';
 
   static const String loginPath = '/login';
+  static const String cadastroPath = '/cadastro';
   static const String splashPath = '/splash';
   static const String homePath = '/home';
   static const String fazendaPath = '/fazenda';
@@ -99,6 +102,18 @@ enum AgroNexusRouter {
             )
           ],
           child: LoginScreen(),
+        ),
+      ),
+      // CADASTRO SCREEN
+      GoRoute(
+        path: cadastro.path,
+        builder: (context, state) => MultiBlocProvider(
+          providers: [
+            BlocProvider(
+              create: (context) => UserBloc(userService: getIt()),
+            )
+          ],
+          child: CadastroUsuarioScreen(),
         ),
       ),
       ShellRoute(

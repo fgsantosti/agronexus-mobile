@@ -136,7 +136,19 @@ class _LoginScreenState extends State<LoginScreen> {
                                     : _performLogin,
                                 child: Text(_login),
                               ),
-                            )
+                            ),
+                            const SizedBox(height: 16),
+                            SizedBox(
+                              width: double.infinity,
+                              child: ElevatedButton(
+                                onPressed: state.status == LoginStatus.loading
+                                    ? null
+                                    : () {
+                                        context.go(AgroNexusRouter.cadastro.path);
+                                      },
+                                child: const Text('Criar uma conta'),
+                              ),
+                            ),
                           ],
                         ),
                       ),

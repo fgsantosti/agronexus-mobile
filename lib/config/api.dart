@@ -6,6 +6,7 @@ class API {
 
   // AUTH
   static const String login = 'api/auth/login/';
+  static const String registro = 'api/auth/registro/';
   static const String refresh = 'api/auth/refresh/';
   static const String logout = 'api/auth/logout/';
 

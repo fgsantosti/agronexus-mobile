@@ -2,7 +2,9 @@ import 'package:agronexus/config/utils.dart';
 import 'package:agronexus/domain/models/base_entity.dart';
 
 class UserEntity extends BaseEntity {
+  final String username;
   final String firstName;
+  final String lastName;
   final String email;
   final String cpf;
 
@@ -20,7 +22,9 @@ class UserEntity extends BaseEntity {
     super.modifiedById,
     super.createdAt,
     super.modifiedAt,
+    required this.username,
     required this.firstName,
+    required this.lastName,
     required this.email,
     required this.cpf,
     this.isStaff,
@@ -34,7 +38,9 @@ class UserEntity extends BaseEntity {
   @override
   List<Object?> get props => [
         ...super.props,
+        username,
         firstName,
+        lastName,
         email,
         cpf,
         isStaff,
@@ -46,11 +52,13 @@ class UserEntity extends BaseEntity {
       ];
 
   const UserEntity.empty()
-      : firstName = '',
+      : username = '',
+        firstName = '',
+        lastName = '',
         email = '',
         cpf = '',
-        isStaff = false,
-        isActive = false,
+        isStaff = null,
+        isActive = null,
         password = null,
         password2 = null,
         accessToken = null,
@@ -63,7 +71,9 @@ class UserEntity extends BaseEntity {
     AgroNexusGetter<String?>? modifiedById,
     AgroNexusGetter<String?>? createdAt,
     AgroNexusGetter<String?>? modifiedAt,
+    AgroNexusGetter<String>? username,
     AgroNexusGetter<String>? firstName,
+    AgroNexusGetter<String>? lastName,
     AgroNexusGetter<String>? email,
     AgroNexusGetter<String>? cpf,
     AgroNexusGetter<bool?>? isStaff,
@@ -79,7 +89,9 @@ class UserEntity extends BaseEntity {
       modifiedById: modifiedById != null ? modifiedById() : this.modifiedById,
       createdAt: createdAt != null ? createdAt() : this.createdAt,
       modifiedAt: modifiedAt != null ? modifiedAt() : this.modifiedAt,
+      username: username != null ? username() : this.username,
       firstName: firstName != null ? firstName() : this.firstName,
+      lastName: lastName != null ? lastName() : this.lastName,
       email: email != null ? email() : this.email,
       cpf: cpf != null ? cpf() : this.cpf,
       isStaff: isStaff != null ? isStaff() : this.isStaff,
@@ -108,7 +120,9 @@ class UserEntity extends BaseEntity {
 
   Map<String, dynamic> toJsonSend() {
     Map<String, dynamic> data = super.toJson();
+    data['username'] = username;
     data['first_name'] = firstName;
+    data['last_name'] = lastName;
     data['email'] = email;
     data['cpf'] = cpf;
     data['is_staff'] = isStaff;
@@ -120,7 +134,9 @@ class UserEntity extends BaseEntity {
   }
 
   UserEntity.fromJson(Map<String, dynamic> json)
-      : firstName = json['first_name'] ?? json['username'] ?? '',
+      : username = json['username'] ?? '',
+        firstName = json['first_name'] ?? '',
+        lastName = json['last_name'] ?? '',
         email = json['email'] ?? '',
         cpf = json['cpf'] ?? '',
         isStaff = json['is_staff'] ?? false,
