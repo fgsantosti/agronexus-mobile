@@ -1,11 +1,13 @@
 import 'package:agronexus/config/utils.dart';
 import 'package:agronexus/domain/models/base_entity.dart';
+import 'package:agronexus/domain/models/animal_entity.dart'; // Para PropriedadeSimples
 
 class LoteEntity extends BaseEntity {
   final String nome;
   final String descricao;
   final String criterioAgrupamento;
   final String propriedadeId;
+  final PropriedadeSimples? propriedade;
   final String? areaAtualId;
   final String? aptidao;
   final String? finalidade;
@@ -26,6 +28,7 @@ class LoteEntity extends BaseEntity {
     required this.descricao,
     required this.criterioAgrupamento,
     required this.propriedadeId,
+    this.propriedade,
     this.areaAtualId,
     this.aptidao,
     this.finalidade,
@@ -42,6 +45,7 @@ class LoteEntity extends BaseEntity {
         descricao = '',
         criterioAgrupamento = '',
         propriedadeId = "",
+        propriedade = null,
         areaAtualId = null,
         aptidao = null,
         finalidade = null,
@@ -59,6 +63,7 @@ class LoteEntity extends BaseEntity {
         descricao,
         criterioAgrupamento,
         propriedadeId,
+        propriedade,
         areaAtualId,
         aptidao,
         finalidade,
@@ -81,6 +86,7 @@ class LoteEntity extends BaseEntity {
     AgroNexusGetter<String>? descricao,
     AgroNexusGetter<String>? criterioAgrupamento,
     AgroNexusGetter<String>? propriedadeId,
+    AgroNexusGetter<PropriedadeSimples?>? propriedade,
     AgroNexusGetter<String?>? areaAtualId,
     AgroNexusGetter<String?>? aptidao,
     AgroNexusGetter<String?>? finalidade,
@@ -101,6 +107,7 @@ class LoteEntity extends BaseEntity {
       descricao: descricao != null ? descricao() : this.descricao,
       criterioAgrupamento: criterioAgrupamento != null ? criterioAgrupamento() : this.criterioAgrupamento,
       propriedadeId: propriedadeId != null ? propriedadeId() : this.propriedadeId,
+      propriedade: propriedade != null ? propriedade() : this.propriedade,
       areaAtualId: areaAtualId != null ? areaAtualId() : this.areaAtualId,
       aptidao: aptidao != null ? aptidao() : this.aptidao,
       finalidade: finalidade != null ? finalidade() : this.finalidade,
@@ -119,7 +126,9 @@ class LoteEntity extends BaseEntity {
     data['nome'] = nome;
     data['descricao'] = descricao;
     data['criterio_agrupamento'] = criterioAgrupamento;
-    data['propriedade_id'] = propriedadeId;
+    // Fallback: se propriedadeId estiver vazio, tenta usar propriedade?.id
+    final effectivePropriedadeId = propriedadeId.isNotEmpty ? propriedadeId : (propriedade?.id ?? '');
+    data['propriedade_id'] = effectivePropriedadeId;
     if (areaAtualId != null) data['area_atual_id'] = areaAtualId;
     if (aptidao != null) data['aptidao'] = aptidao;
     if (finalidade != null) data['finalidade'] = finalidade;
@@ -132,7 +141,9 @@ class LoteEntity extends BaseEntity {
       : nome = json['nome'] ?? "",
         descricao = json['descricao'] ?? "",
         criterioAgrupamento = json['criterio_agrupamento'] ?? "",
-        propriedadeId = json['propriedade_id'] ?? "",
+        // Fallback: se não vier 'propriedade_id', tenta extrair de json['propriedade']['id']
+        propriedadeId = (json['propriedade_id'] ?? json['propriedade']?['id'] ?? ""),
+        propriedade = json['propriedade'] != null ? PropriedadeSimples.fromJson(json['propriedade']) : null,
         areaAtualId = json['area_atual_id'],
         aptidao = json['aptidao'],
         finalidade = json['finalidade'],

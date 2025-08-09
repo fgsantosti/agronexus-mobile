@@ -24,7 +24,6 @@ class _EditarLoteScreenState extends State<EditarLoteScreen> {
   final _nomeController = TextEditingController();
   final _descricaoController = TextEditingController();
   final _criterioAgrupamentoController = TextEditingController();
-  final _propriedadeIdController = TextEditingController();
 
   String? _aptidao;
   String? _finalidade;
@@ -62,7 +61,6 @@ class _EditarLoteScreenState extends State<EditarLoteScreen> {
     _nomeController.dispose();
     _descricaoController.dispose();
     _criterioAgrupamentoController.dispose();
-    _propriedadeIdController.dispose();
     super.dispose();
   }
 
@@ -72,7 +70,7 @@ class _EditarLoteScreenState extends State<EditarLoteScreen> {
     _nomeController.text = lote.nome;
     _descricaoController.text = lote.descricao;
     _criterioAgrupamentoController.text = lote.criterioAgrupamento;
-    _propriedadeIdController.text = lote.propriedadeId;
+    // propriedadeId não é editável, será mostrado apenas no TextFormField disabled
     _aptidao = lote.aptidao;
     _finalidade = lote.finalidade;
     _sistemaCriacao = lote.sistemaCriacao;
@@ -192,19 +190,14 @@ class _EditarLoteScreenState extends State<EditarLoteScreen> {
                         ),
                         const SizedBox(height: 16),
                         TextFormField(
-                          controller: _propriedadeIdController,
+                          initialValue: widget.lote.propriedade?.nome ?? 'Propriedade não encontrada',
                           decoration: const InputDecoration(
-                            labelText: 'ID da Propriedade *',
-                            hintText: 'ID da propriedade',
+                            labelText: 'Propriedade',
+                            hintText: 'Nome da propriedade',
                             border: OutlineInputBorder(),
+                            prefixIcon: Icon(Icons.home_work),
                           ),
-                          validator: (value) {
-                            if (value?.isEmpty == true) {
-                              return 'ID da propriedade é obrigatório';
-                            }
-                            return null;
-                          },
-                          enabled: false, // Não permite editar o ID da propriedade
+                          enabled: false, // Não permite editar a propriedade
                         ),
                         const SizedBox(height: 16),
                         SwitchListTile(
@@ -316,16 +309,34 @@ class _EditarLoteScreenState extends State<EditarLoteScreen> {
 
     setState(() => _isLoading = true);
 
+    print('🔍 Debug - propriedadeId original: ${widget.lote.propriedadeId}');
+    print('🔍 Debug - propriedade original: ${widget.lote.propriedade?.nome}');
+
+    // Fallback para garantir que enviamos um UUID válido
+    final propriedadeIdEfetivo = widget.lote.propriedadeId.isNotEmpty ? widget.lote.propriedadeId : (widget.lote.propriedade?.id ?? '');
+
+    if (propriedadeIdEfetivo.isEmpty) {
+      // Não deve prosseguir sem UUID – evita 400 desnecessário
+      setState(() => _isLoading = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Propriedade inválida: ID não encontrado.')),
+      );
+      return;
+    }
+
     final loteAtualizado = widget.lote.copyWith(
       nome: () => _nomeController.text.trim(),
       descricao: () => _descricaoController.text.trim(),
       criterioAgrupamento: () => _criterioAgrupamentoController.text.trim(),
-      propriedadeId: () => _propriedadeIdController.text.trim(),
+      propriedadeId: () => propriedadeIdEfetivo,
       aptidao: () => _aptidao,
       finalidade: () => _finalidade,
       sistemaCriacao: () => _sistemaCriacao,
       ativo: () => _ativo,
     );
+
+    print('🔍 Debug - propriedadeId efetivo usado: $propriedadeIdEfetivo');
+    print('🔍 Debug - toJson: ${loteAtualizado.toJson()}');
 
     context.read<LoteBloc>().add(UpdateLoteEvent(loteAtualizado));
   }
