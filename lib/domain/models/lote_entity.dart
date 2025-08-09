@@ -75,7 +75,7 @@ class LoteEntity extends BaseEntity {
         gmdMedio,
       ];
 
-  @override
+  // copyWith não existe em BaseEntity; removido @override
   LoteEntity copyWith({
     AgroNexusGetter<String?>? id,
     AgroNexusGetter<String?>? createdById,
@@ -122,11 +122,10 @@ class LoteEntity extends BaseEntity {
 
   @override
   Map<String, dynamic> toJson() {
-    Map<String, dynamic> data = super.toJson();
+    final data = super.toJson();
     data['nome'] = nome;
     data['descricao'] = descricao;
     data['criterio_agrupamento'] = criterioAgrupamento;
-    // Fallback: se propriedadeId estiver vazio, tenta usar propriedade?.id
     final effectivePropriedadeId = propriedadeId.isNotEmpty ? propriedadeId : (propriedade?.id ?? '');
     data['propriedade_id'] = effectivePropriedadeId;
     if (areaAtualId != null) data['area_atual_id'] = areaAtualId;
@@ -137,21 +136,27 @@ class LoteEntity extends BaseEntity {
     return data;
   }
 
-  LoteEntity.fromJson(super.json)
-      : nome = json['nome'] ?? "",
-        descricao = json['descricao'] ?? "",
-        criterioAgrupamento = json['criterio_agrupamento'] ?? "",
-        // Fallback: se não vier 'propriedade_id', tenta extrair de json['propriedade']['id']
-        propriedadeId = (json['propriedade_id'] ?? json['propriedade']?['id'] ?? ""),
-        propriedade = json['propriedade'] != null ? PropriedadeSimples.fromJson(json['propriedade']) : null,
-        areaAtualId = json['area_atual_id'],
-        aptidao = json['aptidao'],
-        finalidade = json['finalidade'],
-        sistemaCriacao = json['sistema_criacao'],
-        ativo = json['ativo'] ?? true,
-        totalAnimais = json['total_animais'] ?? 0,
-        totalUa = json['total_ua']?.toDouble(),
-        pesoMedio = json['peso_medio']?.toDouble(),
-        gmdMedio = json['gmd_medio']?.toDouble(),
-        super.fromJson();
+  factory LoteEntity.fromJson(Map<String, dynamic> json) {
+    return LoteEntity(
+      id: json['id'],
+      createdById: json['created_by'],
+      modifiedById: json['modified_by'],
+      createdAt: json['created_at'],
+      modifiedAt: json['modified_at'],
+      nome: json['nome'] ?? '',
+      descricao: json['descricao'] ?? '',
+      criterioAgrupamento: json['criterio_agrupamento'] ?? '',
+      propriedadeId: (json['propriedade_id'] ?? json['propriedade']?['id'] ?? ''),
+      propriedade: json['propriedade'] != null ? PropriedadeSimples.fromJson(json['propriedade']) : null,
+      areaAtualId: json['area_atual_id'],
+      aptidao: (json['aptidao'] as String?)?.isNotEmpty == true ? json['aptidao'] : null,
+      finalidade: (json['finalidade'] as String?)?.isNotEmpty == true ? json['finalidade'] : null,
+      sistemaCriacao: (json['sistema_criacao'] as String?)?.isNotEmpty == true ? json['sistema_criacao'] : null,
+      ativo: json['ativo'] ?? true,
+      totalAnimais: json['total_animais'] ?? 0,
+      totalUa: json['total_ua'] != null ? (json['total_ua'] as num).toDouble() : null,
+      pesoMedio: json['peso_medio'] != null ? (json['peso_medio'] as num).toDouble() : null,
+      gmdMedio: json['gmd_medio'] != null ? (json['gmd_medio'] as num).toDouble() : null,
+    );
+  }
 }
