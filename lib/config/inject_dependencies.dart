@@ -37,6 +37,11 @@ import 'package:agronexus/domain/services/propriedade_service.dart' as legacy;
 import 'package:agronexus/domain/services/propriedade_service_new.dart' as novo;
 import 'package:agronexus/domain/services/reproducao_service.dart';
 import 'package:agronexus/domain/services/user_service.dart';
+import 'package:agronexus/presentation/bloc/propriedade/propriedade_bloc_new.dart';
+import 'package:agronexus/domain/services/area_service.dart';
+import 'package:agronexus/domain/repositories/remote/area/area_remote_repository.dart';
+import 'package:agronexus/domain/repositories/remote/area/area_remote_repository_impl.dart';
+import 'package:agronexus/presentation/bloc/area/area_bloc.dart';
 import 'package:get_it/get_it.dart';
 
 var getIt = GetIt.I;
@@ -116,11 +121,26 @@ void configureDependencies() {
     ReproducaoService(getIt()),
   );
 
+  // Área
+  getIt.registerSingleton<AreaRemoteRepository>(
+    AreaRemoteRepositoryImpl(httpService: getIt()),
+  );
+  getIt.registerSingleton<AreaService>(
+    AreaService(getIt()),
+  );
+
   // BLoCs
   getIt.registerFactory<AnimalBloc>(
     () => AnimalBloc(getIt()),
   );
   getIt.registerFactory<LoteBloc>(
     () => LoteBloc(getIt()),
+  );
+  // Novo: PropriedadeBlocNew
+  getIt.registerFactory<PropriedadeBlocNew>(
+    () => PropriedadeBlocNew(getIt<novo.PropriedadeServiceNew>()),
+  );
+  getIt.registerFactory<AreaBloc>(
+    () => AreaBloc(getIt()),
   );
 }
