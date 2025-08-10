@@ -7,6 +7,7 @@ import 'package:agronexus/domain/models/propriedade_entity.dart';
 import 'package:agronexus/presentation/propriedade/cadastro_propriedade_screen.dart';
 import 'package:agronexus/presentation/propriedade/editar_propriedade_screen.dart';
 import 'package:agronexus/presentation/propriedade/detalhes_propriedade_screen.dart';
+import 'package:agronexus/presentation/widgets/entity_action_menu.dart';
 
 class PropriedadeScreen extends StatefulWidget {
   const PropriedadeScreen({super.key});
@@ -217,40 +218,10 @@ class _PropriedadeScreenState extends State<PropriedadeScreen> {
                       ],
                     ),
                   ),
-                  PopupMenuButton<String>(
-                    onSelected: (value) => _executarAcao(value, propriedade),
-                    itemBuilder: (context) => [
-                      const PopupMenuItem(
-                        value: 'detalhes',
-                        child: Row(
-                          children: [
-                            Icon(Icons.visibility, size: 20),
-                            SizedBox(width: 8),
-                            Text('Ver Detalhes'),
-                          ],
-                        ),
-                      ),
-                      const PopupMenuItem(
-                        value: 'editar',
-                        child: Row(
-                          children: [
-                            Icon(Icons.edit, size: 20),
-                            SizedBox(width: 8),
-                            Text('Editar'),
-                          ],
-                        ),
-                      ),
-                      const PopupMenuItem(
-                        value: 'excluir',
-                        child: Row(
-                          children: [
-                            Icon(Icons.delete, size: 20, color: Colors.red),
-                            SizedBox(width: 8),
-                            Text('Excluir', style: TextStyle(color: Colors.red)),
-                          ],
-                        ),
-                      ),
-                    ],
+                  EntityActionMenu(
+                    onDetails: () => _mostrarDetalhes(propriedade),
+                    onEdit: () => _navegarParaEdicao(propriedade),
+                    onDelete: () => _confirmarExclusao(propriedade),
                   ),
                 ],
               ),
@@ -387,19 +358,7 @@ class _PropriedadeScreenState extends State<PropriedadeScreen> {
     );
   }
 
-  void _executarAcao(String acao, PropriedadeEntity propriedade) {
-    switch (acao) {
-      case 'detalhes':
-        _mostrarDetalhes(propriedade);
-        break;
-      case 'editar':
-        _navegarParaEdicao(propriedade);
-        break;
-      case 'excluir':
-        _confirmarExclusao(propriedade);
-        break;
-    }
-  }
+  // _executarAcao removido após padronização com EntityActionMenu
 
   void _confirmarExclusao(PropriedadeEntity propriedade) {
     // Obter referência ao bloc antes de criar o dialog

@@ -4,6 +4,7 @@ import 'package:agronexus/presentation/bloc/animal/animal_bloc.dart';
 import 'package:agronexus/presentation/bloc/animal/animal_event.dart';
 import 'package:agronexus/presentation/bloc/animal/animal_state.dart';
 import 'package:agronexus/domain/models/animal_entity.dart';
+import 'package:agronexus/presentation/widgets/entity_action_menu.dart'; // buildDetailAppBar
 
 class AnimalDetailScreen extends StatefulWidget {
   final String animalId;
@@ -27,54 +28,7 @@ class _AnimalDetailScreenState extends State<AnimalDetailScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Detalhes do Animal'),
-        backgroundColor: Colors.green,
-        foregroundColor: Colors.white,
-        actions: [
-          BlocBuilder<AnimalBloc, AnimalState>(
-            builder: (context, state) {
-              if (state is AnimalDetailLoaded) {
-                return PopupMenuButton<String>(
-                  onSelected: (value) {
-                    switch (value) {
-                      case 'edit':
-                        _editAnimal(state.animal);
-                        break;
-                      case 'delete':
-                        _deleteAnimal(state.animal);
-                        break;
-                    }
-                  },
-                  itemBuilder: (BuildContext context) => [
-                    const PopupMenuItem<String>(
-                      value: 'edit',
-                      child: Row(
-                        children: [
-                          Icon(Icons.edit),
-                          SizedBox(width: 8),
-                          Text('Editar'),
-                        ],
-                      ),
-                    ),
-                    const PopupMenuItem<String>(
-                      value: 'delete',
-                      child: Row(
-                        children: [
-                          Icon(Icons.delete, color: Colors.red),
-                          SizedBox(width: 8),
-                          Text('Excluir', style: TextStyle(color: Colors.red)),
-                        ],
-                      ),
-                    ),
-                  ],
-                );
-              }
-              return const SizedBox.shrink();
-            },
-          ),
-        ],
-      ),
+      appBar: buildDetailAppBar('Detalhes do Animal'),
       body: BlocListener<AnimalBloc, AnimalState>(
         listener: (context, state) {
           if (state is AnimalDeleted) {
@@ -340,40 +294,5 @@ class _AnimalDetailScreenState extends State<AnimalDetailScreen> {
     }
   }
 
-  void _editAnimal(AnimalEntity animal) {
-    // TODO: Implementar navegação para tela de edição
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Funcionalidade de edição será implementada'),
-        backgroundColor: Colors.blue,
-      ),
-    );
-  }
-
-  void _deleteAnimal(AnimalEntity animal) {
-    showDialog(
-      context: context,
-      builder: (BuildContext dialogContext) {
-        return AlertDialog(
-          title: const Text('Confirmar Exclusão'),
-          content: Text('Tem certeza que deseja excluir o animal ${animal.identificacaoUnica}?'),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(),
-              child: const Text('Cancelar'),
-            ),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-              onPressed: () {
-                Navigator.of(dialogContext).pop();
-                // Use o context da tela principal, não do dialog
-                context.read<AnimalBloc>().add(DeleteAnimalEvent(animal.id!));
-              },
-              child: const Text('Excluir', style: TextStyle(color: Colors.white)),
-            ),
-          ],
-        );
-      },
-    );
-  }
+  // Métodos de edição/exclusão removidos (não disponíveis)
 }

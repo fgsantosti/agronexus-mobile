@@ -5,6 +5,7 @@ import '../../domain/models/animal_entity.dart';
 import '../bloc/animal/animal_bloc.dart';
 import '../bloc/animal/animal_event.dart';
 import '../bloc/animal/animal_state.dart';
+import 'package:agronexus/presentation/widgets/entity_action_menu.dart';
 
 class AnimalListScreen extends StatelessWidget {
   const AnimalListScreen({super.key});
@@ -262,40 +263,8 @@ class _AnimalListContentState extends State<_AnimalListContent> with WidgetsBind
               ),
             ),
             const SizedBox(width: 8),
-            PopupMenuButton<String>(
-              onSelected: (value) {
-                switch (value) {
-                  case 'editar':
-                    context.go('/animais/editar/${animal.id}');
-                    break;
-                  case 'deletar':
-                    _showDeleteConfirmDialog(animal);
-                    break;
-                }
-              },
-              itemBuilder: (context) => [
-                const PopupMenuItem(
-                  value: 'editar',
-                  child: Row(
-                    children: [
-                      Icon(Icons.edit, color: Colors.blue),
-                      SizedBox(width: 8),
-                      Text('Editar'),
-                    ],
-                  ),
-                ),
-                const PopupMenuItem(
-                  value: 'deletar',
-                  child: Row(
-                    children: [
-                      Icon(Icons.delete, color: Colors.red),
-                      SizedBox(width: 8),
-                      Text('Excluir'),
-                    ],
-                  ),
-                ),
-              ],
-              child: const Icon(Icons.more_vert),
+            EntityActionMenu(
+              onDetails: () => context.go('/animais/detalhes/${animal.id}'),
             ),
           ],
         ),
@@ -319,55 +288,5 @@ class _AnimalListContentState extends State<_AnimalListContent> with WidgetsBind
     }
   }
 
-  void _showDeleteConfirmDialog(AnimalEntity animal) {
-    showDialog(
-      context: context,
-      builder: (BuildContext dialogContext) {
-        return AlertDialog(
-          title: const Row(
-            children: [
-              Icon(Icons.warning, color: Colors.orange),
-              SizedBox(width: 8),
-              Text('Confirmar Exclusão'),
-            ],
-          ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text('Tem certeza de que deseja excluir este animal?'),
-              const SizedBox(height: 8),
-              Text(
-                'ID: ${animal.identificacaoUnica}',
-                style: const TextStyle(fontWeight: FontWeight.bold),
-              ),
-              if (animal.nomeRegistro != null && animal.nomeRegistro!.isNotEmpty) Text('Nome: ${animal.nomeRegistro}'),
-              const SizedBox(height: 8),
-              const Text(
-                'Esta ação não pode ser desfeita.',
-                style: TextStyle(color: Colors.red, fontSize: 12),
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(dialogContext).pop();
-              },
-              child: const Text('Cancelar'),
-            ),
-            TextButton(
-              onPressed: () {
-                Navigator.of(dialogContext).pop();
-                // Use o context da tela principal, não do dialog
-                context.read<AnimalBloc>().add(DeleteAnimalEvent(animal.id!));
-              },
-              style: TextButton.styleFrom(foregroundColor: Colors.red),
-              child: const Text('Excluir'),
-            ),
-          ],
-        );
-      },
-    );
-  }
+  // _showDeleteConfirmDialog removido (exclusão não presente no menu)
 }

@@ -5,12 +5,12 @@ import 'package:agronexus/presentation/bloc/lote/lote_events.dart';
 import 'package:agronexus/presentation/bloc/lote/lote_state.dart';
 import 'package:agronexus/domain/models/lote_entity.dart';
 import 'package:agronexus/presentation/lote/cadastro_lote_screen.dart';
-import 'package:agronexus/presentation/lote/editar_lote_screen.dart';
 import 'package:agronexus/presentation/lote/detalhes_lote_screen.dart';
 import 'package:agronexus/presentation/bloc/propriedade/propriedade_bloc_new.dart';
 import 'package:agronexus/presentation/bloc/propriedade/propriedade_event_new.dart';
 import 'package:agronexus/presentation/bloc/area/area_bloc.dart';
 import 'package:agronexus/config/inject_dependencies.dart';
+import 'package:agronexus/presentation/widgets/entity_action_menu.dart';
 
 class LoteScreen extends StatefulWidget {
   const LoteScreen({super.key});
@@ -224,40 +224,8 @@ class _LoteScreenState extends State<LoteScreen> {
                       ],
                     ),
                   ),
-                  PopupMenuButton<String>(
-                    onSelected: (value) => _executarAcao(value, lote),
-                    itemBuilder: (context) => [
-                      const PopupMenuItem(
-                        value: 'detalhes',
-                        child: Row(
-                          children: [
-                            Icon(Icons.visibility, size: 20),
-                            SizedBox(width: 8),
-                            Text('Ver Detalhes'),
-                          ],
-                        ),
-                      ),
-                      const PopupMenuItem(
-                        value: 'editar',
-                        child: Row(
-                          children: [
-                            Icon(Icons.edit, size: 20),
-                            SizedBox(width: 8),
-                            Text('Editar'),
-                          ],
-                        ),
-                      ),
-                      const PopupMenuItem(
-                        value: 'excluir',
-                        child: Row(
-                          children: [
-                            Icon(Icons.delete, size: 20, color: Colors.red),
-                            SizedBox(width: 8),
-                            Text('Excluir', style: TextStyle(color: Colors.red)),
-                          ],
-                        ),
-                      ),
-                    ],
+                  EntityActionMenu(
+                    onDetails: () => _mostrarDetalhes(lote),
                   ),
                 ],
               ),
@@ -403,25 +371,7 @@ class _LoteScreenState extends State<LoteScreen> {
     }
   }
 
-  void _navegarParaEdicao(LoteEntity lote) async {
-    final loteBloc = context.read<LoteBloc>();
-    final resultado = await Navigator.of(context).push<bool>(
-      MaterialPageRoute(
-        builder: (context) => MultiBlocProvider(
-          providers: [
-            BlocProvider.value(value: loteBloc),
-            BlocProvider(create: (context) => getIt<PropriedadeBlocNew>()..add(const LoadPropriedadesEvent())),
-            BlocProvider(create: (context) => getIt<AreaBloc>()), // AreaBloc adicionado
-          ],
-          child: EditarLoteScreen(lote: lote),
-        ),
-      ),
-    );
-
-    if (resultado == true) {
-      _loadLotes();
-    }
-  }
+  // _navegarParaEdicao removido (edição não disponível)
 
   void _mostrarDetalhes(LoteEntity lote) {
     Navigator.of(context).push(
@@ -431,45 +381,7 @@ class _LoteScreenState extends State<LoteScreen> {
     );
   }
 
-  void _executarAcao(String acao, LoteEntity lote) {
-    switch (acao) {
-      case 'detalhes':
-        _mostrarDetalhes(lote);
-        break;
-      case 'editar':
-        _navegarParaEdicao(lote);
-        break;
-      case 'excluir':
-        _confirmarExclusao(lote);
-        break;
-    }
-  }
+  // _executarAcao removido após padronização com EntityActionMenu
 
-  void _confirmarExclusao(LoteEntity lote) {
-    final loteBloc = context.read<LoteBloc>();
-
-    showDialog(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Confirmar Exclusão'),
-        content: Text(
-          'Deseja realmente excluir o lote "${lote.nome}"?',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(),
-            child: const Text('Cancelar'),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.of(dialogContext).pop();
-              loteBloc.add(DeleteLoteEvent(lote.id!));
-            },
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: const Text('Excluir'),
-          ),
-        ],
-      ),
-    );
-  }
+  // _confirmarExclusao removido (exclusão não disponível)
 }

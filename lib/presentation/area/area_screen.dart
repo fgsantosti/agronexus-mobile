@@ -6,6 +6,7 @@ import 'package:agronexus/presentation/bloc/area/area_state.dart';
 import 'package:agronexus/domain/models/area_entity.dart';
 import 'package:go_router/go_router.dart';
 import 'package:agronexus/config/routers/router.dart';
+import 'package:agronexus/presentation/widgets/entity_action_menu.dart';
 
 /// Tela de listagem de Áreas seguindo o padrão visual de [AnimalListScreen]
 class AreaScreen extends StatelessWidget {
@@ -263,26 +264,8 @@ class _AreaListContentState extends State<_AreaListContent> with WidgetsBindingO
               child: Text(_statusLabel(area.status), style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
             ),
             const SizedBox(width: 4),
-            PopupMenuButton<String>(
-              onSelected: (value) {
-                switch (value) {
-                  case 'editar':
-                    context.push(AgroNexusRouter.areas.editPath, extra: area).then((updated) {
-                      if (updated == true) {
-                        _loadAreas();
-                      }
-                    });
-                    break;
-                  case 'excluir':
-                    _confirmDelete(area);
-                    break;
-                }
-              },
-              itemBuilder: (context) => const [
-                PopupMenuItem(value: 'editar', child: Text('Editar')),
-                PopupMenuItem(value: 'excluir', child: Text('Excluir')),
-              ],
-              child: const Icon(Icons.more_vert),
+            EntityActionMenu(
+              onDetails: () => context.push(AgroNexusRouter.areas.detailPath, extra: area),
             ),
           ],
         ),
@@ -290,24 +273,5 @@ class _AreaListContentState extends State<_AreaListContent> with WidgetsBindingO
     );
   }
 
-  void _confirmDelete(AreaEntity area) {
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Row(children: [Icon(Icons.warning, color: Colors.orange), SizedBox(width: 8), Text('Confirmar Exclusão')]),
-        content: Text('Excluir área ${area.nome}? Esta ação não pode ser desfeita.'),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancelar')),
-          TextButton(
-            onPressed: () {
-              Navigator.pop(ctx);
-              context.read<AreaBloc>().add(DeleteAreaEvent(area.id!));
-            },
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: const Text('Excluir'),
-          ),
-        ],
-      ),
-    );
-  }
+  // _confirmDelete removido (exclusão não mais disponível no menu)
 }
