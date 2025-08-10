@@ -8,8 +8,6 @@ import 'package:agronexus/domain/repositories/local/dashboard/dashboard_local_re
 import 'package:agronexus/domain/repositories/local/dashboard/dashboard_local_repository_impl.dart';
 import 'package:agronexus/domain/repositories/local/fazenda/fazenda_local_repository.dart';
 import 'package:agronexus/domain/repositories/local/fazenda/fazenda_local_repository_impl.dart';
-import 'package:agronexus/domain/repositories/local/lote/lote_local_repository.dart';
-import 'package:agronexus/domain/repositories/local/lote/lote_local_repository_impl.dart';
 import 'package:agronexus/domain/repositories/local/user/user_local_repository.dart';
 import 'package:agronexus/domain/repositories/local/user/user_local_repository_impl.dart';
 import 'package:agronexus/domain/repositories/remote/animal/animal_remote_repository.dart';
@@ -19,6 +17,7 @@ import 'package:agronexus/domain/repositories/remote/auth/auth_repository_impl.d
 import 'package:agronexus/domain/repositories/remote/dashboard/dashboard_remote_repository.dart';
 import 'package:agronexus/domain/repositories/remote/dashboard/dashboard_remote_repository_impl.dart';
 import 'package:agronexus/presentation/bloc/animal/animal_bloc.dart';
+import 'package:agronexus/presentation/bloc/lote/lote_bloc.dart';
 import 'package:agronexus/domain/repositories/remote/fazenda/fazenda_remote_repository.dart';
 import 'package:agronexus/domain/repositories/remote/fazenda/fazenda_remote_repository_impl.dart';
 import 'package:agronexus/domain/repositories/remote/lote/lote_remote_repository.dart';
@@ -38,6 +37,11 @@ import 'package:agronexus/domain/services/propriedade_service.dart' as legacy;
 import 'package:agronexus/domain/services/propriedade_service_new.dart' as novo;
 import 'package:agronexus/domain/services/reproducao_service.dart';
 import 'package:agronexus/domain/services/user_service.dart';
+import 'package:agronexus/presentation/bloc/propriedade/propriedade_bloc_new.dart';
+import 'package:agronexus/domain/services/area_service.dart';
+import 'package:agronexus/domain/repositories/remote/area/area_remote_repository.dart';
+import 'package:agronexus/domain/repositories/remote/area/area_remote_repository_impl.dart';
+import 'package:agronexus/presentation/bloc/area/area_bloc.dart';
 import 'package:get_it/get_it.dart';
 
 var getIt = GetIt.I;
@@ -90,12 +94,11 @@ void configureDependencies() {
     ),
   );
 
-  getIt.registerSingleton<LoteLocalRepository>(LoteLocalRepositoryImpl());
   getIt.registerSingleton<LoteRemoteRepository>(
     LoteRemoteRepositoryImpl(httpService: getIt()),
   );
   getIt.registerSingleton<LoteService>(
-    LoteService(localRepository: getIt(), remoteRepository: getIt()),
+    LoteService(getIt()),
   );
 
   getIt.registerSingleton<PropriedadeRemoteRepository>(
@@ -118,8 +121,26 @@ void configureDependencies() {
     ReproducaoService(getIt()),
   );
 
+  // Área
+  getIt.registerSingleton<AreaRemoteRepository>(
+    AreaRemoteRepositoryImpl(httpService: getIt()),
+  );
+  getIt.registerSingleton<AreaService>(
+    AreaService(getIt()),
+  );
+
   // BLoCs
   getIt.registerFactory<AnimalBloc>(
     () => AnimalBloc(getIt()),
+  );
+  getIt.registerFactory<LoteBloc>(
+    () => LoteBloc(getIt()),
+  );
+  // Novo: PropriedadeBlocNew
+  getIt.registerFactory<PropriedadeBlocNew>(
+    () => PropriedadeBlocNew(getIt<novo.PropriedadeServiceNew>()),
+  );
+  getIt.registerFactory<AreaBloc>(
+    () => AreaBloc(getIt()),
   );
 }

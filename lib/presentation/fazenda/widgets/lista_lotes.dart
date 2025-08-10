@@ -54,7 +54,7 @@ class ListaLotes extends StatelessWidget {
                         color: Colors.grey[100],
                         borderRadius: BorderRadius.circular(8),
                         border: Border.all(
-                          color: lote.ativa ? Colors.green : Colors.red,
+                          color: lote.ativo ? Colors.green : Colors.red,
                           width: 1,
                         ),
                         boxShadow: [
@@ -72,13 +72,13 @@ class ListaLotes extends StatelessWidget {
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                               Text(
-                                lote.nomeLote,
+                                lote.nome,
                                 style: TextStyle(
                                   fontSize: 18,
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),
-                              Text(formatDateToUser(date: lote.dataEntrada)),
+                              Text(formatDateToUser(date: lote.createdAt ?? DateTime.now().toIso8601String())),
                             ],
                           ),
                           SizedBox(height: 8),
@@ -89,7 +89,7 @@ class ListaLotes extends StatelessWidget {
                                 "Animais: ${lote.totalAnimais}",
                               ),
                               Text(
-                                "Status: ${lote.ativa ? "Ativo" : "Inativo"}",
+                                "Status: ${lote.ativo ? "Ativo" : "Inativo"}",
                               ),
                             ],
                           ),

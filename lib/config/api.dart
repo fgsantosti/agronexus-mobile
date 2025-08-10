@@ -55,6 +55,10 @@ class API {
   static String protocoloIATFById(String id) => 'api/v1/protocolos-iatf/$id/';
   static const String inseminacoesOpcoes = 'api/v1/inseminacoes/opcoes_cadastro/';
 
+  // ÁREAS
+  static const String areas = 'api/v1/areas/';
+  static String areaById(String id) => 'api/v1/areas/$id/';
+
   // ROTAS DE NAVEGAÇÃO
   // Auth Routes
   static const String loginRoute = '/login';
