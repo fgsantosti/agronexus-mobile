@@ -211,9 +211,21 @@ class _CadastroAreaScreenState extends State<CadastroAreaScreen> {
                     _coordenadasCtrl.text = const JsonEncoder.withIndent('  ').convert(points);
                     _initialPolygon = points;
                   },
+                  onAreaChanged: (ha) {
+                    // Atualiza campo tamanho se usuário ainda não digitou manualmente
+                    // ou sempre mantemos sincronizado (decisão: sobrescrever enquanto polígono aberto)
+                    if (_tamanhoCtrl.text.trim().isEmpty || true) {
+                      // formata com até 4 decimais
+                      final txt = ha < 10 ? ha.toStringAsFixed(4) : ha.toStringAsFixed(2);
+                      if (_tamanhoCtrl.text != txt) {
+                        _tamanhoCtrl.text = txt;
+                      }
+                    }
+                  },
                   onClear: () {
                     _coordenadasCtrl.clear();
                     _initialPolygon = null;
+                    // Não limpar tamanho para evitar perda de dado manual
                     setState(() {});
                   },
                 ),
@@ -240,38 +252,6 @@ class _CadastroAreaScreenState extends State<CadastroAreaScreen> {
                   },
                 ),
                 const SizedBox(height: 8),
-                Wrap(
-                  spacing: 12,
-                  children: [
-                    TextButton.icon(
-                      onPressed: () {
-                        _coordenadasCtrl.text = '[\n  [-21.000000, -47.000000]\n]';
-                        _parseInitialPolygon();
-                      },
-                      icon: const Icon(Icons.code),
-                      label: const Text('Exemplo'),
-                    ),
-                    if (_coordenadasCtrl.text.trim().isNotEmpty)
-                      TextButton.icon(
-                        onPressed: () {
-                          _parseInitialPolygon();
-                          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('JSON aplicado.')));
-                        },
-                        icon: const Icon(Icons.download),
-                        label: const Text('Aplicar'),
-                      ),
-                    if (_coordenadasCtrl.text.trim().isNotEmpty)
-                      TextButton.icon(
-                        onPressed: () {
-                          _coordenadasCtrl.clear();
-                          _parseInitialPolygon();
-                          setState(() {});
-                        },
-                        icon: const Icon(Icons.delete_outline),
-                        label: const Text('Limpar'),
-                      ),
-                  ],
-                ),
                 const SizedBox(height: 12),
                 DropdownButtonFormField<String>(
                   value: _status,

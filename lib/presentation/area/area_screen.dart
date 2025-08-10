@@ -240,6 +240,9 @@ class _AreaListContentState extends State<_AreaListContent> with WidgetsBindingO
             Text('Tamanho: ${area.tamanhoHa.toStringAsFixed(2)} ha'),
           ],
         ),
+        onTap: () {
+          context.push(AgroNexusRouter.areas.detailPath, extra: area);
+        },
         trailing: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
