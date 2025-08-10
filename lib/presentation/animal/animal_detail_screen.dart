@@ -4,7 +4,7 @@ import 'package:agronexus/presentation/bloc/animal/animal_bloc.dart';
 import 'package:agronexus/presentation/bloc/animal/animal_event.dart';
 import 'package:agronexus/presentation/bloc/animal/animal_state.dart';
 import 'package:agronexus/domain/models/animal_entity.dart';
-import 'package:agronexus/presentation/widgets/entity_action_menu.dart'; // buildDetailAppBar
+import 'package:agronexus/presentation/widgets/standard_app_bar.dart';
 
 class AnimalDetailScreen extends StatefulWidget {
   final String animalId;
@@ -28,7 +28,7 @@ class _AnimalDetailScreenState extends State<AnimalDetailScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: buildDetailAppBar('Detalhes do Animal'),
+      appBar: buildStandardAppBar(title: 'Detalhes do Animal'),
       body: BlocListener<AnimalBloc, AnimalState>(
         listener: (context, state) {
           if (state is AnimalDeleted) {

@@ -4,6 +4,7 @@ import 'package:agronexus/presentation/bloc/animal/animal_bloc.dart';
 import 'package:agronexus/presentation/bloc/animal/animal_event.dart';
 import 'package:agronexus/presentation/bloc/animal/animal_state.dart';
 import 'package:agronexus/presentation/animal/animal_form_screen.dart';
+import 'package:agronexus/presentation/widgets/standard_app_bar.dart';
 import 'package:agronexus/domain/models/animal_entity.dart';
 
 class AnimalEditScreen extends StatefulWidget {
@@ -45,24 +46,16 @@ class _AnimalEditScreenState extends State<AnimalEditScreen> {
             return AnimalFormScreen(animal: _animalCarregado);
           }
 
-          if (state is AnimalLoading) {
+          if (state is AnimalLoading || state is AnimalInitial) {
             return Scaffold(
-              appBar: AppBar(
-                title: const Text('Carregando...'),
-                backgroundColor: Colors.green,
-                foregroundColor: Colors.white,
-              ),
+              appBar: buildStandardAppBar(title: 'Carregando...'),
               body: const Center(child: CircularProgressIndicator()),
             );
           }
 
           if (state is AnimalError) {
             return Scaffold(
-              appBar: AppBar(
-                title: const Text('Erro'),
-                backgroundColor: Colors.red,
-                foregroundColor: Colors.white,
-              ),
+              appBar: buildStandardAppBar(title: 'Erro'),
               body: Center(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -87,13 +80,9 @@ class _AnimalEditScreenState extends State<AnimalEditScreen> {
             );
           }
 
-          // Estado inicial
+          // Fallback
           return Scaffold(
-            appBar: AppBar(
-              title: const Text('Carregando...'),
-              backgroundColor: Colors.green,
-              foregroundColor: Colors.white,
-            ),
+            appBar: buildStandardAppBar(title: 'Carregando...'),
             body: const Center(child: CircularProgressIndicator()),
           );
         },

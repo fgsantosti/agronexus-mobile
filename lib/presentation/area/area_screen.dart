@@ -7,6 +7,7 @@ import 'package:agronexus/domain/models/area_entity.dart';
 import 'package:go_router/go_router.dart';
 import 'package:agronexus/config/routers/router.dart';
 import 'package:agronexus/presentation/widgets/entity_action_menu.dart';
+import 'package:agronexus/presentation/widgets/standard_app_bar.dart';
 
 /// Tela de listagem de Áreas seguindo o padrão visual de [AnimalListScreen]
 class AreaScreen extends StatelessWidget {
@@ -103,10 +104,9 @@ class _AreaListContentState extends State<_AreaListContent> with WidgetsBindingO
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Áreas'),
-        backgroundColor: Colors.green,
-        foregroundColor: Colors.white,
+      appBar: buildStandardAppBar(
+        title: 'Áreas',
+        showBack: false,
       ),
       body: RefreshIndicator(
         onRefresh: () async => _loadAreas(),

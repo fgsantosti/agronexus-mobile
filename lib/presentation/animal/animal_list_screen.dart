@@ -6,6 +6,7 @@ import '../bloc/animal/animal_bloc.dart';
 import '../bloc/animal/animal_event.dart';
 import '../bloc/animal/animal_state.dart';
 import 'package:agronexus/presentation/widgets/entity_action_menu.dart';
+import 'package:agronexus/presentation/widgets/standard_app_bar.dart';
 
 class AnimalListScreen extends StatelessWidget {
   const AnimalListScreen({super.key});
@@ -73,18 +74,9 @@ class _AnimalListContentState extends State<_AnimalListContent> with WidgetsBind
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Animais'),
-        backgroundColor: Colors.green,
-        foregroundColor: Colors.white,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.add),
-            onPressed: () {
-              context.go('/animais/cadastro');
-            },
-          ),
-        ],
+      appBar: buildStandardAppBar(
+        title: 'Animais',
+        showBack: false,
       ),
       body: RefreshIndicator(
         onRefresh: () async => _loadAnimais(),
@@ -124,12 +116,38 @@ class _AnimalListContentState extends State<_AnimalListContent> with WidgetsBind
                     _cachedAnimais = state.animais;
                   }
 
-                  // Mostrar mensagens de feedback
-                  if (state is AnimalCreated || state is AnimalUpdated || state is AnimalDeleted) {
-                    _loadAnimais();
+                  if (state is AnimalCreated) {
+                    // Adiciona novo animal no topo (se não existir) sem refetch
+                    _cachedAnimais ??= [];
+                    final exists = _cachedAnimais!.any((a) => a.id == state.animal.id);
+                    if (!exists) {
+                      _cachedAnimais = [state.animal, ..._cachedAnimais!];
+                    }
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Operação realizada com sucesso!')),
+                      const SnackBar(content: Text('Animal cadastrado com sucesso!')),
                     );
+                    setState(() {});
+                  }
+
+                  if (state is AnimalUpdated) {
+                    if (_cachedAnimais != null) {
+                      final idx = _cachedAnimais!.indexWhere((a) => a.id == state.animal.id);
+                      if (idx != -1) {
+                        _cachedAnimais![idx] = state.animal;
+                      }
+                    }
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Animal atualizado com sucesso!')),
+                    );
+                    setState(() {});
+                  }
+
+                  if (state is AnimalDeleted) {
+                    _cachedAnimais?.removeWhere((a) => a.id == state.id);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Animal excluído com sucesso!')),
+                    );
+                    setState(() {});
                   }
 
                   if (state is AnimalError) {
@@ -213,7 +231,18 @@ class _AnimalListContentState extends State<_AnimalListContent> with WidgetsBind
       floatingActionButton: FloatingActionButton(
         heroTag: 'fabAnimais',
         onPressed: () {
-          context.go('/animais/cadastro');
+          // Navega para cadastro e aguarda retorno do animal criado para atualização imediata
+          context.push('/animais/cadastro').then((value) {
+            if (value is AnimalEntity) {
+              setState(() {
+                _cachedAnimais ??= [];
+                final exists = _cachedAnimais!.any((a) => a.id == value.id);
+                if (!exists) {
+                  _cachedAnimais = [value, ..._cachedAnimais!];
+                }
+              });
+            }
+          });
         },
         backgroundColor: Colors.green,
         child: const Icon(Icons.add, color: Colors.white),
@@ -265,7 +294,14 @@ class _AnimalListContentState extends State<_AnimalListContent> with WidgetsBind
             ),
             const SizedBox(width: 8),
             EntityActionMenu(
-              onEdit: () => context.go('/animais/editar/${animal.id}'),
+              onEdit: () => context.push('/animais/editar/${animal.id}').then((value) {
+                if (value is AnimalEntity && _cachedAnimais != null) {
+                  final idx = _cachedAnimais!.indexWhere((a) => a.id == value.id);
+                  if (idx != -1) {
+                    setState(() => _cachedAnimais![idx] = value);
+                  }
+                }
+              }),
               onDelete: () => _showDeleteConfirmDialog(animal),
             ),
           ],
@@ -307,10 +343,8 @@ class _AnimalListContentState extends State<_AnimalListContent> with WidgetsBind
       ),
     );
     if (confirmed == true) {
-      // TODO: dispatch evento de exclusão quando implementado
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Animal ${animal.identificacaoUnica} excluído (mock).')),
-      );
+      // Dispara evento real de exclusão
+      context.read<AnimalBloc>().add(DeleteAnimalEvent(animal.id!));
     }
   }
 }
