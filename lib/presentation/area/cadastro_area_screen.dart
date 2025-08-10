@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:convert';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:agronexus/presentation/bloc/area/area_bloc.dart';
 import 'package:agronexus/presentation/bloc/area/area_event.dart';
@@ -6,6 +7,7 @@ import 'package:agronexus/presentation/bloc/area/area_state.dart';
 import 'package:agronexus/presentation/bloc/propriedade/propriedade_bloc_new.dart';
 import 'package:agronexus/presentation/bloc/propriedade/propriedade_event_new.dart';
 import 'package:agronexus/presentation/bloc/propriedade/propriedade_state_new.dart';
+import 'package:agronexus/presentation/area/widgets/polygon_editor.dart';
 import 'package:agronexus/domain/models/area_entity.dart';
 import 'package:agronexus/domain/models/propriedade_entity.dart';
 
@@ -22,14 +24,38 @@ class _CadastroAreaScreenState extends State<CadastroAreaScreen> {
   final _tamanhoCtrl = TextEditingController();
   final _tipoForragemCtrl = TextEditingController();
   final _observacoesCtrl = TextEditingController();
+  final _coordenadasCtrl = TextEditingController();
   String _status = 'disponivel';
   String _tipo = 'piquete';
   PropriedadeEntity? _propriedadeSelecionada;
+  List<List<double>>? _initialPolygon; // evita parse repetido em build
 
   @override
   void initState() {
     super.initState();
     context.read<PropriedadeBlocNew>().add(const LoadPropriedadesEvent());
+    _parseInitialPolygon();
+  }
+
+  void _parseInitialPolygon() {
+    if (_coordenadasCtrl.text.trim().isEmpty) {
+      _initialPolygon = null;
+      return;
+    }
+    try {
+      final decoded = jsonDecode(_coordenadasCtrl.text.trim());
+      if (decoded is List) {
+        _initialPolygon = decoded
+            .whereType<List>()
+            .map<List<double>>((e) => [
+                  double.tryParse(e[0].toString()) ?? 0,
+                  double.tryParse(e[1].toString()) ?? 0,
+                ])
+            .toList();
+      }
+    } catch (_) {
+      _initialPolygon = null;
+    }
   }
 
   @override
@@ -38,12 +64,30 @@ class _CadastroAreaScreenState extends State<CadastroAreaScreen> {
     _tamanhoCtrl.dispose();
     _tipoForragemCtrl.dispose();
     _observacoesCtrl.dispose();
+    _coordenadasCtrl.dispose();
     super.dispose();
   }
 
   void _salvar() {
     if (!_formKey.currentState!.validate()) return;
     final tamanho = double.parse(_tamanhoCtrl.text.replaceAll(',', '.'));
+    dynamic coordenadas;
+    if (_coordenadasCtrl.text.trim().isNotEmpty) {
+      try {
+        final decoded = jsonDecode(_coordenadasCtrl.text.trim());
+        // Aceita lista de listas [[lat,lng],...] ou lista de objetos [{"lat":..,"lng":..}]
+        if (decoded is List) {
+          coordenadas = decoded;
+        } else {
+          throw const FormatException('Estrutura deve ser lista');
+        }
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Formato de coordenadas inválido: ${e.toString()}')),
+        );
+        return; // impede envio se inválido
+      }
+    }
     final area = AreaEntity(
       nome: _nomeCtrl.text.trim(),
       tipo: _tipo,
@@ -53,6 +97,7 @@ class _CadastroAreaScreenState extends State<CadastroAreaScreen> {
       propriedadeNome: _propriedadeSelecionada?.nome,
       tipoForragem: _tipoForragemCtrl.text.trim().isEmpty ? null : _tipoForragemCtrl.text.trim(),
       observacoes: _observacoesCtrl.text.trim().isEmpty ? null : _observacoesCtrl.text.trim(),
+      coordenadasPoligono: coordenadas,
     );
     context.read<AreaBloc>().add(CreateAreaEvent(area));
   }
@@ -149,6 +194,83 @@ class _CadastroAreaScreenState extends State<CadastroAreaScreen> {
                   controller: _observacoesCtrl,
                   decoration: const InputDecoration(labelText: 'Observações'),
                   maxLines: 3,
+                ),
+                const SizedBox(height: 12),
+                const SizedBox(height: 16),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    'Polígono / Geolocalização (opcional)',
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                PolygonEditor(
+                  initial: _initialPolygon,
+                  onChanged: (points) {
+                    _coordenadasCtrl.text = const JsonEncoder.withIndent('  ').convert(points);
+                    _initialPolygon = points;
+                  },
+                  onClear: () {
+                    _coordenadasCtrl.clear();
+                    _initialPolygon = null;
+                    setState(() {});
+                  },
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: _coordenadasCtrl,
+                  decoration: const InputDecoration(
+                    labelText: 'Coordenadas (JSON)',
+                    alignLabelWithHint: true,
+                    hintText: '[[ -21.000000, -47.000000 ]]',
+                  ),
+                  maxLines: 6,
+                  onChanged: (_) => _parseInitialPolygon(),
+                  validator: (v) {
+                    if (v == null || v.trim().isEmpty) return null;
+                    try {
+                      final decoded = jsonDecode(v.trim());
+                      if (decoded is! List) return 'Deve ser lista';
+                      _parseInitialPolygon();
+                    } catch (_) {
+                      return 'JSON inválido';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 12,
+                  children: [
+                    TextButton.icon(
+                      onPressed: () {
+                        _coordenadasCtrl.text = '[\n  [-21.000000, -47.000000]\n]';
+                        _parseInitialPolygon();
+                      },
+                      icon: const Icon(Icons.code),
+                      label: const Text('Exemplo'),
+                    ),
+                    if (_coordenadasCtrl.text.trim().isNotEmpty)
+                      TextButton.icon(
+                        onPressed: () {
+                          _parseInitialPolygon();
+                          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('JSON aplicado.')));
+                        },
+                        icon: const Icon(Icons.download),
+                        label: const Text('Aplicar'),
+                      ),
+                    if (_coordenadasCtrl.text.trim().isNotEmpty)
+                      TextButton.icon(
+                        onPressed: () {
+                          _coordenadasCtrl.clear();
+                          _parseInitialPolygon();
+                          setState(() {});
+                        },
+                        icon: const Icon(Icons.delete_outline),
+                        label: const Text('Limpar'),
+                      ),
+                  ],
                 ),
                 const SizedBox(height: 12),
                 DropdownButtonFormField<String>(

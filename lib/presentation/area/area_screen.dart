@@ -243,6 +243,14 @@ class _AreaListContentState extends State<_AreaListContent> with WidgetsBindingO
         trailing: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
+            if (area.coordenadasPoligono is List && (area.coordenadasPoligono as List).isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.only(right: 6),
+                child: Tooltip(
+                  message: 'Possui polígono',
+                  child: Icon(Icons.terrain, size: 20, color: Colors.green.shade700),
+                ),
+              ),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
               decoration: BoxDecoration(
