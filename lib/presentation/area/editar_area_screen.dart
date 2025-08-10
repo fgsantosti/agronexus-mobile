@@ -10,6 +10,7 @@ import 'package:agronexus/presentation/bloc/propriedade/propriedade_state_new.da
 import 'package:agronexus/domain/models/area_entity.dart';
 import 'package:agronexus/domain/models/propriedade_entity.dart';
 import 'package:agronexus/presentation/area/widgets/polygon_editor.dart';
+import 'package:agronexus/presentation/widgets/standard_app_bar.dart';
 
 class EditarAreaScreen extends StatefulWidget {
   final AreaEntity area;
@@ -112,10 +113,10 @@ class _EditarAreaScreenState extends State<EditarAreaScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Editar Área'),
+      appBar: buildStandardAppBar(
+        title: 'Editar Área',
         actions: [
-          TextButton(onPressed: _atualizar, child: const Text('Salvar')),
+          TextButton(onPressed: _atualizar, child: const Text('Salvar', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),
         ],
       ),
       body: BlocListener<AreaBloc, AreaState>(

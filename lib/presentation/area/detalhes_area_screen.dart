@@ -1,7 +1,7 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:agronexus/domain/models/area_entity.dart';
-import 'package:agronexus/presentation/widgets/entity_action_menu.dart'; // buildDetailAppBar
+import 'package:agronexus/presentation/widgets/standard_app_bar.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 
@@ -49,7 +49,7 @@ class DetalhesAreaScreen extends StatelessWidget {
     final polygonPoints = _parsePolygon(area.coordenadasPoligono);
     final areaHaCalc = _computeAreaHa(polygonPoints);
     return Scaffold(
-      appBar: buildDetailAppBar('Detalhes - ${area.nome}'),
+      appBar: buildStandardAppBar(title: 'Detalhes - ${area.nome}'),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [

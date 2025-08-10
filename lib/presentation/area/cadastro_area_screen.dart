@@ -10,6 +10,7 @@ import 'package:agronexus/presentation/bloc/propriedade/propriedade_state_new.da
 import 'package:agronexus/presentation/area/widgets/polygon_editor.dart';
 import 'package:agronexus/domain/models/area_entity.dart';
 import 'package:agronexus/domain/models/propriedade_entity.dart';
+import 'package:agronexus/presentation/widgets/standard_app_bar.dart';
 
 class CadastroAreaScreen extends StatefulWidget {
   const CadastroAreaScreen({super.key});
@@ -105,12 +106,12 @@ class _CadastroAreaScreenState extends State<CadastroAreaScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Nova Área'),
+      appBar: buildStandardAppBar(
+        title: 'Nova Área',
         actions: [
           TextButton(
             onPressed: _salvar,
-            child: const Text('Salvar'),
+            child: const Text('Salvar', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
           ),
         ],
       ),
