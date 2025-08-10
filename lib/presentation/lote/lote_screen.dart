@@ -13,6 +13,7 @@ import 'package:agronexus/config/inject_dependencies.dart';
 import 'package:agronexus/presentation/widgets/entity_action_menu.dart';
 import 'package:agronexus/domain/services/lote_service.dart';
 import 'package:agronexus/config/inject_dependencies.dart' as di;
+import 'package:agronexus/presentation/widgets/standard_app_bar.dart';
 
 class LoteScreen extends StatefulWidget {
   const LoteScreen({super.key});
@@ -39,10 +40,9 @@ class _LoteScreenState extends State<LoteScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Lotes'),
-        backgroundColor: Colors.green.shade600,
-        foregroundColor: Colors.white,
+      appBar: buildStandardAppBar(
+        title: 'Lotes',
+        showBack: false,
       ),
       body: RefreshIndicator(
         onRefresh: () async => _loadLotes(),

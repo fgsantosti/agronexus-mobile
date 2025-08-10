@@ -4,6 +4,7 @@ import 'package:agronexus/presentation/bloc/propriedade/propriedade_bloc_new.dar
 import 'package:agronexus/presentation/bloc/propriedade/propriedade_event_new.dart';
 import 'package:agronexus/presentation/bloc/propriedade/propriedade_state_new.dart';
 import 'package:agronexus/domain/models/propriedade_entity.dart';
+import 'package:agronexus/presentation/widgets/standard_app_bar.dart';
 
 class EditarPropriedadeScreen extends StatefulWidget {
   final PropriedadeEntity propriedade;
@@ -73,16 +74,8 @@ class _EditarPropriedadeScreenState extends State<EditarPropriedadeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Editar Propriedade'),
-        backgroundColor: Colors.green.shade600,
-        foregroundColor: Colors.white,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () {
-            Navigator.of(context).pop();
-          },
-        ),
+      appBar: buildStandardAppBar(
+        title: 'Editar Propriedade',
         actions: [
           TextButton(
             onPressed: _isLoading ? null : _atualizarPropriedade,

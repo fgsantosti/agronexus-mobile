@@ -8,6 +8,7 @@ import 'package:agronexus/presentation/propriedade/cadastro_propriedade_screen.d
 import 'package:agronexus/presentation/propriedade/editar_propriedade_screen.dart';
 import 'package:agronexus/presentation/propriedade/detalhes_propriedade_screen.dart';
 import 'package:agronexus/presentation/widgets/entity_action_menu.dart';
+import 'package:agronexus/presentation/widgets/standard_app_bar.dart';
 
 class PropriedadeScreen extends StatefulWidget {
   const PropriedadeScreen({super.key});
@@ -36,10 +37,9 @@ class _PropriedadeScreenState extends State<PropriedadeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Propriedades'),
-        backgroundColor: Colors.green.shade600,
-        foregroundColor: Colors.white,
+      appBar: buildStandardAppBar(
+        title: 'Propriedades',
+        showBack: false,
       ),
       body: RefreshIndicator(
         onRefresh: () async => _loadPropriedades(),

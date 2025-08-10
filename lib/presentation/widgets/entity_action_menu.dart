@@ -67,14 +67,3 @@ class EntityActionMenu extends StatelessWidget {
 }
 
 enum _ActionKey { edit, delete }
-
-/// Helper para AppBars de telas de detalhes com padrão verde e ícones brancos.
-PreferredSizeWidget buildDetailAppBar(String titulo) {
-  return AppBar(
-    backgroundColor: Colors.green.shade600,
-    centerTitle: true,
-    iconTheme: const IconThemeData(color: Colors.white),
-    titleTextStyle: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w600),
-    title: Text(titulo),
-  );
-}

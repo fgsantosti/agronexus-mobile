@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:agronexus/domain/models/propriedade_entity.dart';
-import 'package:agronexus/presentation/widgets/entity_action_menu.dart'; // buildDetailAppBar
+import 'package:agronexus/presentation/widgets/standard_app_bar.dart';
 
 class DetalhesPropriedadeScreen extends StatelessWidget {
   final PropriedadeEntity propriedade;
@@ -13,7 +13,7 @@ class DetalhesPropriedadeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: buildDetailAppBar('Detalhes da Propriedade'),
+      appBar: buildStandardAppBar(title: 'Detalhes da Propriedade'),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
