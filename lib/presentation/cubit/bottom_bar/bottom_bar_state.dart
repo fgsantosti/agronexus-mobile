@@ -11,15 +11,21 @@ enum BottomBarItems {
     icon: FontAwesomeIcons.mapLocationDot,
     route: AgroNexusRouter.propriedadesPath,
   ),
-  animais(
-    label: "Animais",
-    icon: FontAwesomeIcons.cow,
-    route: AgroNexusRouter.animaisPath,
+
+  areas(
+    label: "Áreas",
+    icon: FontAwesomeIcons.map,
+    route: AgroNexusRouter.areasPath,
   ),
   lotes(
     label: "Lotes",
     icon: FontAwesomeIcons.grip,
     route: AgroNexusRouter.lotesPath,
+  ),
+  animais(
+    label: "Animais",
+    icon: FontAwesomeIcons.cow,
+    route: AgroNexusRouter.animaisPath,
   ),
   perfil(
     label: "Perfil",
