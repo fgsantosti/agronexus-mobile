@@ -11,6 +11,8 @@ import 'package:agronexus/presentation/bloc/propriedade/propriedade_event_new.da
 import 'package:agronexus/presentation/bloc/area/area_bloc.dart';
 import 'package:agronexus/config/inject_dependencies.dart';
 import 'package:agronexus/presentation/widgets/entity_action_menu.dart';
+import 'package:agronexus/domain/services/lote_service.dart';
+import 'package:agronexus/config/inject_dependencies.dart' as di;
 
 class LoteScreen extends StatefulWidget {
   const LoteScreen({super.key});
@@ -155,6 +157,7 @@ class _LoteScreenState extends State<LoteScreen> {
         ),
       ),
       floatingActionButton: FloatingActionButton(
+        heroTag: 'fabLotes',
         backgroundColor: Colors.green.shade600,
         onPressed: () => _navegarParaCadastro(),
         child: const Icon(Icons.add, color: Colors.white),
@@ -225,7 +228,8 @@ class _LoteScreenState extends State<LoteScreen> {
                     ),
                   ),
                   EntityActionMenu(
-                    onDetails: () => _mostrarDetalhes(lote),
+                    onEdit: () => _editarLote(lote),
+                    onDelete: () => _confirmarExclusao(lote),
                   ),
                 ],
               ),
@@ -368,10 +372,50 @@ class _LoteScreenState extends State<LoteScreen> {
 
     if (resultado == true || resultado == null) {
       _loadLotes();
+      if (resultado == true) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Lote salvo com sucesso!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
     }
   }
 
-  // _navegarParaEdicao removido (edição não disponível)
+  void _editarLote(LoteEntity lote) async {
+    // Buscar detalhes atualizados antes de editar
+    LoteEntity loteDetalhado = lote;
+    try {
+      final service = di.getIt<LoteService>();
+      loteDetalhado = await service.getLoteById(lote.id!);
+    } catch (_) {
+      // se falhar, continua com lote atual
+    }
+
+    final loteBloc = context.read<LoteBloc>();
+    final resultado = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        builder: (context) => MultiBlocProvider(
+          providers: [
+            BlocProvider.value(value: loteBloc),
+            BlocProvider(create: (context) => getIt<PropriedadeBlocNew>()..add(const LoadPropriedadesEvent())),
+            BlocProvider(create: (context) => getIt<AreaBloc>()),
+          ],
+          child: CadastroLoteScreen(loteInicial: loteDetalhado),
+        ),
+      ),
+    );
+    if (resultado == true) {
+      _loadLotes();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Lote atualizado com sucesso!'),
+          backgroundColor: Colors.green,
+        ),
+      );
+    }
+  }
 
   void _mostrarDetalhes(LoteEntity lote) {
     Navigator.of(context).push(
@@ -383,5 +427,27 @@ class _LoteScreenState extends State<LoteScreen> {
 
   // _executarAcao removido após padronização com EntityActionMenu
 
-  // _confirmarExclusao removido (exclusão não disponível)
+  void _confirmarExclusao(LoteEntity lote) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Excluir Lote'),
+        content: Text('Tem certeza que deseja excluir o lote "${lote.nome}"?'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancelar')),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Excluir'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true) {
+      // TODO: acionar evento de exclusão no bloc quando implementado
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Lote "${lote.nome}" excluído (mock).')),
+      );
+    }
+  }
 }

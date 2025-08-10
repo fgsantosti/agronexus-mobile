@@ -108,6 +108,7 @@ class _PartoScreenState extends State<PartoScreen> {
         ),
       ),
       floatingActionButton: FloatingActionButton(
+        heroTag: 'fabParto',
         backgroundColor: Colors.green.shade400,
         onPressed: () {
           _showAddPartoDialog();

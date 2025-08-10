@@ -98,6 +98,7 @@ class _ProtocoloIATFScreenState extends State<ProtocoloIATFScreen> {
         ),
       ),
       floatingActionButton: FloatingActionButton(
+        heroTag: 'fabProtocoloIATF',
         backgroundColor: Colors.purple.shade400,
         onPressed: () {
           _showAddProtocoloDialog();

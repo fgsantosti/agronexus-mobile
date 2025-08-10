@@ -166,6 +166,7 @@ class _PropriedadeScreenState extends State<PropriedadeScreen> {
         ),
       ),
       floatingActionButton: FloatingActionButton(
+        heroTag: 'fabPropriedades',
         backgroundColor: Colors.green.shade600,
         onPressed: () => _navegarParaCadastro(),
         child: const Icon(Icons.add, color: Colors.white),
@@ -219,7 +220,6 @@ class _PropriedadeScreenState extends State<PropriedadeScreen> {
                     ),
                   ),
                   EntityActionMenu(
-                    onDetails: () => _mostrarDetalhes(propriedade),
                     onEdit: () => _navegarParaEdicao(propriedade),
                     onDelete: () => _confirmarExclusao(propriedade),
                   ),

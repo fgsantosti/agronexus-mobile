@@ -211,6 +211,7 @@ class _AnimalListContentState extends State<_AnimalListContent> with WidgetsBind
         ),
       ),
       floatingActionButton: FloatingActionButton(
+        heroTag: 'fabAnimais',
         onPressed: () {
           context.go('/animais/cadastro');
         },
@@ -264,7 +265,8 @@ class _AnimalListContentState extends State<_AnimalListContent> with WidgetsBind
             ),
             const SizedBox(width: 8),
             EntityActionMenu(
-              onDetails: () => context.go('/animais/detalhes/${animal.id}'),
+              onEdit: () => context.go('/animais/editar/${animal.id}'),
+              onDelete: () => _showDeleteConfirmDialog(animal),
             ),
           ],
         ),
@@ -288,5 +290,27 @@ class _AnimalListContentState extends State<_AnimalListContent> with WidgetsBind
     }
   }
 
-  // _showDeleteConfirmDialog removido (exclusão não presente no menu)
+  void _showDeleteConfirmDialog(AnimalEntity animal) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Excluir Animal'),
+        content: Text('Confirma excluir o animal ${animal.identificacaoUnica}?'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancelar')),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Excluir'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true) {
+      // TODO: dispatch evento de exclusão quando implementado
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Animal ${animal.identificacaoUnica} excluído (mock).')),
+      );
+    }
+  }
 }

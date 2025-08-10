@@ -213,6 +213,7 @@ class _AreaListContentState extends State<_AreaListContent> with WidgetsBindingO
         ),
       ),
       floatingActionButton: FloatingActionButton(
+        heroTag: 'fabAreas',
         onPressed: () async {
           final created = await context.push(AgroNexusRouter.areas.addPath);
           if (created == true) {
@@ -265,7 +266,8 @@ class _AreaListContentState extends State<_AreaListContent> with WidgetsBindingO
             ),
             const SizedBox(width: 4),
             EntityActionMenu(
-              onDetails: () => context.push(AgroNexusRouter.areas.detailPath, extra: area),
+              onEdit: () => context.push(AgroNexusRouter.areas.editPath, extra: area),
+              onDelete: () => _confirmDelete(area),
             ),
           ],
         ),
@@ -273,5 +275,27 @@ class _AreaListContentState extends State<_AreaListContent> with WidgetsBindingO
     );
   }
 
-  // _confirmDelete removido (exclusão não mais disponível no menu)
+  void _confirmDelete(AreaEntity area) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Excluir Área'),
+        content: Text('Tem certeza que deseja excluir a área "${area.nome}"? Esta ação não pode ser desfeita.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancelar')),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Excluir'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true) {
+      // TODO: implementar chamada de exclusão via bloc quando backend suportar
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Área "${area.nome}" excluída (mock).')),
+      );
+    }
+  }
 }

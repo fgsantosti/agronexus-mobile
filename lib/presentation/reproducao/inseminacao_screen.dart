@@ -169,6 +169,7 @@ class _InseminacaoScreenState extends State<InseminacaoScreen> {
         ),
       ),
       floatingActionButton: FloatingActionButton(
+        heroTag: 'fabInseminacao',
         backgroundColor: Colors.pink.shade400,
         onPressed: () => _navegarParaCadastro(),
         child: const Icon(Icons.add, color: Colors.white),

@@ -101,6 +101,7 @@ class _EstacaoMontaScreenState extends State<EstacaoMontaScreen> {
         ),
       ),
       floatingActionButton: FloatingActionButton(
+        heroTag: 'fabEstacaoMonta',
         backgroundColor: Colors.blue.shade400,
         onPressed: () {
           _showAddEstacaoDialog();
