@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:agronexus/presentation/bloc/animal/animal_bloc.dart';
 import 'package:agronexus/presentation/bloc/animal/animal_event.dart';
 import 'package:agronexus/presentation/bloc/animal/animal_state.dart';
+import 'package:agronexus/presentation/widgets/standard_app_bar.dart';
 import 'package:agronexus/domain/models/animal_entity.dart';
 import 'package:agronexus/domain/models/opcoes_cadastro_animal.dart';
 
@@ -116,11 +117,7 @@ class _AnimalFormScreenState extends State<AnimalFormScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text(widget.animal == null ? 'Cadastrar Animal' : 'Editar Animal'),
-        backgroundColor: Colors.green,
-        foregroundColor: Colors.white,
-      ),
+      appBar: buildStandardAppBar(title: widget.animal == null ? 'Cadastrar Animal' : 'Editar Animal'),
       body: BlocListener<AnimalBloc, AnimalState>(
         listener: (context, state) {
           if (state is OpcoesCadastroLoaded) {
@@ -174,7 +171,10 @@ class _AnimalFormScreenState extends State<AnimalFormScreen> {
               }
             });
           } else if (state is AnimalCreated || state is AnimalUpdated) {
-            Navigator.of(context).pop();
+            // Retorna o animal criado/atualizado para a tela anterior para atualização otimista do cache
+            final returnedAnimal = state is AnimalCreated ? state.animal : (state as AnimalUpdated).animal;
+            Navigator.of(context).pop(returnedAnimal);
+            // Snackbar opcional – a lista pode exibir outra, então evitamos duplicar aqui
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text(widget.animal == null ? 'Animal cadastrado com sucesso!' : 'Animal atualizado com sucesso!'),

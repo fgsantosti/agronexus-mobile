@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:agronexus/domain/models/propriedade_entity.dart';
-import 'package:agronexus/presentation/propriedade/editar_propriedade_screen.dart';
+import 'package:agronexus/presentation/widgets/standard_app_bar.dart';
 
 class DetalhesPropriedadeScreen extends StatelessWidget {
   final PropriedadeEntity propriedade;
@@ -13,11 +13,7 @@ class DetalhesPropriedadeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Detalhes da Propriedade'),
-        backgroundColor: Colors.green.shade600,
-        foregroundColor: Colors.white,
-      ),
+      appBar: buildStandardAppBar(title: 'Detalhes da Propriedade'),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -367,11 +363,5 @@ class DetalhesPropriedadeScreen extends StatelessWidget {
     );
   }
 
-  void _navegarParaEdicao(BuildContext context) {
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (context) => EditarPropriedadeScreen(propriedade: propriedade),
-      ),
-    );
-  }
+  // _navegarParaEdicao removido (edição não disponível)
 }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:convert';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:agronexus/presentation/bloc/area/area_bloc.dart';
 import 'package:agronexus/presentation/bloc/area/area_event.dart';
@@ -8,6 +9,8 @@ import 'package:agronexus/presentation/bloc/propriedade/propriedade_event_new.da
 import 'package:agronexus/presentation/bloc/propriedade/propriedade_state_new.dart';
 import 'package:agronexus/domain/models/area_entity.dart';
 import 'package:agronexus/domain/models/propriedade_entity.dart';
+import 'package:agronexus/presentation/area/widgets/polygon_editor.dart';
+import 'package:agronexus/presentation/widgets/standard_app_bar.dart';
 
 class EditarAreaScreen extends StatefulWidget {
   final AreaEntity area;
@@ -24,8 +27,10 @@ class _EditarAreaScreenState extends State<EditarAreaScreen> {
   late TextEditingController _tamanhoCtrl;
   late TextEditingController _tipoForragemCtrl;
   late TextEditingController _observacoesCtrl;
+  late TextEditingController _coordenadasCtrl;
   late String _status;
   PropriedadeEntity? _propriedadeSelecionada;
+  List<List<double>>? _initialPolygon;
 
   @override
   void initState() {
@@ -36,8 +41,33 @@ class _EditarAreaScreenState extends State<EditarAreaScreen> {
     _tamanhoCtrl = TextEditingController(text: a.tamanhoHa.toStringAsFixed(2));
     _tipoForragemCtrl = TextEditingController(text: a.tipoForragem ?? '');
     _observacoesCtrl = TextEditingController(text: a.observacoes ?? '');
+    _coordenadasCtrl = TextEditingController(
+      text: a.coordenadasPoligono == null ? '' : const JsonEncoder.withIndent('  ').convert(a.coordenadasPoligono),
+    );
     _status = a.status;
     context.read<PropriedadeBlocNew>().add(const LoadPropriedadesEvent());
+    _parseInitialPolygon();
+  }
+
+  void _parseInitialPolygon() {
+    if (_coordenadasCtrl.text.trim().isEmpty) {
+      _initialPolygon = null;
+      return;
+    }
+    try {
+      final decoded = jsonDecode(_coordenadasCtrl.text.trim());
+      if (decoded is List) {
+        _initialPolygon = decoded
+            .whereType<List>()
+            .map<List<double>>((e) => [
+                  double.tryParse(e[0].toString()) ?? 0,
+                  double.tryParse(e[1].toString()) ?? 0,
+                ])
+            .toList();
+      }
+    } catch (_) {
+      _initialPolygon = null;
+    }
   }
 
   @override
@@ -47,6 +77,7 @@ class _EditarAreaScreenState extends State<EditarAreaScreen> {
     _tamanhoCtrl.dispose();
     _tipoForragemCtrl.dispose();
     _observacoesCtrl.dispose();
+    _coordenadasCtrl.dispose();
     super.dispose();
   }
 
@@ -62,6 +93,19 @@ class _EditarAreaScreenState extends State<EditarAreaScreen> {
       propriedadeNome: () => _propriedadeSelecionada?.nome ?? widget.area.propriedadeNome,
       tipoForragem: () => _tipoForragemCtrl.text.trim().isEmpty ? null : _tipoForragemCtrl.text.trim(),
       observacoes: () => _observacoesCtrl.text.trim().isEmpty ? null : _observacoesCtrl.text.trim(),
+      coordenadasPoligono: () {
+        if (_coordenadasCtrl.text.trim().isEmpty) return null;
+        try {
+          final decoded = jsonDecode(_coordenadasCtrl.text.trim());
+          if (decoded is! List) throw const FormatException('Lista esperada');
+          return decoded;
+        } catch (e) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Coordenadas inválidas: ${e.toString()}')),
+          );
+          return widget.area.coordenadasPoligono; // mantém antigo se inválido
+        }
+      },
     );
     context.read<AreaBloc>().add(UpdateAreaEvent(id: widget.area.id!, area: updated));
   }
@@ -69,10 +113,10 @@ class _EditarAreaScreenState extends State<EditarAreaScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Editar Área'),
+      appBar: buildStandardAppBar(
+        title: 'Editar Área',
         actions: [
-          TextButton(onPressed: _atualizar, child: const Text('Salvar')),
+          TextButton(onPressed: _atualizar, child: const Text('Salvar', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),
         ],
       ),
       body: BlocListener<AreaBloc, AreaState>(
@@ -165,6 +209,52 @@ class _EditarAreaScreenState extends State<EditarAreaScreen> {
                   decoration: const InputDecoration(labelText: 'Observações'),
                   maxLines: 3,
                 ),
+                const SizedBox(height: 12),
+                const SizedBox(height: 16),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text('Polígono / Geolocalização', style: Theme.of(context).textTheme.titleMedium),
+                ),
+                const SizedBox(height: 8),
+                PolygonEditor(
+                  initial: _initialPolygon,
+                  onChanged: (points) {
+                    _coordenadasCtrl.text = const JsonEncoder.withIndent('  ').convert(points);
+                    _initialPolygon = points;
+                  },
+                  onAreaChanged: (ha) {
+                    // Alinha com comportamento da tela de cadastro: sempre sincroniza
+                    final txt = ha < 10 ? ha.toStringAsFixed(4) : ha.toStringAsFixed(2);
+                    if (_tamanhoCtrl.text != txt) {
+                      _tamanhoCtrl.text = txt;
+                    }
+                  },
+                  onClear: () {
+                    _coordenadasCtrl.clear();
+                    _initialPolygon = null;
+                    // Mantém tamanho existente
+                    setState(() {});
+                  },
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: _coordenadasCtrl,
+                  decoration: const InputDecoration(labelText: 'Coordenadas (JSON)', alignLabelWithHint: true, hintText: '[[ -21.000000, -47.000000 ]]'),
+                  maxLines: 6,
+                  onChanged: (_) => _parseInitialPolygon(),
+                  validator: (v) {
+                    if (v == null || v.trim().isEmpty) return null;
+                    try {
+                      final decoded = jsonDecode(v.trim());
+                      if (decoded is! List) return 'Deve ser lista';
+                      _parseInitialPolygon();
+                    } catch (_) {
+                      return 'JSON inválido';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 8),
                 const SizedBox(height: 12),
                 DropdownButtonFormField<String>(
                   value: _status,

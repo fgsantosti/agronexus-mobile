@@ -5,6 +5,8 @@ import '../../domain/models/animal_entity.dart';
 import '../bloc/animal/animal_bloc.dart';
 import '../bloc/animal/animal_event.dart';
 import '../bloc/animal/animal_state.dart';
+import 'package:agronexus/presentation/widgets/entity_action_menu.dart';
+import 'package:agronexus/presentation/widgets/standard_app_bar.dart';
 
 class AnimalListScreen extends StatelessWidget {
   const AnimalListScreen({super.key});
@@ -72,18 +74,9 @@ class _AnimalListContentState extends State<_AnimalListContent> with WidgetsBind
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Animais'),
-        backgroundColor: Colors.green,
-        foregroundColor: Colors.white,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.add),
-            onPressed: () {
-              context.go('/animais/cadastro');
-            },
-          ),
-        ],
+      appBar: buildStandardAppBar(
+        title: 'Animais',
+        showBack: false,
       ),
       body: RefreshIndicator(
         onRefresh: () async => _loadAnimais(),
@@ -123,12 +116,38 @@ class _AnimalListContentState extends State<_AnimalListContent> with WidgetsBind
                     _cachedAnimais = state.animais;
                   }
 
-                  // Mostrar mensagens de feedback
-                  if (state is AnimalCreated || state is AnimalUpdated || state is AnimalDeleted) {
-                    _loadAnimais();
+                  if (state is AnimalCreated) {
+                    // Adiciona novo animal no topo (se não existir) sem refetch
+                    _cachedAnimais ??= [];
+                    final exists = _cachedAnimais!.any((a) => a.id == state.animal.id);
+                    if (!exists) {
+                      _cachedAnimais = [state.animal, ..._cachedAnimais!];
+                    }
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Operação realizada com sucesso!')),
+                      const SnackBar(content: Text('Animal cadastrado com sucesso!')),
                     );
+                    setState(() {});
+                  }
+
+                  if (state is AnimalUpdated) {
+                    if (_cachedAnimais != null) {
+                      final idx = _cachedAnimais!.indexWhere((a) => a.id == state.animal.id);
+                      if (idx != -1) {
+                        _cachedAnimais![idx] = state.animal;
+                      }
+                    }
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Animal atualizado com sucesso!')),
+                    );
+                    setState(() {});
+                  }
+
+                  if (state is AnimalDeleted) {
+                    _cachedAnimais?.removeWhere((a) => a.id == state.id);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Animal excluído com sucesso!')),
+                    );
+                    setState(() {});
                   }
 
                   if (state is AnimalError) {
@@ -210,8 +229,20 @@ class _AnimalListContentState extends State<_AnimalListContent> with WidgetsBind
         ),
       ),
       floatingActionButton: FloatingActionButton(
+        heroTag: 'fabAnimais',
         onPressed: () {
-          context.go('/animais/cadastro');
+          // Navega para cadastro e aguarda retorno do animal criado para atualização imediata
+          context.push('/animais/cadastro').then((value) {
+            if (value is AnimalEntity) {
+              setState(() {
+                _cachedAnimais ??= [];
+                final exists = _cachedAnimais!.any((a) => a.id == value.id);
+                if (!exists) {
+                  _cachedAnimais = [value, ..._cachedAnimais!];
+                }
+              });
+            }
+          });
         },
         backgroundColor: Colors.green,
         child: const Icon(Icons.add, color: Colors.white),
@@ -262,40 +293,16 @@ class _AnimalListContentState extends State<_AnimalListContent> with WidgetsBind
               ),
             ),
             const SizedBox(width: 8),
-            PopupMenuButton<String>(
-              onSelected: (value) {
-                switch (value) {
-                  case 'editar':
-                    context.go('/animais/editar/${animal.id}');
-                    break;
-                  case 'deletar':
-                    _showDeleteConfirmDialog(animal);
-                    break;
+            EntityActionMenu(
+              onEdit: () => context.push('/animais/editar/${animal.id}').then((value) {
+                if (value is AnimalEntity && _cachedAnimais != null) {
+                  final idx = _cachedAnimais!.indexWhere((a) => a.id == value.id);
+                  if (idx != -1) {
+                    setState(() => _cachedAnimais![idx] = value);
+                  }
                 }
-              },
-              itemBuilder: (context) => [
-                const PopupMenuItem(
-                  value: 'editar',
-                  child: Row(
-                    children: [
-                      Icon(Icons.edit, color: Colors.blue),
-                      SizedBox(width: 8),
-                      Text('Editar'),
-                    ],
-                  ),
-                ),
-                const PopupMenuItem(
-                  value: 'deletar',
-                  child: Row(
-                    children: [
-                      Icon(Icons.delete, color: Colors.red),
-                      SizedBox(width: 8),
-                      Text('Excluir'),
-                    ],
-                  ),
-                ),
-              ],
-              child: const Icon(Icons.more_vert),
+              }),
+              onDelete: () => _showDeleteConfirmDialog(animal),
             ),
           ],
         ),
@@ -319,55 +326,25 @@ class _AnimalListContentState extends State<_AnimalListContent> with WidgetsBind
     }
   }
 
-  void _showDeleteConfirmDialog(AnimalEntity animal) {
-    showDialog(
+  void _showDeleteConfirmDialog(AnimalEntity animal) async {
+    final confirmed = await showDialog<bool>(
       context: context,
-      builder: (BuildContext dialogContext) {
-        return AlertDialog(
-          title: const Row(
-            children: [
-              Icon(Icons.warning, color: Colors.orange),
-              SizedBox(width: 8),
-              Text('Confirmar Exclusão'),
-            ],
+      builder: (ctx) => AlertDialog(
+        title: const Text('Excluir Animal'),
+        content: Text('Confirma excluir o animal ${animal.identificacaoUnica}?'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancelar')),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Excluir'),
           ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text('Tem certeza de que deseja excluir este animal?'),
-              const SizedBox(height: 8),
-              Text(
-                'ID: ${animal.identificacaoUnica}',
-                style: const TextStyle(fontWeight: FontWeight.bold),
-              ),
-              if (animal.nomeRegistro != null && animal.nomeRegistro!.isNotEmpty) Text('Nome: ${animal.nomeRegistro}'),
-              const SizedBox(height: 8),
-              const Text(
-                'Esta ação não pode ser desfeita.',
-                style: TextStyle(color: Colors.red, fontSize: 12),
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(dialogContext).pop();
-              },
-              child: const Text('Cancelar'),
-            ),
-            TextButton(
-              onPressed: () {
-                Navigator.of(dialogContext).pop();
-                // Use o context da tela principal, não do dialog
-                context.read<AnimalBloc>().add(DeleteAnimalEvent(animal.id!));
-              },
-              style: TextButton.styleFrom(foregroundColor: Colors.red),
-              child: const Text('Excluir'),
-            ),
-          ],
-        );
-      },
+        ],
+      ),
     );
+    if (confirmed == true) {
+      // Dispara evento real de exclusão
+      context.read<AnimalBloc>().add(DeleteAnimalEvent(animal.id!));
+    }
   }
 }

@@ -108,6 +108,7 @@ class _DiagnosticoGestacaoScreenState extends State<DiagnosticoGestacaoScreen> {
         ),
       ),
       floatingActionButton: FloatingActionButton(
+        heroTag: 'fabDiagnosticoGestacao',
         backgroundColor: Colors.orange.shade400,
         onPressed: () {
           _showAddDiagnosticoDialog();

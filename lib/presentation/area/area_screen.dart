@@ -6,6 +6,8 @@ import 'package:agronexus/presentation/bloc/area/area_state.dart';
 import 'package:agronexus/domain/models/area_entity.dart';
 import 'package:go_router/go_router.dart';
 import 'package:agronexus/config/routers/router.dart';
+import 'package:agronexus/presentation/widgets/entity_action_menu.dart';
+import 'package:agronexus/presentation/widgets/standard_app_bar.dart';
 
 /// Tela de listagem de Áreas seguindo o padrão visual de [AnimalListScreen]
 class AreaScreen extends StatelessWidget {
@@ -102,10 +104,9 @@ class _AreaListContentState extends State<_AreaListContent> with WidgetsBindingO
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Áreas'),
-        backgroundColor: Colors.green,
-        foregroundColor: Colors.white,
+      appBar: buildStandardAppBar(
+        title: 'Áreas',
+        showBack: false,
       ),
       body: RefreshIndicator(
         onRefresh: () async => _loadAreas(),
@@ -212,6 +213,7 @@ class _AreaListContentState extends State<_AreaListContent> with WidgetsBindingO
         ),
       ),
       floatingActionButton: FloatingActionButton(
+        heroTag: 'fabAreas',
         onPressed: () async {
           final created = await context.push(AgroNexusRouter.areas.addPath);
           if (created == true) {
@@ -240,9 +242,20 @@ class _AreaListContentState extends State<_AreaListContent> with WidgetsBindingO
             Text('Tamanho: ${area.tamanhoHa.toStringAsFixed(2)} ha'),
           ],
         ),
+        onTap: () {
+          context.push(AgroNexusRouter.areas.detailPath, extra: area);
+        },
         trailing: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
+            if (area.coordenadasPoligono is List && (area.coordenadasPoligono as List).isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.only(right: 6),
+                child: Tooltip(
+                  message: 'Possui polígono',
+                  child: Icon(Icons.terrain, size: 20, color: Colors.green.shade700),
+                ),
+              ),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
               decoration: BoxDecoration(
@@ -252,26 +265,9 @@ class _AreaListContentState extends State<_AreaListContent> with WidgetsBindingO
               child: Text(_statusLabel(area.status), style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
             ),
             const SizedBox(width: 4),
-            PopupMenuButton<String>(
-              onSelected: (value) {
-                switch (value) {
-                  case 'editar':
-                    context.push(AgroNexusRouter.areas.editPath, extra: area).then((updated) {
-                      if (updated == true) {
-                        _loadAreas();
-                      }
-                    });
-                    break;
-                  case 'excluir':
-                    _confirmDelete(area);
-                    break;
-                }
-              },
-              itemBuilder: (context) => const [
-                PopupMenuItem(value: 'editar', child: Text('Editar')),
-                PopupMenuItem(value: 'excluir', child: Text('Excluir')),
-              ],
-              child: const Icon(Icons.more_vert),
+            EntityActionMenu(
+              onEdit: () => context.push(AgroNexusRouter.areas.editPath, extra: area),
+              onDelete: () => _confirmDelete(area),
             ),
           ],
         ),
@@ -279,24 +275,27 @@ class _AreaListContentState extends State<_AreaListContent> with WidgetsBindingO
     );
   }
 
-  void _confirmDelete(AreaEntity area) {
-    showDialog(
+  void _confirmDelete(AreaEntity area) async {
+    final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Row(children: [Icon(Icons.warning, color: Colors.orange), SizedBox(width: 8), Text('Confirmar Exclusão')]),
-        content: Text('Excluir área ${area.nome}? Esta ação não pode ser desfeita.'),
+        title: const Text('Excluir Área'),
+        content: Text('Tem certeza que deseja excluir a área "${area.nome}"? Esta ação não pode ser desfeita.'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancelar')),
-          TextButton(
-            onPressed: () {
-              Navigator.pop(ctx);
-              context.read<AreaBloc>().add(DeleteAreaEvent(area.id!));
-            },
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancelar')),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () => Navigator.pop(ctx, true),
             child: const Text('Excluir'),
           ),
         ],
       ),
     );
+    if (confirmed == true) {
+      // TODO: implementar chamada de exclusão via bloc quando backend suportar
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Área "${area.nome}" excluída (mock).')),
+      );
+    }
   }
 }

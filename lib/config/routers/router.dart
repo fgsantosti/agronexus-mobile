@@ -39,6 +39,7 @@ import 'package:agronexus/presentation/reproducao/manejo_reprodutivo_screen.dart
 import 'package:agronexus/presentation/area/area_screen.dart';
 import 'package:agronexus/presentation/area/cadastro_area_screen.dart';
 import 'package:agronexus/presentation/area/editar_area_screen.dart';
+import 'package:agronexus/presentation/area/detalhes_area_screen.dart';
 import 'package:agronexus/domain/models/area_entity.dart';
 import 'package:agronexus/presentation/splash/splash_screen.dart';
 import 'package:agronexus/presentation/widgets/internal_scaffold.dart';
@@ -570,6 +571,25 @@ enum AgroNexusRouter {
                         BlocProvider(create: (context) => getIt<PropriedadeBlocNew>()..add(const LoadPropriedadesEvent())),
                       ],
                       child: EditarAreaScreen(area: area),
+                    ),
+                  );
+                },
+              ),
+              // DETAIL AREA
+              GoRoute(
+                path: detail,
+                pageBuilder: (context, state) {
+                  final area = state.extra as AreaEntity;
+                  return CustomTransitionPage(
+                    key: state.pageKey,
+                    transitionDuration: RoutesUtils.duration,
+                    transitionsBuilder: RoutesUtils.transitionBuilder,
+                    child: MultiBlocProvider(
+                      providers: [
+                        BlocProvider(create: (context) => getIt<AreaBloc>()),
+                        BlocProvider(create: (context) => getIt<PropriedadeBlocNew>()..add(const LoadPropriedadesEvent())),
+                      ],
+                      child: DetalhesAreaScreen(area: area),
                     ),
                   );
                 },

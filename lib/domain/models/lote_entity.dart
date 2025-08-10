@@ -135,7 +135,10 @@ class LoteEntity extends BaseEntity {
     data['criterio_agrupamento'] = criterioAgrupamento;
     final effectivePropriedadeId = propriedadeId.isNotEmpty ? propriedadeId : (propriedade?.id ?? '');
     data['propriedade_id'] = effectivePropriedadeId;
-    if (areaAtualId != null) data['area_atual_id'] = areaAtualId; // mantém envio por ID
+    final effectiveAreaId = areaAtualId ?? areaAtual?.id;
+    if (effectiveAreaId != null && effectiveAreaId.isNotEmpty) {
+      data['area_atual_id'] = effectiveAreaId;
+    }
     if (aptidao != null) data['aptidao'] = aptidao;
     if (finalidade != null) data['finalidade'] = finalidade;
     if (sistemaCriacao != null) data['sistema_criacao'] = sistemaCriacao;

@@ -13,11 +13,13 @@ import 'package:agronexus/domain/models/area_entity.dart';
 import 'package:agronexus/presentation/bloc/area/area_bloc.dart';
 import 'package:agronexus/presentation/bloc/area/area_event.dart';
 import 'package:agronexus/presentation/bloc/area/area_state.dart';
+import 'package:agronexus/presentation/widgets/standard_app_bar.dart';
 
 class CadastroLoteScreen extends StatefulWidget {
   final String? propriedadeId;
+  final LoteEntity? loteInicial;
 
-  const CadastroLoteScreen({super.key, this.propriedadeId});
+  const CadastroLoteScreen({super.key, this.propriedadeId, this.loteInicial});
 
   @override
   State<CadastroLoteScreen> createState() => _CadastroLoteScreenState();
@@ -67,6 +69,17 @@ class _CadastroLoteScreenState extends State<CadastroLoteScreen> {
   @override
   void initState() {
     super.initState();
+    // Preencher campos se edição
+    if (widget.loteInicial != null) {
+      final l = widget.loteInicial!;
+      _nomeController.text = l.nome;
+      _descricaoController.text = l.descricao;
+      _criterioAgrupamentoController.text = l.criterioAgrupamento;
+      _aptidao = l.aptidao;
+      _finalidade = l.finalidade;
+      _sistemaCriacao = l.sistemaCriacao;
+      _ativo = l.ativo;
+    }
     _carregarPropriedades();
   }
 
@@ -95,19 +108,11 @@ class _CadastroLoteScreenState extends State<CadastroLoteScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Novo Lote'),
-        backgroundColor: Colors.green.shade600,
-        foregroundColor: Colors.white,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () {
-            Navigator.of(context).pop();
-          },
-        ),
+      appBar: buildStandardAppBar(
+        title: widget.loteInicial == null ? 'Novo Lote' : 'Editar Lote',
         actions: [
           TextButton(
-            onPressed: _isLoading ? null : _cadastrarLote,
+            onPressed: _isLoading ? null : _salvar,
             child: _isLoading
                 ? const SizedBox(
                     width: 16,
@@ -135,6 +140,11 @@ class _CadastroLoteScreenState extends State<CadastroLoteScreen> {
                 );
               }
 
+              if (state is LoteUpdated) {
+                // Retorna para a lista informando sucesso da edição
+                Navigator.pop(context, true);
+              }
+
               if (state is LoteError) {
                 setState(() => _isLoading = false);
                 ScaffoldMessenger.of(context).showSnackBar(
@@ -157,16 +167,21 @@ class _CadastroLoteScreenState extends State<CadastroLoteScreen> {
                   _propriedadesDisponiveis = state.propriedades;
                   _loadingPropriedades = false;
 
-                  // Se foi passado um ID de propriedade, selecionar automaticamente
-                  if (widget.propriedadeId != null) {
+                  // Prioridade: edição -> propriedade passada -> nenhuma
+                  if (widget.loteInicial != null) {
                     try {
-                      _propriedadeSelecionada = _propriedadesDisponiveis.firstWhere(
-                        (prop) => prop.id == widget.propriedadeId,
-                      );
-                    } catch (e) {
-                      // Se não encontrar, deixa como null
-                      _propriedadeSelecionada = null;
-                    }
+                      _propriedadeSelecionada = _propriedadesDisponiveis.firstWhere((p) => p.id == widget.loteInicial!.propriedadeId);
+                      if (_propriedadeSelecionada != null) {
+                        _carregarAreas(_propriedadeSelecionada!.id!);
+                      }
+                    } catch (_) {}
+                  } else if (widget.propriedadeId != null) {
+                    try {
+                      _propriedadeSelecionada = _propriedadesDisponiveis.firstWhere((p) => p.id == widget.propriedadeId);
+                      if (_propriedadeSelecionada != null) {
+                        _carregarAreas(_propriedadeSelecionada!.id!);
+                      }
+                    } catch (_) {}
                   }
                 });
               }
@@ -188,7 +203,11 @@ class _CadastroLoteScreenState extends State<CadastroLoteScreen> {
                 setState(() {
                   _areasDisponiveis = state.areas;
                   _loadingAreas = false;
-                  // Se existe apenas uma área disponível, opcionalmente selecionar
+                  if (widget.loteInicial != null && widget.loteInicial!.areaAtualId != null) {
+                    try {
+                      _areaSelecionada = _areasDisponiveis.firstWhere((a) => a.id == widget.loteInicial!.areaAtualId);
+                    } catch (_) {}
+                  }
                 });
               } else if (state is AreaError) {
                 setState(() => _loadingAreas = false);
@@ -428,7 +447,7 @@ class _CadastroLoteScreenState extends State<CadastroLoteScreen> {
     );
   }
 
-  void _cadastrarLote() {
+  void _salvar() {
     if (!_formKey.currentState!.validate()) return;
     if (_propriedadeSelecionada == null) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -443,9 +462,10 @@ class _CadastroLoteScreenState extends State<CadastroLoteScreen> {
     setState(() => _isLoading = true);
 
     final lote = LoteEntity(
+      id: widget.loteInicial?.id,
       nome: _nomeController.text.trim(),
       descricao: _descricaoController.text.trim(),
-      criterioAgrupamento: _criterioAgrupamentoController.text.trim(),
+      criterioAgrupamento: _criterioAgrupamentoController.text.trim().isEmpty ? '' : _criterioAgrupamentoController.text.trim(),
       propriedadeId: _propriedadeSelecionada!.id!,
       propriedade: PropriedadeSimples(
         id: _propriedadeSelecionada!.id!,
@@ -458,6 +478,10 @@ class _CadastroLoteScreenState extends State<CadastroLoteScreen> {
       ativo: _ativo,
     );
 
-    context.read<LoteBloc>().add(CreateLoteEvent(lote));
+    if (widget.loteInicial == null) {
+      context.read<LoteBloc>().add(CreateLoteEvent(lote));
+    } else {
+      context.read<LoteBloc>().add(UpdateLoteEvent(lote));
+    }
   }
 }

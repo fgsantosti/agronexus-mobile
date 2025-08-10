@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:agronexus/domain/models/lote_entity.dart';
-import 'package:agronexus/presentation/lote/editar_lote_screen.dart';
+import 'package:agronexus/presentation/widgets/standard_app_bar.dart';
 
 class DetalhesLoteScreen extends StatelessWidget {
   final LoteEntity lote;
@@ -13,23 +13,7 @@ class DetalhesLoteScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Detalhes do Lote'),
-        backgroundColor: Colors.green.shade600,
-        foregroundColor: Colors.white,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.edit),
-            onPressed: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (context) => EditarLoteScreen(lote: lote),
-                ),
-              );
-            },
-          ),
-        ],
-      ),
+      appBar: buildStandardAppBar(title: 'Detalhes do Lote'),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
