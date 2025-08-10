@@ -4,6 +4,10 @@ import 'package:agronexus/presentation/bloc/lote/lote_bloc.dart';
 import 'package:agronexus/presentation/bloc/lote/lote_events.dart';
 import 'package:agronexus/presentation/bloc/lote/lote_state.dart';
 import 'package:agronexus/domain/models/lote_entity.dart';
+import 'package:agronexus/domain/models/area_entity.dart';
+import 'package:agronexus/presentation/bloc/area/area_bloc.dart';
+import 'package:agronexus/presentation/bloc/area/area_event.dart';
+import 'package:agronexus/presentation/bloc/area/area_state.dart';
 
 class EditarLoteScreen extends StatefulWidget {
   final LoteEntity lote;
@@ -50,10 +54,17 @@ class _EditarLoteScreenState extends State<EditarLoteScreen> {
     {'value': 'semi_extensivo', 'label': 'Semi-Extensivo'},
   ];
 
+  List<AreaEntity> _areasDisponiveis = [];
+  AreaEntity? _areaSelecionada;
+  bool _loadingAreas = false;
+
   @override
   void initState() {
     super.initState();
     _preencherCamposComDadosExistentes();
+    if (widget.lote.propriedadeId.isNotEmpty) {
+      context.read<AreaBloc>().add(LoadAreasEvent(propriedadeId: widget.lote.propriedadeId));
+    }
   }
 
   @override
@@ -75,6 +86,7 @@ class _EditarLoteScreenState extends State<EditarLoteScreen> {
     _finalidade = lote.finalidade;
     _sistemaCriacao = lote.sistemaCriacao;
     _ativo = lote.ativo;
+    _areaSelecionada = null; // será atribuída quando areas carregarem se id combinar
   }
 
   @override
@@ -109,29 +121,55 @@ class _EditarLoteScreenState extends State<EditarLoteScreen> {
           ),
         ],
       ),
-      body: BlocListener<LoteBloc, LoteState>(
-        listener: (context, state) {
-          if (state is LoteUpdated) {
-            Navigator.pop(context, true);
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Lote atualizado com sucesso!')),
-            );
-          }
+      body: MultiBlocListener(
+        listeners: [
+          BlocListener<LoteBloc, LoteState>(
+            listener: (context, state) {
+              if (state is LoteUpdated) {
+                Navigator.pop(context, true);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Lote atualizado com sucesso!')),
+                );
+              }
 
-          if (state is LoteError) {
-            setState(() => _isLoading = false);
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(state.message),
-                backgroundColor: Colors.red,
-              ),
-            );
-          }
+              if (state is LoteError) {
+                setState(() => _isLoading = false);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(state.message),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+              }
 
-          if (state is LoteLoading) {
-            setState(() => _isLoading = true);
-          }
-        },
+              if (state is LoteLoading) {
+                setState(() => _isLoading = true);
+              }
+            },
+          ),
+          BlocListener<AreaBloc, AreaState>(
+            listener: (context, state) {
+              if (state is AreaLoading) {
+                setState(() => _loadingAreas = true);
+              } else if (state is AreasLoaded) {
+                setState(() {
+                  _areasDisponiveis = state.areas;
+                  _loadingAreas = false;
+                  if (widget.lote.areaAtualId != null) {
+                    try {
+                      _areaSelecionada = _areasDisponiveis.firstWhere((a) => a.id == widget.lote.areaAtualId);
+                    } catch (_) {}
+                  }
+                });
+              } else if (state is AreaError) {
+                setState(() => _loadingAreas = false);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Erro ao carregar áreas: ${state.message}')),
+                );
+              }
+            },
+          ),
+        ],
         child: Form(
           key: _formKey,
           child: SingleChildScrollView(
@@ -290,6 +328,28 @@ class _EditarLoteScreenState extends State<EditarLoteScreen> {
                             });
                           },
                         ),
+                        const SizedBox(height: 16),
+                        // Área Atual (opcional)
+                        DropdownButtonFormField<AreaEntity>(
+                          value: _areaSelecionada,
+                          decoration: const InputDecoration(
+                            labelText: 'Área Atual (opcional)',
+                            hintText: 'Selecione a área onde o lote está',
+                            border: OutlineInputBorder(),
+                            prefixIcon: Icon(Icons.map),
+                          ),
+                          items: _areasDisponiveis
+                              .map((area) => DropdownMenuItem(
+                                    value: area,
+                                    child: Text('${area.nome} (${area.tipo})'),
+                                  ))
+                              .toList(),
+                          onChanged: _loadingAreas
+                              ? null
+                              : (value) {
+                                  setState(() => _areaSelecionada = value);
+                                },
+                        ),
                       ],
                     ),
                   ),
@@ -333,6 +393,7 @@ class _EditarLoteScreenState extends State<EditarLoteScreen> {
       finalidade: () => _finalidade,
       sistemaCriacao: () => _sistemaCriacao,
       ativo: () => _ativo,
+      areaAtualId: () => _areaSelecionada?.id,
     );
 
     print('🔍 Debug - propriedadeId efetivo usado: $propriedadeIdEfetivo');

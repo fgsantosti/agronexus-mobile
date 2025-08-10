@@ -7,6 +7,10 @@ import 'package:agronexus/domain/models/lote_entity.dart';
 import 'package:agronexus/presentation/lote/cadastro_lote_screen.dart';
 import 'package:agronexus/presentation/lote/editar_lote_screen.dart';
 import 'package:agronexus/presentation/lote/detalhes_lote_screen.dart';
+import 'package:agronexus/presentation/bloc/propriedade/propriedade_bloc_new.dart';
+import 'package:agronexus/presentation/bloc/propriedade/propriedade_event_new.dart';
+import 'package:agronexus/presentation/bloc/area/area_bloc.dart';
+import 'package:agronexus/config/inject_dependencies.dart';
 
 class LoteScreen extends StatefulWidget {
   const LoteScreen({super.key});
@@ -201,6 +205,22 @@ class _LoteScreenState extends State<LoteScreen> {
                               color: Colors.grey.shade600,
                             ),
                           ),
+                        if (lote.areaAtual != null || lote.areaAtualId != null) ...[
+                          const SizedBox(height: 4),
+                          Row(
+                            children: [
+                              Icon(Icons.map, size: 14, color: Colors.green.shade400),
+                              const SizedBox(width: 4),
+                              Flexible(
+                                child: Text(
+                                  lote.areaAtual != null ? 'Área: ${lote.areaAtual!.nome}' : 'Área: ${lote.areaAtualId}',
+                                  style: TextStyle(fontSize: 11, color: Colors.grey.shade700),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
                       ],
                     ),
                   ),
@@ -364,11 +384,15 @@ class _LoteScreenState extends State<LoteScreen> {
   }
 
   void _navegarParaCadastro() async {
-    final bloc = context.read<LoteBloc>();
+    final loteBloc = context.read<LoteBloc>();
     final resultado = await Navigator.of(context).push<bool>(
       MaterialPageRoute(
-        builder: (context) => BlocProvider.value(
-          value: bloc,
+        builder: (context) => MultiBlocProvider(
+          providers: [
+            BlocProvider.value(value: loteBloc),
+            BlocProvider(create: (context) => getIt<PropriedadeBlocNew>()..add(const LoadPropriedadesEvent())),
+            BlocProvider(create: (context) => getIt<AreaBloc>()), // AreaBloc adicionado
+          ],
           child: const CadastroLoteScreen(),
         ),
       ),
@@ -380,11 +404,15 @@ class _LoteScreenState extends State<LoteScreen> {
   }
 
   void _navegarParaEdicao(LoteEntity lote) async {
-    final bloc = context.read<LoteBloc>();
+    final loteBloc = context.read<LoteBloc>();
     final resultado = await Navigator.of(context).push<bool>(
       MaterialPageRoute(
-        builder: (context) => BlocProvider.value(
-          value: bloc,
+        builder: (context) => MultiBlocProvider(
+          providers: [
+            BlocProvider.value(value: loteBloc),
+            BlocProvider(create: (context) => getIt<PropriedadeBlocNew>()..add(const LoadPropriedadesEvent())),
+            BlocProvider(create: (context) => getIt<AreaBloc>()), // AreaBloc adicionado
+          ],
           child: EditarLoteScreen(lote: lote),
         ),
       ),

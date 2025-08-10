@@ -9,6 +9,10 @@ import 'package:agronexus/presentation/bloc/propriedade/propriedade_state_new.da
 import 'package:agronexus/domain/models/lote_entity.dart';
 import 'package:agronexus/domain/models/propriedade_entity.dart';
 import 'package:agronexus/domain/models/animal_entity.dart'; // Para PropriedadeSimples
+import 'package:agronexus/domain/models/area_entity.dart';
+import 'package:agronexus/presentation/bloc/area/area_bloc.dart';
+import 'package:agronexus/presentation/bloc/area/area_event.dart';
+import 'package:agronexus/presentation/bloc/area/area_state.dart';
 
 class CadastroLoteScreen extends StatefulWidget {
   final String? propriedadeId;
@@ -27,16 +31,19 @@ class _CadastroLoteScreenState extends State<CadastroLoteScreen> {
   final _descricaoController = TextEditingController();
   final _criterioAgrupamentoController = TextEditingController();
 
-  // Propriedades disponíveis e selecionada
-  List<PropriedadeEntity> _propriedadesDisponiveis = [];
+  // Propriedade e área selecionadas
   PropriedadeEntity? _propriedadeSelecionada;
+  AreaEntity? _areaSelecionada;
+  List<PropriedadeEntity> _propriedadesDisponiveis = [];
+  List<AreaEntity> _areasDisponiveis = [];
   bool _loadingPropriedades = false;
+  bool _loadingAreas = false;
+  bool _isLoading = false;
 
   String? _aptidao;
   String? _finalidade;
   String? _sistemaCriacao;
   bool _ativo = true;
-  bool _isLoading = false;
 
   // Opções dos dropdowns
   final List<Map<String, String>> _aptidaoOptions = [
@@ -66,6 +73,15 @@ class _CadastroLoteScreenState extends State<CadastroLoteScreen> {
   void _carregarPropriedades() {
     setState(() => _loadingPropriedades = true);
     context.read<PropriedadeBlocNew>().add(const LoadPropriedadesEvent());
+  }
+
+  void _carregarAreas(String propriedadeId) {
+    setState(() {
+      _loadingAreas = true;
+      _areasDisponiveis = [];
+      _areaSelecionada = null;
+    });
+    context.read<AreaBloc>().add(LoadAreasEvent(propriedadeId: propriedadeId));
   }
 
   @override
@@ -166,6 +182,24 @@ class _CadastroLoteScreenState extends State<CadastroLoteScreen> {
               }
             },
           ),
+          BlocListener<AreaBloc, AreaState>(
+            listener: (context, state) {
+              if (state is AreasLoaded) {
+                setState(() {
+                  _areasDisponiveis = state.areas;
+                  _loadingAreas = false;
+                  // Se existe apenas uma área disponível, opcionalmente selecionar
+                });
+              } else if (state is AreaError) {
+                setState(() => _loadingAreas = false);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Erro ao carregar áreas: ${state.message}')),
+                );
+              } else if (state is AreaLoading) {
+                setState(() => _loadingAreas = true);
+              }
+            },
+          ),
         ],
         child: Form(
           key: _formKey,
@@ -244,6 +278,12 @@ class _CadastroLoteScreenState extends State<CadastroLoteScreen> {
                               : (value) {
                                   setState(() {
                                     _propriedadeSelecionada = value;
+                                    if (value != null) {
+                                      _carregarAreas(value.id!);
+                                    } else {
+                                      _areasDisponiveis = [];
+                                      _areaSelecionada = null;
+                                    }
                                   });
                                 },
                           validator: (value) {
@@ -252,6 +292,28 @@ class _CadastroLoteScreenState extends State<CadastroLoteScreen> {
                             }
                             return null;
                           },
+                        ),
+                        const SizedBox(height: 16),
+                        // Área Atual (opcional)
+                        DropdownButtonFormField<AreaEntity>(
+                          value: _areaSelecionada,
+                          decoration: const InputDecoration(
+                            labelText: 'Área Atual (opcional)',
+                            hintText: 'Selecione a área onde o lote está',
+                            border: OutlineInputBorder(),
+                            prefixIcon: Icon(Icons.map),
+                          ),
+                          items: _areasDisponiveis
+                              .map((area) => DropdownMenuItem(
+                                    value: area,
+                                    child: Text('${area.nome} (${area.tipo})'),
+                                  ))
+                              .toList(),
+                          onChanged: (_loadingAreas || _propriedadeSelecionada == null)
+                              ? null
+                              : (value) {
+                                  setState(() => _areaSelecionada = value);
+                                },
                         ),
                         const SizedBox(height: 16),
                         SwitchListTile(
@@ -389,6 +451,7 @@ class _CadastroLoteScreenState extends State<CadastroLoteScreen> {
         id: _propriedadeSelecionada!.id!,
         nome: _propriedadeSelecionada!.nome,
       ),
+      areaAtualId: _areaSelecionada?.id,
       aptidao: _aptidao,
       finalidade: _finalidade,
       sistemaCriacao: _sistemaCriacao,
