@@ -13,6 +13,7 @@ import 'package:agronexus/domain/models/area_entity.dart';
 import 'package:agronexus/presentation/bloc/area/area_bloc.dart';
 import 'package:agronexus/presentation/bloc/area/area_event.dart';
 import 'package:agronexus/presentation/bloc/area/area_state.dart';
+import 'package:agronexus/presentation/widgets/standard_app_bar.dart';
 
 class CadastroLoteScreen extends StatefulWidget {
   final String? propriedadeId;
@@ -107,16 +108,8 @@ class _CadastroLoteScreenState extends State<CadastroLoteScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text(widget.loteInicial == null ? 'Novo Lote' : 'Editar Lote'),
-        backgroundColor: Colors.green.shade600,
-        foregroundColor: Colors.white,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () {
-            Navigator.of(context).pop();
-          },
-        ),
+      appBar: buildStandardAppBar(
+        title: widget.loteInicial == null ? 'Novo Lote' : 'Editar Lote',
         actions: [
           TextButton(
             onPressed: _isLoading ? null : _salvar,

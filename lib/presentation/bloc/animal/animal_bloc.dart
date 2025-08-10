@@ -89,11 +89,15 @@ class AnimalBloc extends Bloc<AnimalEvent, AnimalState> {
     Emitter<AnimalState> emit,
   ) async {
     try {
-      emit(AnimalLoading());
-
-      final animal = await _animalService.createAnimal(event.animal);
-
-      emit(AnimalCreated(animal));
+      // Criação otimista: não emitir loading para evitar flicker da lista
+      final created = await _animalService.createAnimal(event.animal);
+      _allAnimais = [created, ..._allAnimais];
+      emit(AnimalCreated(created));
+      emit(AnimaisLoaded(
+        animais: List.from(_allAnimais),
+        count: _allAnimais.length,
+        hasMore: _allAnimais.length >= _limit,
+      ));
     } catch (e) {
       String errorMessage;
 
@@ -113,11 +117,18 @@ class AnimalBloc extends Bloc<AnimalEvent, AnimalState> {
     Emitter<AnimalState> emit,
   ) async {
     try {
-      emit(AnimalLoading());
-
-      final animal = await _animalService.updateAnimal(event.id, event.animal);
-
-      emit(AnimalUpdated(animal));
+      // Update otimista: não emitir loading para evitar reset visual
+      final updated = await _animalService.updateAnimal(event.id, event.animal);
+      final idx = _allAnimais.indexWhere((a) => a.id == updated.id);
+      if (idx != -1) {
+        _allAnimais[idx] = updated;
+      }
+      emit(AnimalUpdated(updated));
+      emit(AnimaisLoaded(
+        animais: List.from(_allAnimais),
+        count: _allAnimais.length,
+        hasMore: _allAnimais.length >= _limit,
+      ));
     } catch (e) {
       String errorMessage;
       if (e is AgroNexusException) {
@@ -134,11 +145,15 @@ class AnimalBloc extends Bloc<AnimalEvent, AnimalState> {
     Emitter<AnimalState> emit,
   ) async {
     try {
-      emit(AnimalLoading());
-
+      // Exclusão sem emitir loading para evitar flicker
       await _animalService.deleteAnimal(event.id);
-
+      _allAnimais.removeWhere((a) => a.id == event.id);
       emit(AnimalDeleted(event.id));
+      emit(AnimaisLoaded(
+        animais: List.from(_allAnimais),
+        count: _allAnimais.length,
+        hasMore: _allAnimais.length >= _limit,
+      ));
     } catch (e) {
       String errorMessage;
       if (e is AgroNexusException) {
