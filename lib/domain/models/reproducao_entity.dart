@@ -356,9 +356,29 @@ class OpcoesCadastroInseminacao {
   });
 
   factory OpcoesCadastroInseminacao.fromJson(Map<String, dynamic> json) {
-    final femeas = (json['femeas'] as List? ?? []).map((e) => AnimalEntity.fromInseminacaoJson(e)).toList();
+    // Parse fêmeas de forma segura
+    final femeas = <AnimalEntity>[];
+    if (json['femeas'] != null) {
+      for (var item in (json['femeas'] as List)) {
+        try {
+          femeas.add(AnimalEntity.fromInseminacaoJson(item));
+        } catch (e) {
+          print('Warning: Skipping invalid femea: $e');
+        }
+      }
+    }
 
-    final reprodutores = (json['reprodutores'] as List? ?? []).map((e) => AnimalEntity.fromInseminacaoJson(e)).toList();
+    // Parse reprodutores de forma segura
+    final reprodutores = <AnimalEntity>[];
+    if (json['reprodutores'] != null) {
+      for (var item in (json['reprodutores'] as List)) {
+        try {
+          reprodutores.add(AnimalEntity.fromInseminacaoJson(item));
+        } catch (e) {
+          print('Warning: Skipping invalid reprodutor: $e');
+        }
+      }
+    }
 
     return OpcoesCadastroInseminacao(
       femeas: femeas,
