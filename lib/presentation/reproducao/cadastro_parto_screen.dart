@@ -3,9 +3,13 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:agronexus/presentation/bloc/reproducao/reproducao_bloc.dart';
 import 'package:agronexus/presentation/bloc/reproducao/reproducao_event.dart';
 import 'package:agronexus/presentation/bloc/reproducao/reproducao_state.dart';
+import 'package:agronexus/presentation/bloc/animal/animal_bloc.dart';
+import 'package:agronexus/presentation/bloc/animal/animal_event.dart';
+import 'package:agronexus/presentation/bloc/animal/animal_state.dart';
 import 'package:agronexus/domain/models/reproducao_entity.dart';
 import 'package:agronexus/domain/models/animal_entity.dart';
 import 'package:agronexus/presentation/widgets/animal_search_field.dart';
+import 'package:agronexus/presentation/widgets/standard_app_bar.dart';
 import 'package:intl/intl.dart';
 
 class CadastroPartoScreen extends StatefulWidget {
@@ -34,9 +38,11 @@ class _CadastroPartoScreenState extends State<CadastroPartoScreen> {
   List<AnimalEntity> _femeasDisponiveis = [];
   List<AnimalEntity> _animaisDisponiveis = [];
   List<DiagnosticoGestacaoEntity> _gestacoesDisponiveis = [];
+  List<AnimalEntity> _filhosDaMae = [];
 
   DateTime _dataSelecionada = DateTime.now();
   bool _isLoading = false;
+  bool _isLoadingFilhos = false;
 
   @override
   void initState() {
@@ -48,8 +54,13 @@ class _CadastroPartoScreenState extends State<CadastroPartoScreen> {
   void _carregarOpcoes() {
     // Carregar gestações pendentes de parto
     context.read<ReproducaoBloc>().add(LoadGestacoesPendentePartoEvent());
-    // Temporariamente: não carregar animais para evitar erro do AnimalBloc
-    // context.read<AnimalBloc>().add(LoadAnimaisEvent());
+    // Carregar animais para seleção de cria
+    context.read<AnimalBloc>().add(LoadAnimaisEvent());
+  }
+
+  void _carregarFilhosDaMae(String maeId) {
+    setState(() => _isLoadingFilhos = true);
+    context.read<AnimalBloc>().add(LoadFilhosDaMaeEvent(maeId));
   }
 
   @override
@@ -108,7 +119,7 @@ class _CadastroPartoScreenState extends State<CadastroPartoScreen> {
       dificuldade: _dificuldadeSelecionada!,
       bezerro: _bezerroSelecionado,
       pesoNascimento: _pesoNascimentoController.text.isNotEmpty ? double.tryParse(_pesoNascimentoController.text.replaceAll(',', '.')) : null,
-      observacoes: _observacoesController.text.isNotEmpty ? _observacoesController.text : null,
+      observacoes: _observacoesController.text.trim().isNotEmpty ? _observacoesController.text.trim() : '',
     );
 
     context.read<ReproducaoBloc>().add(CreatePartoEvent(parto));
@@ -117,12 +128,24 @@ class _CadastroPartoScreenState extends State<CadastroPartoScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Cadastrar Parto'),
+      appBar: buildStandardAppBar(
+        title: 'Cadastrar Parto',
         actions: [
           TextButton(
             onPressed: _isLoading ? null : _salvarParto,
-            child: _isLoading ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)) : const Text('Salvar', style: TextStyle(color: Colors.white)),
+            child: _isLoading
+                ? const SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Colors.white,
+                    ),
+                  )
+                : const Text(
+                    'Salvar',
+                    style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                  ),
           ),
         ],
       ),
@@ -130,11 +153,21 @@ class _CadastroPartoScreenState extends State<CadastroPartoScreen> {
         listeners: [
           BlocListener<ReproducaoBloc, ReproducaoState>(
             listener: (context, state) {
+              print('DEBUG SCREEN - Estado recebido: ${state.runtimeType}');
+
               if (state is PartoCreated) {
-                Navigator.pop(context, true);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Parto cadastrado com sucesso!')),
-                );
+                print('DEBUG SCREEN - Parto criado com sucesso! Redirecionando...');
+                setState(() => _isLoading = false);
+
+                // Aguardar um frame antes de redirecionar para garantir que o estado seja atualizado
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  if (mounted) {
+                    Navigator.pop(context, true);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Parto cadastrado com sucesso!')),
+                    );
+                  }
+                });
               }
 
               if (state is GestacoesPendentePartoLoaded) {
@@ -145,15 +178,19 @@ class _CadastroPartoScreenState extends State<CadastroPartoScreen> {
               }
 
               if (state is ReproducaoError) {
+                print('DEBUG SCREEN - Erro: ${state.message}');
                 setState(() => _isLoading = false);
                 ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text(state.message)),
+                  SnackBar(content: Text('Erro: ${state.message}')),
                 );
+              }
+
+              if (state is ReproducaoLoading) {
+                // Não definir _isLoading aqui para evitar conflitos
+                print('DEBUG SCREEN - Estado de loading recebido');
               }
             },
           ),
-          // Temporariamente comentado para evitar erro do AnimalBloc
-          /*
           BlocListener<AnimalBloc, AnimalState>(
             listener: (context, state) {
               if (state is AnimaisLoaded) {
@@ -161,9 +198,22 @@ class _CadastroPartoScreenState extends State<CadastroPartoScreen> {
                   _animaisDisponiveis = state.animais;
                 });
               }
+
+              if (state is FilhosDaMaeLoaded) {
+                setState(() {
+                  _filhosDaMae = state.filhos;
+                  _isLoadingFilhos = false;
+                });
+              }
+
+              if (state is AnimalError) {
+                setState(() => _isLoadingFilhos = false);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Erro ao carregar dados: ${state.message}')),
+                );
+              }
             },
           ),
-          */
         ],
         child: _buildBody(),
       ),
@@ -211,7 +261,17 @@ class _CadastroPartoScreenState extends State<CadastroPartoScreen> {
             AnimalSearchField(
               animais: _femeasDisponiveis,
               animalSelecionado: _maeSelecionada,
-              onChanged: (animal) => setState(() => _maeSelecionada = animal),
+              onChanged: (animal) {
+                setState(() => _maeSelecionada = animal);
+                if (animal != null && animal.id != null) {
+                  _carregarFilhosDaMae(animal.id!);
+                } else {
+                  setState(() {
+                    _filhosDaMae = [];
+                    _isLoadingFilhos = false;
+                  });
+                }
+              },
               labelText: 'Mãe (Gestação Confirmada) *',
               apenasFemeas: true,
               validator: (value) {
@@ -227,6 +287,12 @@ class _CadastroPartoScreenState extends State<CadastroPartoScreen> {
             // Informações da gestação selecionada
             if (_maeSelecionada != null) ...[
               _buildGestacaoInfo(),
+              const SizedBox(height: 16),
+            ],
+
+            // Crias da mãe selecionada
+            if (_maeSelecionada != null) ...[
+              _buildFilhosDaMae(),
               const SizedBox(height: 16),
             ],
 
@@ -283,13 +349,52 @@ class _CadastroPartoScreenState extends State<CadastroPartoScreen> {
 
             const SizedBox(height: 16),
 
-            // Seleção do bezerro (opcional)
+            // Seleção da cria (opcional) - apenas para nascido vivo
             if (_resultadoSelecionado == ResultadoParto.nascidoVivo) ...[
-              AnimalSearchField(
-                animais: _animaisDisponiveis,
-                animalSelecionado: _bezerroSelecionado,
-                onChanged: (animal) => setState(() => _bezerroSelecionado = animal),
-                labelText: 'Cria',
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.green.shade50,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.green.shade200),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(Icons.child_care, color: Colors.green.shade600, size: 20),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Informações da Cria',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: Colors.green.shade700,
+                            fontSize: 16,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+
+                    // Campo de seleção da cria
+                    AnimalSearchField(
+                      animais: _animaisDisponiveis,
+                      animalSelecionado: _bezerroSelecionado,
+                      onChanged: (animal) => setState(() => _bezerroSelecionado = animal),
+                      labelText: 'Selecionar Cria (Opcional)',
+                    ),
+
+                    const SizedBox(height: 8),
+                    Text(
+                      'Vincule a cria que nasceu neste parto. Digite o número de identificação para buscar.',
+                      style: TextStyle(
+                        color: Colors.green.shade600,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ),
               ),
 
               const SizedBox(height: 16),
@@ -301,6 +406,7 @@ class _CadastroPartoScreenState extends State<CadastroPartoScreen> {
                   labelText: 'Peso ao Nascimento (kg)',
                   border: OutlineInputBorder(),
                   suffixText: 'kg',
+                  helperText: 'Opcional, mas recomendado para controle',
                 ),
                 keyboardType: const TextInputType.numberWithOptions(decimal: true),
                 validator: (value) {
@@ -502,5 +608,194 @@ class _CadastroPartoScreenState extends State<CadastroPartoScreen> {
         ],
       ),
     );
+  }
+
+  Widget _buildFilhosDaMae() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.orange.shade50,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.orange.shade200),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.child_care, color: Colors.orange.shade600, size: 20),
+              const SizedBox(width: 8),
+              Text(
+                'Crias da Mãe',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: Colors.orange.shade700,
+                  fontSize: 16,
+                ),
+              ),
+              if (_isLoadingFilhos) ...[
+                const SizedBox(width: 12),
+                SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: Colors.orange.shade600,
+                  ),
+                ),
+              ],
+            ],
+          ),
+          const SizedBox(height: 12),
+          if (_isLoadingFilhos)
+            const Center(
+              child: Padding(
+                padding: EdgeInsets.all(16),
+                child: Text('Carregando filhos...'),
+              ),
+            )
+          else if (_filhosDaMae.where((filho) => _isCategoriaInicial(filho.categoria)).isEmpty)
+            Row(
+              children: [
+                Icon(Icons.info_outline, color: Colors.orange.shade600, size: 16),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Nenhuma cria (bezerro, cabrito, cordeiro, etc.) registrada para esta mãe.',
+                    style: TextStyle(
+                      color: Colors.orange.shade700,
+                      fontSize: 14,
+                    ),
+                  ),
+                ),
+              ],
+            )
+          else
+            ...(_filhosDaMae
+                .where((filho) => _isCategoriaInicial(filho.categoria))
+                .map((filho) => Container(
+                      margin: const EdgeInsets.only(bottom: 8),
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.orange.shade300),
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: filho.sexo == Sexo.macho ? Colors.blue.shade100 : Colors.pink.shade100,
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Icon(
+                              filho.sexo == Sexo.macho ? Icons.male : Icons.female,
+                              color: filho.sexo == Sexo.macho ? Colors.blue.shade600 : Colors.pink.shade600,
+                              size: 16,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  filho.identificacaoUnica,
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 14,
+                                  ),
+                                ),
+                                if (filho.nomeRegistro?.isNotEmpty == true)
+                                  Text(
+                                    filho.nomeRegistro!,
+                                    style: TextStyle(
+                                      color: Colors.grey.shade600,
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                Text(
+                                  '${filho.categoria.label} • ${filho.status.label}',
+                                  style: TextStyle(
+                                    color: Colors.grey.shade600,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              Text(
+                                _dateFormat.format(DateTime.parse(filho.dataNascimento)),
+                                style: TextStyle(
+                                  color: Colors.grey.shade600,
+                                  fontSize: 12,
+                                ),
+                              ),
+                              Text(
+                                _calculateAge(DateTime.parse(filho.dataNascimento)),
+                                style: TextStyle(
+                                  color: Colors.orange.shade700,
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ))
+                .toList()),
+        ],
+      ),
+    );
+  }
+
+  String _calculateAge(DateTime birthDate) {
+    final now = DateTime.now();
+    final difference = now.difference(birthDate);
+
+    if (difference.inDays < 30) {
+      return '${difference.inDays} dias';
+    } else if (difference.inDays < 365) {
+      final months = (difference.inDays / 30).floor();
+      return '$months meses';
+    } else {
+      final years = (difference.inDays / 365).floor();
+      final remainingMonths = ((difference.inDays % 365) / 30).floor();
+      if (remainingMonths > 0) {
+        return '$years anos e $remainingMonths meses';
+      } else {
+        return '$years anos';
+      }
+    }
+  }
+
+  bool _isCategoriaInicial(CategoriaAnimal categoria) {
+    // Categorias iniciais (crias/filhotes) de cada espécie
+    const categoriasIniciais = [
+      // Bovinos
+      CategoriaAnimal.bezerro,
+      CategoriaAnimal.bezerra,
+
+      // Caprinos
+      CategoriaAnimal.cabrito,
+      CategoriaAnimal.cabrita,
+
+      // Ovinos
+      CategoriaAnimal.cordeiro,
+      CategoriaAnimal.cordeira,
+
+      // Equinos
+      CategoriaAnimal.potro,
+
+      // Suínos
+      CategoriaAnimal.leitao,
+    ];
+
+    return categoriasIniciais.contains(categoria);
   }
 }
