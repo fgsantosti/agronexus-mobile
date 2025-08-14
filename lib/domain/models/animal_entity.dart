@@ -67,21 +67,27 @@ enum OrigemAnimal {
 
   static OrigemAnimal fromString(String value) {
     if (value.isEmpty) {
-      throw Exception('Invalid OrigemAnimal value: $value');
+      print('Warning: OrigemAnimal value is empty, defaulting to proprio');
+      return OrigemAnimal.proprio;
     }
-    switch (value) {
+
+    final lowerValue = value.toLowerCase();
+    switch (lowerValue) {
       case 'proprio':
         return OrigemAnimal.proprio;
       case 'compra':
         return OrigemAnimal.compra;
       case 'leilao':
+      case 'leilão':
         return OrigemAnimal.leilao;
       case 'doacao':
+      case 'doação':
         return OrigemAnimal.doacao;
       case 'parceria':
         return OrigemAnimal.parceria;
       default:
-        throw Exception('Invalid OrigemAnimal value: $value');
+        print('Warning: Unknown OrigemAnimal value: $value, defaulting to proprio');
+        return OrigemAnimal.proprio; // Valor padrão ao invés de erro
     }
   }
 }
@@ -434,9 +440,8 @@ class AnimalEntity extends BaseEntity {
   final String? dataMorte;
   final String? causaMorte;
 
-  // Observações e fotos
+  // Observações
   final String? observacoes;
-  final List<String>? fotosEvolucao;
 
   // Campos legados para compatibilidade
   final String idAnimal;
@@ -474,7 +479,6 @@ class AnimalEntity extends BaseEntity {
     this.dataMorte,
     this.causaMorte,
     this.observacoes,
-    this.fotosEvolucao,
     // Campos legados
     required this.idAnimal,
     required this.situacao,
@@ -508,7 +512,6 @@ class AnimalEntity extends BaseEntity {
         dataMorte,
         causaMorte,
         observacoes,
-        fotosEvolucao,
         // Legados
         idAnimal,
         situacao,
@@ -546,7 +549,6 @@ class AnimalEntity extends BaseEntity {
     AgroNexusGetter<String?>? dataMorte,
     AgroNexusGetter<String?>? causaMorte,
     AgroNexusGetter<String?>? observacoes,
-    AgroNexusGetter<List<String>?>? fotosEvolucao,
     // Legados
     AgroNexusGetter<String>? idAnimal,
     AgroNexusGetter<String>? situacao,
@@ -582,7 +584,6 @@ class AnimalEntity extends BaseEntity {
       dataMorte: dataMorte != null ? dataMorte() : this.dataMorte,
       causaMorte: causaMorte != null ? causaMorte() : this.causaMorte,
       observacoes: observacoes != null ? observacoes() : this.observacoes,
-      fotosEvolucao: fotosEvolucao != null ? fotosEvolucao() : this.fotosEvolucao,
       // Legados
       idAnimal: idAnimal != null ? idAnimal() : this.idAnimal,
       situacao: situacao != null ? situacao() : this.situacao,
@@ -617,7 +618,6 @@ class AnimalEntity extends BaseEntity {
     data['data_morte'] = dataMorte;
     data['causa_morte'] = causaMorte;
     data['observacoes'] = observacoes;
-    data['fotos_evolucao'] = fotosEvolucao;
 
     // Campos legados
     data['id_animal'] = idAnimal;
@@ -653,8 +653,13 @@ class AnimalEntity extends BaseEntity {
       data['lote_atual_id'] = loteAtual!.id;
     }
 
-    // pai e mae não têm campos _id no serializer, são read-only
-    // Não incluir pai_id e mae_id
+    if (pai?.id != null) {
+      data['pai_id'] = pai!.id;
+    }
+
+    if (mae?.id != null) {
+      data['mae_id'] = mae!.id;
+    }
 
     if (dataCompra != null) {
       data['data_compra'] = dataCompra;
@@ -692,10 +697,6 @@ class AnimalEntity extends BaseEntity {
       data['observacoes'] = observacoes;
     }
 
-    if (fotosEvolucao != null && fotosEvolucao!.isNotEmpty) {
-      data['fotos_evolucao'] = fotosEvolucao;
-    }
-
     return data;
   }
 
@@ -721,7 +722,6 @@ class AnimalEntity extends BaseEntity {
         dataMorte = null,
         causaMorte = null,
         observacoes = null,
-        fotosEvolucao = null,
         // Legados
         idAnimal = '',
         situacao = '',
@@ -747,8 +747,8 @@ class AnimalEntity extends BaseEntity {
       raca: _parseRacaAnimal(json['raca']),
       propriedade: _parsePropriedadeSimples(json['propriedade']),
       loteAtual: _parseLoteSimples(json['lote_atual']),
-      pai: json['pai'] != null && json['pai'] is Map<String, dynamic> ? AnimalEntity.fromJson(json['pai']) : null,
-      mae: json['mae'] != null && json['mae'] is Map<String, dynamic> ? AnimalEntity.fromJson(json['mae']) : null,
+      pai: _parseAnimalEntity(json['pai']),
+      mae: _parseAnimalEntity(json['mae']),
       dataCompra: json['data_compra'],
       valorCompra: _parseDouble(json['valor_compra']),
       origem: json['origem'] != null && json['origem'].toString().isNotEmpty ? OrigemAnimal.fromString(json['origem']) : null,
@@ -758,7 +758,6 @@ class AnimalEntity extends BaseEntity {
       dataMorte: json['data_morte'],
       causaMorte: json['causa_morte'],
       observacoes: json['observacoes'],
-      fotosEvolucao: json['fotos_evolucao'] != null ? List<String>.from(json['fotos_evolucao']) : null,
       // Campos legados para compatibilidade
       idAnimal: json['id_animal'] ?? json['identificacao_unica'] ?? '',
       situacao: json['situacao'] ?? json['categoria'] ?? '',
@@ -804,6 +803,41 @@ class AnimalEntity extends BaseEntity {
         return null;
       }
     }
+    return null;
+  }
+
+  static AnimalEntity? _parseAnimalEntity(dynamic value) {
+    if (value == null) return null;
+
+    // Se for uma string, ignore (provavelmente StringRelatedField do Django)
+    if (value is String) return null;
+
+    // Se for um Map, tenta fazer o parse
+    if (value is Map<String, dynamic>) {
+      try {
+        // Para pai/mãe, a API retorna dados limitados, então criamos um AnimalEntity reduzido
+        return AnimalEntity(
+          id: value['id']?.toString(),
+          identificacaoUnica: value['identificacao_unica'] ?? '',
+          nomeRegistro: value['nome_registro'],
+          sexo: Sexo.fromString(value['sexo'] ?? 'F'),
+          dataNascimento: '', // Não disponível nos dados reduzidos
+          categoria: CategoriaAnimal.fromString(value['categoria'] ?? 'bezerro'),
+          status: StatusAnimal.ativo, // Padrão
+          // Campos legados necessários
+          idAnimal: value['identificacao_unica'] ?? '',
+          situacao: value['categoria'] ?? '',
+          acaoDestino: AcaoDestino.permanece,
+          lote: '',
+          loteNome: '',
+          fazendaNome: '',
+        );
+      } catch (e) {
+        print('Erro ao fazer parse de AnimalEntity (pai/mãe): $e');
+        return null;
+      }
+    }
+
     return null;
   }
 

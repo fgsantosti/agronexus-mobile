@@ -114,6 +114,66 @@ class _AnimalFormScreenState extends State<AnimalFormScreen> {
     super.dispose();
   }
 
+  /// Filtra possíveis mães baseado na propriedade, espécie e categoria selecionadas
+  List<AnimalEntity> _getPossiveisMaesFiltradas() {
+    if (_opcoesCadastro == null) return [];
+
+    List<AnimalEntity> maes = _opcoesCadastro!.possiveisMaes;
+
+    // Filtrar apenas vacas (categoria apropriada para mães)
+    maes = maes.where((animal) => animal.categoria == CategoriaAnimal.vaca).toList();
+
+    // Filtrar por propriedade se selecionada
+    if (_propriedadeSelecionada != null) {
+      maes = maes.where((animal) => animal.propriedade?.id == _propriedadeSelecionada!.id).toList();
+    }
+
+    // Filtrar por espécie se selecionada
+    if (_especieSelecionada != null) {
+      maes = maes.where((animal) => animal.especie?.id == _especieSelecionada!.id).toList();
+    }
+
+    // Garantir que a mãe atualmente selecionada sempre esteja na lista (para edição)
+    if (_maeSelecionada != null && _maeSelecionada!.id != null) {
+      final existeNaLista = maes.any((animal) => animal.id == _maeSelecionada!.id);
+      if (!existeNaLista) {
+        maes.add(_maeSelecionada!);
+      }
+    }
+
+    return maes;
+  }
+
+  /// Filtra possíveis pais baseado na propriedade, espécie e categoria selecionadas
+  List<AnimalEntity> _getPossiveisPaisFiltrados() {
+    if (_opcoesCadastro == null) return [];
+
+    List<AnimalEntity> pais = _opcoesCadastro!.posiveisPais;
+
+    // Filtrar apenas touros (categoria apropriada para pais)
+    pais = pais.where((animal) => animal.categoria == CategoriaAnimal.touro).toList();
+
+    // Filtrar por propriedade se selecionada
+    if (_propriedadeSelecionada != null) {
+      pais = pais.where((animal) => animal.propriedade?.id == _propriedadeSelecionada!.id).toList();
+    }
+
+    // Filtrar por espécie se selecionada
+    if (_especieSelecionada != null) {
+      pais = pais.where((animal) => animal.especie?.id == _especieSelecionada!.id).toList();
+    }
+
+    // Garantir que o pai atualmente selecionado sempre esteja na lista (para edição)
+    if (_paiSelecionado != null && _paiSelecionado!.id != null) {
+      final existeNaLista = pais.any((animal) => animal.id == _paiSelecionado!.id);
+      if (!existeNaLista) {
+        pais.add(_paiSelecionado!);
+      }
+    }
+
+    return pais;
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -154,6 +214,23 @@ class _AnimalFormScreenState extends State<AnimalFormScreen> {
                     orElse: () => _loteSelecionado!,
                   );
                   _loteSelecionado = loteCorreto;
+                }
+
+                // Sincronizar pai e mãe selecionados com as listas de opções
+                if (_paiSelecionado != null) {
+                  final paiCorreto = state.opcoes.posiveisPais.firstWhere(
+                    (p) => p.id == _paiSelecionado!.id,
+                    orElse: () => _paiSelecionado!,
+                  );
+                  _paiSelecionado = paiCorreto;
+                }
+
+                if (_maeSelecionada != null) {
+                  final maeCorreta = state.opcoes.possiveisMaes.firstWhere(
+                    (m) => m.id == _maeSelecionada!.id,
+                    orElse: () => _maeSelecionada!,
+                  );
+                  _maeSelecionada = maeCorreta;
                 }
               }
             });
@@ -446,6 +523,15 @@ class _AnimalFormScreenState extends State<AnimalFormScreen> {
                   _racaSelecionada = null;
                   _categoriaSelecionada = null;
                   _racasDisponiveis = [];
+
+                  // Limpar seleções de pai e mãe quando a espécie mudar
+                  // para garantir que apenas animais da mesma espécie sejam selecionáveis
+                  if (_paiSelecionado != null && _paiSelecionado!.especie?.id != value?.id) {
+                    _paiSelecionado = null;
+                  }
+                  if (_maeSelecionada != null && _maeSelecionada!.especie?.id != value?.id) {
+                    _maeSelecionada = null;
+                  }
                 });
 
                 if (value != null) {
@@ -555,6 +641,15 @@ class _AnimalFormScreenState extends State<AnimalFormScreen> {
                 setState(() {
                   _propriedadeSelecionada = value;
                   _loteSelecionado = null; // Reset lote ao mudar propriedade
+
+                  // Limpar seleções de pai e mãe quando a propriedade mudar
+                  // para garantir que apenas animais da mesma propriedade sejam selecionáveis
+                  if (_paiSelecionado != null && _paiSelecionado!.propriedade?.id != value?.id) {
+                    _paiSelecionado = null;
+                  }
+                  if (_maeSelecionada != null && _maeSelecionada!.propriedade?.id != value?.id) {
+                    _maeSelecionada = null;
+                  }
                 });
               },
             ),
@@ -594,7 +689,7 @@ class _AnimalFormScreenState extends State<AnimalFormScreen> {
                 border: OutlineInputBorder(),
                 prefixIcon: Icon(Icons.male),
               ),
-              items: _opcoesCadastro!.posiveisPais.map((animal) {
+              items: _getPossiveisPaisFiltrados().map((animal) {
                 return DropdownMenuItem(
                   value: animal,
                   child: Text('${animal.identificacaoUnica} - ${animal.nomeRegistro ?? 'Sem nome'}'),
@@ -618,7 +713,7 @@ class _AnimalFormScreenState extends State<AnimalFormScreen> {
                 border: OutlineInputBorder(),
                 prefixIcon: Icon(Icons.female),
               ),
-              items: _opcoesCadastro!.possiveisMaes.map((animal) {
+              items: _getPossiveisMaesFiltradas().map((animal) {
                 return DropdownMenuItem(
                   value: animal,
                   child: Text('${animal.identificacaoUnica} - ${animal.nomeRegistro ?? 'Sem nome'}'),
