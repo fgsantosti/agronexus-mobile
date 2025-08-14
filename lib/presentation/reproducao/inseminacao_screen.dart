@@ -262,16 +262,6 @@ class _InseminacaoScreenState extends State<InseminacaoScreen> {
                         ),
                       ),
                       const PopupMenuItem(
-                        value: 'diagnostico',
-                        child: Row(
-                          children: [
-                            Icon(Icons.medical_services, size: 20, color: Colors.purple),
-                            SizedBox(width: 8),
-                            Text('Criar Diagnóstico', style: TextStyle(color: Colors.purple)),
-                          ],
-                        ),
-                      ),
-                      const PopupMenuItem(
                         value: 'excluir',
                         child: Row(
                           children: [

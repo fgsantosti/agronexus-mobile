@@ -5,6 +5,7 @@ import 'package:agronexus/presentation/bloc/reproducao/reproducao_event.dart';
 import 'package:agronexus/presentation/bloc/reproducao/reproducao_state.dart';
 import 'package:agronexus/domain/models/reproducao_entity.dart';
 import 'package:agronexus/presentation/reproducao/cadastro_diagnostico_gestacao_screen.dart';
+import 'package:agronexus/presentation/reproducao/editar_diagnostico_gestacao_screen.dart';
 import 'package:intl/intl.dart';
 
 class DiagnosticoGestacaoScreen extends StatefulWidget {
@@ -55,6 +56,17 @@ class _DiagnosticoGestacaoScreenState extends State<DiagnosticoGestacaoScreen> {
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
                   content: Text('Diagnóstico cadastrado com sucesso!'),
+                  backgroundColor: Colors.green,
+                ),
+              );
+              // Recarregar a lista de diagnósticos
+              _loadDiagnosticos();
+            }
+            // Tratar sucesso na atualização
+            else if (state is DiagnosticoGestacaoUpdated) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Diagnóstico atualizado com sucesso!'),
                   backgroundColor: Colors.green,
                 ),
               );
@@ -378,10 +390,7 @@ class _DiagnosticoGestacaoScreenState extends State<DiagnosticoGestacaoScreen> {
                     onSelected: (value) {
                       Navigator.of(context).pop(); // Fechar o modal primeiro
                       if (value == 'editar') {
-                        // TODO: Implementar edição
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Funcionalidade de edição em desenvolvimento')),
-                        );
+                        _editarDiagnostico(diagnostico);
                       } else if (value == 'excluir') {
                         _confirmDelete(diagnostico);
                       }
@@ -461,6 +470,24 @@ class _DiagnosticoGestacaoScreenState extends State<DiagnosticoGestacaoScreen> {
         ],
       ),
     );
+  }
+
+  void _editarDiagnostico(DiagnosticoGestacaoEntity diagnostico) async {
+    final bloc = context.read<ReproducaoBloc>();
+    final resultado = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(
+        builder: (context) => BlocProvider.value(
+          value: bloc,
+          child: EditarDiagnosticoGestacaoScreen(diagnostico: diagnostico),
+        ),
+      ),
+    );
+
+    // Se retornou true, significa que foi editado com sucesso
+    if (resultado == true) {
+      _loadDiagnosticos(); // Recarregar a lista
+    }
   }
 
   void _confirmDelete(DiagnosticoGestacaoEntity diagnostico) {
