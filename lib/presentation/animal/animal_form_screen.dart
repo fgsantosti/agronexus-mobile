@@ -47,6 +47,7 @@ class _AnimalFormScreenState extends State<AnimalFormScreen> {
 
   OpcoesCadastroAnimal? _opcoesCadastro;
   List<RacaAnimal> _racasDisponiveis = [];
+  List<String> _categoriasDisponiveis = [];
 
   @override
   void initState() {
@@ -120,8 +121,28 @@ class _AnimalFormScreenState extends State<AnimalFormScreen> {
 
     List<AnimalEntity> maes = _opcoesCadastro!.possiveisMaes;
 
-    // Filtrar apenas vacas (categoria apropriada para mães)
-    maes = maes.where((animal) => animal.categoria == CategoriaAnimal.vaca).toList();
+    // Filtrar apenas fêmeas reprodutivas (categorias apropriadas para mães)
+    final categoriasMaes = [
+      CategoriaAnimal.vaca, // Bovinos
+      CategoriaAnimal.cabra, // Caprinos
+      CategoriaAnimal.ovelha, // Ovinos
+      CategoriaAnimal.egua, // Equinos
+      // Para suínos, usamos 'porco' já que não há distinção específica de categoria por sexo
+    ];
+
+    maes = maes.where((animal) {
+      // Verifica se é uma categoria reprodutiva feminina específica
+      if (categoriasMaes.contains(animal.categoria)) {
+        return true;
+      }
+
+      // Para suínos, filtra por sexo feminino e categoria 'porco'
+      if (animal.categoria == CategoriaAnimal.porco && animal.sexo == Sexo.femea) {
+        return true;
+      }
+
+      return false;
+    }).toList();
 
     // Filtrar por propriedade se selecionada
     if (_propriedadeSelecionada != null) {
@@ -150,8 +171,28 @@ class _AnimalFormScreenState extends State<AnimalFormScreen> {
 
     List<AnimalEntity> pais = _opcoesCadastro!.posiveisPais;
 
-    // Filtrar apenas touros (categoria apropriada para pais)
-    pais = pais.where((animal) => animal.categoria == CategoriaAnimal.touro).toList();
+    // Filtrar apenas machos reprodutivos (categorias apropriadas para pais)
+    final categoriasPais = [
+      CategoriaAnimal.touro, // Bovinos
+      CategoriaAnimal.bode, // Caprinos
+      CategoriaAnimal.carneiro, // Ovinos
+      CategoriaAnimal.cavalo, // Equinos
+      // Para suínos, usamos 'porco' já que não há distinção específica de categoria por sexo
+    ];
+
+    pais = pais.where((animal) {
+      // Verifica se é uma categoria reprodutiva masculina específica
+      if (categoriasPais.contains(animal.categoria)) {
+        return true;
+      }
+
+      // Para suínos, filtra por sexo masculino e categoria 'porco'
+      if (animal.categoria == CategoriaAnimal.porco && animal.sexo == Sexo.macho) {
+        return true;
+      }
+
+      return false;
+    }).toList();
 
     // Filtrar por propriedade se selecionada
     if (_propriedadeSelecionada != null) {
@@ -194,8 +235,9 @@ class _AnimalFormScreenState extends State<AnimalFormScreen> {
                   );
                   _especieSelecionada = especieCorreta;
 
-                  // Carregar raças para a espécie
+                  // Carregar raças e categorias para a espécie
                   context.read<AnimalBloc>().add(LoadRacasByEspecieEvent(_especieSelecionada!.id));
+                  context.read<AnimalBloc>().add(LoadCategoriasByEspecieEvent(_especieSelecionada!.id));
                 }
 
                 // Encontrar a propriedade correta na lista de opções
@@ -246,6 +288,10 @@ class _AnimalFormScreenState extends State<AnimalFormScreen> {
                 );
                 _racaSelecionada = racaCorreta;
               }
+            });
+          } else if (state is CategoriasLoaded) {
+            setState(() {
+              _categoriasDisponiveis = state.categorias;
             });
           } else if (state is AnimalCreated || state is AnimalUpdated) {
             // Retorna o animal criado/atualizado para a tela anterior para atualização otimista do cache
@@ -523,6 +569,7 @@ class _AnimalFormScreenState extends State<AnimalFormScreen> {
                   _racaSelecionada = null;
                   _categoriaSelecionada = null;
                   _racasDisponiveis = [];
+                  _categoriasDisponiveis = [];
 
                   // Limpar seleções de pai e mãe quando a espécie mudar
                   // para garantir que apenas animais da mesma espécie sejam selecionáveis
@@ -536,6 +583,7 @@ class _AnimalFormScreenState extends State<AnimalFormScreen> {
 
                 if (value != null) {
                   context.read<AnimalBloc>().add(LoadRacasByEspecieEvent(value.id));
+                  context.read<AnimalBloc>().add(LoadCategoriasByEspecieEvent(value.id));
                 }
               },
               validator: (value) {
@@ -581,7 +629,8 @@ class _AnimalFormScreenState extends State<AnimalFormScreen> {
               border: OutlineInputBorder(),
               prefixIcon: Icon(Icons.label),
             ),
-            items: CategoriaAnimal.values.map((categoria) {
+            items: _categoriasDisponiveis.map((categoriaString) {
+              final categoria = CategoriaAnimal.fromString(categoriaString);
               return DropdownMenuItem(
                 value: categoria,
                 child: Text(categoria.label),

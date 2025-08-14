@@ -208,11 +208,31 @@ class AnimalRemoteRepositoryImpl implements AnimalRemoteRepository {
   @override
   Future<List<String>> getCategoriasByEspecie(String especieId) async {
     try {
-      // Retorna categorias com os valores que a API espera (em minúscula)
-      // Baseado nas categorias disponíveis retornadas pela API
-      return ['bezerro', 'bezerra', 'novilho', 'novilha', 'touro', 'vaca'];
+      // Como o endpoint específico ainda não existe no backend,
+      // vamos implementar localmente baseado no mapeamento das espécies
+
+      // Primeiro, tentamos buscar a espécie para obter o nome
+      Response especieResponse = await httpService.get(
+        path: 'api/v1/especies/$especieId/',
+        isAuth: true,
+      );
+
+      String especieNome = especieResponse.data['nome'] ?? '';
+
+      // Mapeamento local das categorias por espécie
+      Map<String, List<String>> categoriasPorEspecie = {
+        'bovino': ['bezerro', 'bezerra', 'novilho', 'novilha', 'touro', 'vaca'],
+        'caprino': ['cabrito', 'cabrita', 'bode_jovem', 'cabra_jovem', 'bode', 'cabra'],
+        'ovino': ['cordeiro', 'cordeira', 'carneiro_jovem', 'ovelha_jovem', 'carneiro', 'ovelha'],
+      };
+
+      List<String> categorias = categoriasPorEspecie[especieNome] ?? [];
+
+      return categorias;
     } catch (e) {
-      throw await AgroNexusException.fromDioError(e);
+      print('❌ Erro ao carregar categorias por espécie: $e');
+      // Em caso de erro, retornar categorias bovinas como padrão
+      return ['bezerro', 'bezerra', 'novilho', 'novilha', 'touro', 'vaca'];
     }
   }
 
