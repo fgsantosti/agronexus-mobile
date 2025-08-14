@@ -93,12 +93,38 @@ enum OrigemAnimal {
 }
 
 enum CategoriaAnimal {
+  // Bovinos
   bezerro(label: 'Bezerro', value: 'bezerro'),
   bezerra(label: 'Bezerra', value: 'bezerra'),
   novilho(label: 'Novilho', value: 'novilho'),
   novilha(label: 'Novilha', value: 'novilha'),
   touro(label: 'Touro', value: 'touro'),
-  vaca(label: 'Vaca', value: 'vaca');
+  vaca(label: 'Vaca', value: 'vaca'),
+
+  // Caprinos
+  cabrito(label: 'Cabrito', value: 'cabrito'),
+  cabrita(label: 'Cabrita', value: 'cabrita'),
+  bodeJovem(label: 'Bode Jovem', value: 'bode_jovem'),
+  cabraJovem(label: 'Cabra Jovem', value: 'cabra_jovem'),
+  bode(label: 'Bode', value: 'bode'),
+  cabra(label: 'Cabra', value: 'cabra'),
+
+  // Ovinos
+  cordeiro(label: 'Cordeiro', value: 'cordeiro'),
+  cordeira(label: 'Cordeira', value: 'cordeira'),
+  carneiroJovem(label: 'Carneiro Jovem', value: 'carneiro_jovem'),
+  ovelhaJovem(label: 'Ovelha Jovem', value: 'ovelha_jovem'),
+  carneiro(label: 'Carneiro', value: 'carneiro'),
+  ovelha(label: 'Ovelha', value: 'ovelha'),
+
+  // Equinos
+  cavalo(label: 'Cavalo', value: 'cavalo'),
+  egua(label: 'Égua', value: 'egua'),
+  potro(label: 'Potro', value: 'potro'),
+
+  // Suínos
+  porco(label: 'Porco', value: 'porco'),
+  leitao(label: 'Leitão', value: 'leitao');
 
   final String label;
   final String value;
@@ -108,6 +134,7 @@ enum CategoriaAnimal {
   static CategoriaAnimal fromString(String value) {
     final lowerValue = value.toLowerCase();
     switch (lowerValue) {
+      // Bovinos
       case 'bezerro':
         return CategoriaAnimal.bezerro;
       case 'bezerra':
@@ -120,6 +147,49 @@ enum CategoriaAnimal {
         return CategoriaAnimal.touro;
       case 'vaca':
         return CategoriaAnimal.vaca;
+
+      // Caprinos
+      case 'cabrito':
+        return CategoriaAnimal.cabrito;
+      case 'cabrita':
+        return CategoriaAnimal.cabrita;
+      case 'bode_jovem':
+        return CategoriaAnimal.bodeJovem;
+      case 'cabra_jovem':
+        return CategoriaAnimal.cabraJovem;
+      case 'bode':
+        return CategoriaAnimal.bode;
+      case 'cabra':
+        return CategoriaAnimal.cabra;
+
+      // Ovinos
+      case 'cordeiro':
+        return CategoriaAnimal.cordeiro;
+      case 'cordeira':
+        return CategoriaAnimal.cordeira;
+      case 'carneiro_jovem':
+        return CategoriaAnimal.carneiroJovem;
+      case 'ovelha_jovem':
+        return CategoriaAnimal.ovelhaJovem;
+      case 'carneiro':
+        return CategoriaAnimal.carneiro;
+      case 'ovelha':
+        return CategoriaAnimal.ovelha;
+
+      // Equinos
+      case 'cavalo':
+        return CategoriaAnimal.cavalo;
+      case 'egua':
+        return CategoriaAnimal.egua;
+      case 'potro':
+        return CategoriaAnimal.potro;
+
+      // Suínos
+      case 'porco':
+        return CategoriaAnimal.porco;
+      case 'leitao':
+        return CategoriaAnimal.leitao;
+
       default:
         print('Warning: Unknown CategoriaAnimal value: $value, defaulting to bezerro');
         return CategoriaAnimal.bezerro; // Valor padrão ao invés de erro
