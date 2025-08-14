@@ -5,15 +5,13 @@ import 'package:agronexus/presentation/bloc/reproducao/reproducao_event.dart';
 import 'package:agronexus/presentation/bloc/reproducao/reproducao_state.dart';
 import 'package:agronexus/domain/models/reproducao_entity.dart';
 import 'package:agronexus/domain/models/animal_entity.dart';
+import 'package:agronexus/presentation/widgets/standard_app_bar.dart';
 import 'package:intl/intl.dart';
 
 class EditarPartoScreen extends StatefulWidget {
   final PartoEntity parto;
 
-  const EditarPartoScreen({
-    super.key,
-    required this.parto,
-  });
+  const EditarPartoScreen({super.key, required this.parto});
 
   @override
   State<EditarPartoScreen> createState() => _EditarPartoScreenState();
@@ -23,21 +21,17 @@ class _EditarPartoScreenState extends State<EditarPartoScreen> {
   final _formKey = GlobalKey<FormState>();
   final DateFormat _dateFormat = DateFormat('dd/MM/yyyy');
 
-  // Controllers
+  // Controladores
   final _dataPartoController = TextEditingController();
   final _pesoNascimentoController = TextEditingController();
   final _observacoesController = TextEditingController();
 
-  // Campos selecionados
+  // Variáveis de estado
+  DateTime _dataSelecionada = DateTime.now();
   AnimalEntity? _maeSelecionada;
   AnimalEntity? _bezerroSelecionado;
   ResultadoParto? _resultadoSelecionado;
   DificuldadeParto? _dificuldadeSelecionada;
-
-  // Opções disponíveis (serão carregadas da API)
-  List<AnimalEntity> _animaisDisponiveis = [];
-
-  DateTime _dataSelecionada = DateTime.now();
   bool _isLoading = false;
 
   @override
@@ -68,11 +62,7 @@ class _EditarPartoScreenState extends State<EditarPartoScreen> {
   }
 
   void _carregarOpcoes() {
-    // TODO: Implementar carregamento de opções da API
-    // Por enquanto, vamos usar listas com os dados atuais
-    setState(() {
-      _animaisDisponiveis = widget.parto.bezerro != null ? [widget.parto.bezerro!] : [];
-    });
+    // TODO: Implementar carregamento de opções da API se necessário
   }
 
   @override
@@ -140,18 +130,13 @@ class _EditarPartoScreenState extends State<EditarPartoScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Editar Parto'),
-        actions: [
-          TextButton(
-            onPressed: _isLoading ? null : _atualizarParto,
-            child: _isLoading ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)) : const Text('Salvar', style: TextStyle(color: Colors.white)),
-          ),
-        ],
+      appBar: buildStandardAppBar(
+        title: 'Editar Parto',
       ),
       body: BlocListener<ReproducaoBloc, ReproducaoState>(
         listener: (context, state) {
           if (state is PartoUpdated) {
+            setState(() => _isLoading = false);
             Navigator.pop(context, true);
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(content: Text('Parto atualizado com sucesso!')),
@@ -160,206 +145,403 @@ class _EditarPartoScreenState extends State<EditarPartoScreen> {
 
           if (state is ReproducaoError) {
             setState(() => _isLoading = false);
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text(state.message)),
-            );
+            _mostrarSnackbar(state.message);
           }
         },
-        child: Form(
-          key: _formKey,
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Informações da mãe (não editável)
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.grey.shade100,
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: Colors.grey.shade300),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(Icons.pets, color: Colors.grey.shade600),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              'Mãe',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: Colors.grey,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                            Text(
-                              'Animal ${widget.parto.mae.idAnimal}',
-                              style: const TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-
-                const SizedBox(height: 16),
-
-                // Data do parto
-                TextFormField(
-                  controller: _dataPartoController,
-                  decoration: const InputDecoration(
-                    labelText: 'Data do Parto *',
-                    border: OutlineInputBorder(),
-                    suffixIcon: Icon(Icons.calendar_today),
-                  ),
-                  readOnly: true,
-                  onTap: _selecionarData,
-                  validator: (value) => value?.isEmpty == true ? 'Selecione a data' : null,
-                ),
-
-                const SizedBox(height: 16),
-
-                // Resultado do parto
-                DropdownButtonFormField<ResultadoParto>(
-                  decoration: const InputDecoration(
-                    labelText: 'Resultado do Parto *',
-                    border: OutlineInputBorder(),
-                  ),
-                  value: _resultadoSelecionado,
-                  items: ResultadoParto.values
-                      .map((resultado) => DropdownMenuItem(
-                            value: resultado,
-                            child: Text(resultado.label),
-                          ))
-                      .toList(),
-                  onChanged: (resultado) => setState(() => _resultadoSelecionado = resultado),
-                  validator: (value) => value == null ? 'Selecione o resultado' : null,
-                ),
-
-                const SizedBox(height: 16),
-
-                // Dificuldade do parto
-                DropdownButtonFormField<DificuldadeParto>(
-                  decoration: const InputDecoration(
-                    labelText: 'Dificuldade do Parto *',
-                    border: OutlineInputBorder(),
-                  ),
-                  value: _dificuldadeSelecionada,
-                  items: DificuldadeParto.values
-                      .map((dificuldade) => DropdownMenuItem(
-                            value: dificuldade,
-                            child: Text(dificuldade.label),
-                          ))
-                      .toList(),
-                  onChanged: (dificuldade) => setState(() => _dificuldadeSelecionada = dificuldade),
-                  validator: (value) => value == null ? 'Selecione a dificuldade' : null,
-                ),
-
-                const SizedBox(height: 16),
-
-                // Seleção do bezerro (opcional)
-                if (_resultadoSelecionado == ResultadoParto.nascidoVivo) ...[
-                  DropdownButtonFormField<AnimalEntity>(
-                    decoration: const InputDecoration(
-                      labelText: 'Cria',
-                      border: OutlineInputBorder(),
-                    ),
-                    value: _bezerroSelecionado,
-                    items: _animaisDisponiveis
-                        .map((animal) => DropdownMenuItem(
-                              value: animal,
-                              child: Text('Animal ${animal.idAnimal}'),
-                            ))
-                        .toList(),
-                    onChanged: (animal) => setState(() => _bezerroSelecionado = animal),
-                  ),
-
-                  const SizedBox(height: 16),
-
-                  // Peso ao nascimento
-                  TextFormField(
-                    controller: _pesoNascimentoController,
-                    decoration: const InputDecoration(
-                      labelText: 'Peso ao Nascimento (kg)',
-                      border: OutlineInputBorder(),
-                      suffixText: 'kg',
-                    ),
-                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                    validator: (value) {
-                      if (value != null && value.isNotEmpty) {
-                        final peso = double.tryParse(value.replaceAll(',', '.'));
-                        if (peso == null || peso <= 0) {
-                          return 'Digite um peso válido';
-                        }
-                      }
-                      return null;
-                    },
-                  ),
-
-                  const SizedBox(height: 16),
+        child: SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Form(
+              key: _formKey,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildMaeSection(),
+                  const SizedBox(height: 20),
+                  _buildDataPartoField(),
+                  const SizedBox(height: 20),
+                  _buildResultadoField(),
+                  const SizedBox(height: 20),
+                  _buildDificuldadeField(),
+                  const SizedBox(height: 20),
+                  _buildBezerroSection(),
+                  const SizedBox(height: 20),
+                  _buildPesoNascimentoField(),
+                  const SizedBox(height: 20),
+                  _buildObservacoesField(),
+                  const SizedBox(height: 24),
+                  _buildBotaoAtualizar(),
+                  const SizedBox(height: 32),
                 ],
-
-                // Observações
-                TextFormField(
-                  controller: _observacoesController,
-                  decoration: const InputDecoration(
-                    labelText: 'Observações',
-                    border: OutlineInputBorder(),
-                  ),
-                  maxLines: 3,
-                ),
-
-                const SizedBox(height: 32),
-
-                // Informações adicionais
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.orange.shade50,
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: Colors.orange.shade200),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Icon(Icons.edit_note, color: Colors.orange.shade600, size: 20),
-                          const SizedBox(width: 8),
-                          Text(
-                            'Editando Registro',
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              color: Colors.orange.shade700,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        '• A mãe não pode ser alterada após o cadastro\n'
-                        '• Você pode alterar todos os outros dados conforme necessário\n'
-                        '• Para nascidos vivos, vincule a cria se disponível',
-                        style: TextStyle(
-                          color: Colors.orange.shade600,
-                          fontSize: 13,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
+              ),
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildMaeSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Mãe *',
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+            color: Colors.black87,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            border: Border.all(color: Colors.grey.shade300),
+            borderRadius: BorderRadius.circular(8),
+            color: Colors.grey.shade50,
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: Colors.green.shade100,
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Icon(
+                  Icons.pets,
+                  color: Colors.green.shade600,
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Animal Selecionado',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey.shade600,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      _maeSelecionada?.identificacaoUnica ?? 'Animal ${widget.parto.mae.idAnimal}',
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.black87,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDataPartoField() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Data do Parto *',
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+            color: Colors.black87,
+          ),
+        ),
+        const SizedBox(height: 8),
+        TextFormField(
+          controller: _dataPartoController,
+          decoration: InputDecoration(
+            hintText: 'Selecione a data do parto',
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
+            suffixIcon: const Icon(Icons.calendar_today),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+          ),
+          readOnly: true,
+          onTap: _selecionarData,
+          validator: (value) => value?.isEmpty == true ? 'Selecione a data' : null,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildResultadoField() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Resultado do Parto *',
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+            color: Colors.black87,
+          ),
+        ),
+        const SizedBox(height: 8),
+        DropdownButtonFormField<ResultadoParto>(
+          decoration: InputDecoration(
+            hintText: 'Selecione o resultado do parto',
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+          ),
+          value: _resultadoSelecionado,
+          items: ResultadoParto.values
+              .map((resultado) => DropdownMenuItem(
+                    value: resultado,
+                    child: Text(resultado.label),
+                  ))
+              .toList(),
+          onChanged: (resultado) => setState(() => _resultadoSelecionado = resultado),
+          validator: (value) => value == null ? 'Selecione o resultado' : null,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDificuldadeField() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Dificuldade do Parto *',
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+            color: Colors.black87,
+          ),
+        ),
+        const SizedBox(height: 8),
+        DropdownButtonFormField<DificuldadeParto>(
+          decoration: InputDecoration(
+            hintText: 'Selecione a dificuldade do parto',
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+          ),
+          value: _dificuldadeSelecionada,
+          items: DificuldadeParto.values
+              .map((dificuldade) => DropdownMenuItem(
+                    value: dificuldade,
+                    child: Text(dificuldade.label),
+                  ))
+              .toList(),
+          onChanged: (dificuldade) => setState(() => _dificuldadeSelecionada = dificuldade),
+          validator: (value) => value == null ? 'Selecione a dificuldade' : null,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildBezerroSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Bezerro',
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+            color: Colors.black87,
+          ),
+        ),
+        const SizedBox(height: 8),
+        if (_bezerroSelecionado != null)
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              border: Border.all(color: Colors.grey.shade300),
+              borderRadius: BorderRadius.circular(8),
+              color: Colors.grey.shade50,
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: Colors.orange.shade100,
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Icon(
+                    Icons.child_care,
+                    color: Colors.orange.shade600,
+                    size: 20,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Bezerro Selecionado',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey.shade600,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        _bezerroSelecionado?.identificacaoUnica ?? 'Animal ${_bezerroSelecionado?.idAnimal}',
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.black87,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                IconButton(
+                  onPressed: () => setState(() => _bezerroSelecionado = null),
+                  icon: const Icon(Icons.clear, color: Colors.red),
+                ),
+              ],
+            ),
+          )
+        else
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              border: Border.all(color: Colors.grey.shade300),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: const Text(
+              'Nenhum bezerro selecionado',
+              style: TextStyle(
+                color: Colors.grey,
+                fontSize: 16,
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildPesoNascimentoField() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Peso ao Nascimento (kg)',
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+            color: Colors.black87,
+          ),
+        ),
+        const SizedBox(height: 8),
+        TextFormField(
+          controller: _pesoNascimentoController,
+          decoration: InputDecoration(
+            hintText: 'Ex: 35.5',
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
+            suffixIcon: const Icon(Icons.monitor_weight),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+          ),
+          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          validator: (value) {
+            if (value != null && value.isNotEmpty) {
+              final peso = double.tryParse(value.replaceAll(',', '.'));
+              if (peso == null || peso <= 0) {
+                return 'Digite um peso válido';
+              }
+              if (peso > 100) {
+                return 'Peso muito alto para um bezerro';
+              }
+            }
+            return null;
+          },
+        ),
+      ],
+    );
+  }
+
+  Widget _buildObservacoesField() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Observações',
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+            color: Colors.black87,
+          ),
+        ),
+        const SizedBox(height: 8),
+        TextFormField(
+          controller: _observacoesController,
+          decoration: InputDecoration(
+            hintText: 'Informações adicionais sobre o parto...',
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+          ),
+          maxLines: 3,
+          maxLength: 500,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildBotaoAtualizar() {
+    return SizedBox(
+      width: double.infinity,
+      child: ElevatedButton(
+        onPressed: _isLoading ? null : _atualizarParto,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Theme.of(context).primaryColor,
+          foregroundColor: Colors.white,
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(8),
+          ),
+        ),
+        child: _isLoading
+            ? const Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  SizedBox(
+                    height: 20,
+                    width: 20,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                    ),
+                  ),
+                  SizedBox(width: 8),
+                  Text('Atualizando...'),
+                ],
+              )
+            : const Text(
+                'Atualizar Parto',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              ),
       ),
     );
   }

@@ -130,24 +130,6 @@ class _CadastroPartoScreenState extends State<CadastroPartoScreen> {
     return Scaffold(
       appBar: buildStandardAppBar(
         title: 'Cadastrar Parto',
-        actions: [
-          TextButton(
-            onPressed: _isLoading ? null : _salvarParto,
-            child: _isLoading
-                ? const SizedBox(
-                    width: 16,
-                    height: 16,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: Colors.white,
-                    ),
-                  )
-                : const Text(
-                    'Salvar',
-                    style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-                  ),
-          ),
-        ],
       ),
       body: MultiBlocListener(
         listeners: [
@@ -299,10 +281,13 @@ class _CadastroPartoScreenState extends State<CadastroPartoScreen> {
             // Data do parto
             TextFormField(
               controller: _dataPartoController,
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
                 labelText: 'Data do Parto *',
-                border: OutlineInputBorder(),
-                suffixIcon: Icon(Icons.calendar_today),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                suffixIcon: const Icon(Icons.calendar_today),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
               ),
               readOnly: true,
               onTap: _selecionarData,
@@ -313,9 +298,12 @@ class _CadastroPartoScreenState extends State<CadastroPartoScreen> {
 
             // Resultado do parto
             DropdownButtonFormField<ResultadoParto>(
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
                 labelText: 'Resultado do Parto *',
-                border: OutlineInputBorder(),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
               ),
               value: _resultadoSelecionado,
               items: ResultadoParto.values
@@ -332,9 +320,12 @@ class _CadastroPartoScreenState extends State<CadastroPartoScreen> {
 
             // Dificuldade do parto
             DropdownButtonFormField<DificuldadeParto>(
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
                 labelText: 'Dificuldade do Parto *',
-                border: OutlineInputBorder(),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
               ),
               value: _dificuldadeSelecionada,
               items: DificuldadeParto.values
@@ -402,11 +393,14 @@ class _CadastroPartoScreenState extends State<CadastroPartoScreen> {
               // Peso ao nascimento
               TextFormField(
                 controller: _pesoNascimentoController,
-                decoration: const InputDecoration(
+                decoration: InputDecoration(
                   labelText: 'Peso ao Nascimento (kg)',
-                  border: OutlineInputBorder(),
-                  suffixText: 'kg',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  suffixIcon: const Icon(Icons.monitor_weight),
                   helperText: 'Opcional, mas recomendado para controle',
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
                 ),
                 keyboardType: const TextInputType.numberWithOptions(decimal: true),
                 validator: (value) {
@@ -414,6 +408,9 @@ class _CadastroPartoScreenState extends State<CadastroPartoScreen> {
                     final peso = double.tryParse(value.replaceAll(',', '.'));
                     if (peso == null || peso <= 0) {
                       return 'Digite um peso válido';
+                    }
+                    if (peso > 100) {
+                      return 'Peso muito alto para um bezerro';
                     }
                   }
                   return null;
@@ -426,11 +423,16 @@ class _CadastroPartoScreenState extends State<CadastroPartoScreen> {
             // Observações
             TextFormField(
               controller: _observacoesController,
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
                 labelText: 'Observações',
-                border: OutlineInputBorder(),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                hintText: 'Informações adicionais sobre o parto...',
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
               ),
               maxLines: 3,
+              maxLength: 500,
             ),
 
             const SizedBox(height: 32),
@@ -472,6 +474,10 @@ class _CadastroPartoScreenState extends State<CadastroPartoScreen> {
                 ],
               ),
             ),
+
+            const SizedBox(height: 24),
+            _buildBotaoSalvar(),
+            const SizedBox(height: 32),
           ],
         ),
       ),
@@ -797,5 +803,42 @@ class _CadastroPartoScreenState extends State<CadastroPartoScreen> {
     ];
 
     return categoriasIniciais.contains(categoria);
+  }
+
+  Widget _buildBotaoSalvar() {
+    return SizedBox(
+      width: double.infinity,
+      child: ElevatedButton(
+        onPressed: _isLoading ? null : _salvarParto,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Theme.of(context).primaryColor,
+          foregroundColor: Colors.white,
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(8),
+          ),
+        ),
+        child: _isLoading
+            ? const Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  SizedBox(
+                    height: 20,
+                    width: 20,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                    ),
+                  ),
+                  SizedBox(width: 8),
+                  Text('Salvando...'),
+                ],
+              )
+            : const Text(
+                'Salvar Parto',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              ),
+      ),
+    );
   }
 }
