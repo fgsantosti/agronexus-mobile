@@ -127,25 +127,25 @@ class AnimalRemoteRepositoryImpl implements AnimalRemoteRepository {
 
       // Faz chamadas separadas para cada endpoint
       final especiesResponse = await httpService.get(
-        path: 'api/v1/especies/',
+        path: API.especies,
         isAuth: true,
       );
       print('✅ Espécies carregadas: ${especiesResponse.data is List ? especiesResponse.data.length : especiesResponse.data['results']?.length ?? 0}');
 
       final racasResponse = await httpService.get(
-        path: 'api/v1/racas/',
+        path: API.racas,
         isAuth: true,
       );
       print('✅ Raças carregadas: ${racasResponse.data is List ? racasResponse.data.length : racasResponse.data['results']?.length ?? 0}');
 
       final propriedadesResponse = await httpService.get(
-        path: 'api/v1/propriedades/',
+        path: API.propriedades,
         isAuth: true,
       );
       print('✅ Propriedades carregadas: ${propriedadesResponse.data is List ? propriedadesResponse.data.length : propriedadesResponse.data['results']?.length ?? 0}');
 
       final lotesResponse = await httpService.get(
-        path: 'api/v1/lotes/',
+        path: API.lotes,
         isAuth: true,
       );
       print('✅ Lotes carregados: ${lotesResponse.data is List ? lotesResponse.data.length : lotesResponse.data['results']?.length ?? 0}');
@@ -193,7 +193,7 @@ class AnimalRemoteRepositoryImpl implements AnimalRemoteRepository {
   Future<List<RacaAnimal>> getRacasByEspecie(String especieId) async {
     try {
       Response response = await httpService.get(
-        path: 'api/v1/racas/',
+        path: API.racas,
         queryParameters: {'especie': especieId},
         isAuth: true,
       );
@@ -213,7 +213,7 @@ class AnimalRemoteRepositoryImpl implements AnimalRemoteRepository {
 
       // Primeiro, tentamos buscar a espécie para obter o nome
       Response especieResponse = await httpService.get(
-        path: 'api/v1/especies/$especieId/',
+        path: API.especieById(especieId),
         isAuth: true,
       );
 

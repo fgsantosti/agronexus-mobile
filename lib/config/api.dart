@@ -13,6 +13,12 @@ class API {
   static const String animais = 'api/v1/animais/';
   static String animalById(String id) => 'api/v1/animais/$id/';
 
+  // Espécies e Raças
+  static const String especies = 'api/v1/especies/';
+  static String especieById(String id) => 'api/v1/especies/$id/';
+  static const String racas = 'api/v1/racas/';
+  static String racaById(String id) => 'api/v1/racas/$id/';
+
   // Dashboard não existe no servidor - comentado temporariamente
   // static const String dashboard = 'api/v1/dashboard/';
 
@@ -54,6 +60,11 @@ class API {
   static const String protocolosIATF = 'api/v1/protocolos-iatf/';
   static String protocoloIATFById(String id) => 'api/v1/protocolos-iatf/$id/';
   static const String inseminacoesOpcoes = 'api/v1/inseminacoes/opcoes_cadastro/';
+
+  // Relatórios
+  static const String relatoriosPrenhez = 'api/v1/relatorios/prenhez/';
+  static const String estatisticasReproducao = 'api/v1/inseminacoes/estatisticas_reproducao/';
+  static const String relatoriosEstatisticasReproducao = 'api/v1/relatorios/estatisticas-reproducao/';
 
   // ÁREAS
   static const String areas = 'api/v1/areas/';

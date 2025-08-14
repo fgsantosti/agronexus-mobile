@@ -130,7 +130,7 @@ class ReproducaoRepositoryImpl implements ReproducaoRepository {
       if (dataFim != null) queryParameters['data_fim'] = dataFim.toIso8601String().split('T')[0];
 
       Response response = await httpService.get(
-        path: '/api/v1/diagnosticos-gestacao/',
+        path: API.diagnosticosGestacao,
         queryParameters: queryParameters,
         isAuth: true,
       );
@@ -146,7 +146,7 @@ class ReproducaoRepositoryImpl implements ReproducaoRepository {
   Future<DiagnosticoGestacaoEntity> getDiagnosticoGestacao(String id) async {
     try {
       Response response = await httpService.get(
-        path: '/api/v1/diagnosticos-gestacao/$id/',
+        path: API.diagnosticoGestacaoById(id),
         isAuth: true,
       );
       return DiagnosticoGestacaoEntity.fromJson(response.data);
@@ -159,7 +159,7 @@ class ReproducaoRepositoryImpl implements ReproducaoRepository {
   Future<DiagnosticoGestacaoEntity> createDiagnosticoGestacao(DiagnosticoGestacaoEntity diagnostico) async {
     try {
       Response response = await httpService.post(
-        path: '/api/v1/diagnosticos-gestacao/',
+        path: API.diagnosticosGestacao,
         data: diagnostico.toJson(),
         isAuth: true,
       );
@@ -173,7 +173,7 @@ class ReproducaoRepositoryImpl implements ReproducaoRepository {
   Future<DiagnosticoGestacaoEntity> updateDiagnosticoGestacao(String id, DiagnosticoGestacaoEntity diagnostico) async {
     try {
       Response response = await httpService.put(
-        path: '/api/v1/diagnosticos-gestacao/$id/',
+        path: API.diagnosticoGestacaoById(id),
         data: diagnostico.toJson(),
         isAuth: true,
       );
@@ -187,7 +187,7 @@ class ReproducaoRepositoryImpl implements ReproducaoRepository {
   Future<void> deleteDiagnosticoGestacao(String id) async {
     try {
       await httpService.delete(
-        path: '/api/v1/diagnosticos-gestacao/$id/',
+        path: API.diagnosticoGestacaoById(id),
         isAuth: true,
       );
     } catch (e) {
@@ -209,7 +209,7 @@ class ReproducaoRepositoryImpl implements ReproducaoRepository {
       if (dataFim != null) queryParameters['data_fim'] = dataFim.toIso8601String().split('T')[0];
 
       Response response = await httpService.get(
-        path: '/api/v1/partos/',
+        path: API.partos,
         queryParameters: queryParameters,
         isAuth: true,
       );
@@ -225,7 +225,7 @@ class ReproducaoRepositoryImpl implements ReproducaoRepository {
   Future<PartoEntity> getParto(String id) async {
     try {
       Response response = await httpService.get(
-        path: '/api/v1/partos/$id/',
+        path: API.partoById(id),
         isAuth: true,
       );
       return PartoEntity.fromJson(response.data);
@@ -238,7 +238,7 @@ class ReproducaoRepositoryImpl implements ReproducaoRepository {
   Future<PartoEntity> createParto(PartoEntity parto) async {
     try {
       Response response = await httpService.post(
-        path: '/api/v1/partos/',
+        path: API.partos,
         data: parto.toJson(),
         isAuth: true,
       );
@@ -252,7 +252,7 @@ class ReproducaoRepositoryImpl implements ReproducaoRepository {
   Future<PartoEntity> updateParto(String id, PartoEntity parto) async {
     try {
       Response response = await httpService.put(
-        path: '/api/v1/partos/$id/',
+        path: API.partoById(id),
         data: parto.toJson(),
         isAuth: true,
       );
@@ -266,7 +266,7 @@ class ReproducaoRepositoryImpl implements ReproducaoRepository {
   Future<void> deleteParto(String id) async {
     try {
       await httpService.delete(
-        path: '/api/v1/partos/$id/',
+        path: API.partoById(id),
         isAuth: true,
       );
     } catch (e) {
@@ -282,7 +282,7 @@ class ReproducaoRepositoryImpl implements ReproducaoRepository {
       if (ativa != null) queryParameters['ativa'] = ativa;
 
       Response response = await httpService.get(
-        path: '/api/v1/estacoes-monta/',
+        path: API.estacoesMonta,
         queryParameters: queryParameters,
         isAuth: true,
       );
@@ -298,7 +298,7 @@ class ReproducaoRepositoryImpl implements ReproducaoRepository {
   Future<EstacaoMontaEntity> getEstacaoMonta(String id) async {
     try {
       Response response = await httpService.get(
-        path: '/api/v1/estacoes-monta/$id/',
+        path: API.estacaoMontaById(id),
         isAuth: true,
       );
       return EstacaoMontaEntity.fromJson(response.data);
@@ -311,7 +311,7 @@ class ReproducaoRepositoryImpl implements ReproducaoRepository {
   Future<EstacaoMontaEntity> createEstacaoMonta(EstacaoMontaEntity estacao) async {
     try {
       Response response = await httpService.post(
-        path: '/api/v1/estacoes-monta/',
+        path: API.estacoesMonta,
         data: estacao.toJson(),
         isAuth: true,
       );
@@ -325,7 +325,7 @@ class ReproducaoRepositoryImpl implements ReproducaoRepository {
   Future<EstacaoMontaEntity> updateEstacaoMonta(String id, EstacaoMontaEntity estacao) async {
     try {
       Response response = await httpService.put(
-        path: '/api/v1/estacoes-monta/$id/',
+        path: API.estacaoMontaById(id),
         data: estacao.toJson(),
         isAuth: true,
       );
@@ -339,7 +339,7 @@ class ReproducaoRepositoryImpl implements ReproducaoRepository {
   Future<void> deleteEstacaoMonta(String id) async {
     try {
       await httpService.delete(
-        path: '/api/v1/estacoes-monta/$id/',
+        path: API.estacaoMontaById(id),
         isAuth: true,
       );
     } catch (e) {
@@ -355,7 +355,7 @@ class ReproducaoRepositoryImpl implements ReproducaoRepository {
       if (ativo != null) queryParameters['ativo'] = ativo;
 
       Response response = await httpService.get(
-        path: '/api/v1/protocolos-iatf/',
+        path: API.protocolosIATF,
         queryParameters: queryParameters,
         isAuth: true,
       );
@@ -371,7 +371,7 @@ class ReproducaoRepositoryImpl implements ReproducaoRepository {
   Future<ProtocoloIATFEntity> getProtocoloIATF(String id) async {
     try {
       Response response = await httpService.get(
-        path: '/api/v1/protocolos-iatf/$id/',
+        path: API.protocoloIATFById(id),
         isAuth: true,
       );
       return ProtocoloIATFEntity.fromJson(response.data);
@@ -384,7 +384,7 @@ class ReproducaoRepositoryImpl implements ReproducaoRepository {
   Future<ProtocoloIATFEntity> createProtocoloIATF(ProtocoloIATFEntity protocolo) async {
     try {
       Response response = await httpService.post(
-        path: '/api/v1/protocolos-iatf/',
+        path: API.protocolosIATF,
         data: protocolo.toJson(),
         isAuth: true,
       );
@@ -398,7 +398,7 @@ class ReproducaoRepositoryImpl implements ReproducaoRepository {
   Future<ProtocoloIATFEntity> updateProtocoloIATF(String id, ProtocoloIATFEntity protocolo) async {
     try {
       Response response = await httpService.put(
-        path: '/api/v1/protocolos-iatf/$id/',
+        path: API.protocoloIATFById(id),
         data: protocolo.toJson(),
         isAuth: true,
       );
@@ -412,7 +412,7 @@ class ReproducaoRepositoryImpl implements ReproducaoRepository {
   Future<void> deleteProtocoloIATF(String id) async {
     try {
       await httpService.delete(
-        path: '/api/v1/protocolos-iatf/$id/',
+        path: API.protocoloIATFById(id),
         isAuth: true,
       );
     } catch (e) {
@@ -434,7 +434,7 @@ class ReproducaoRepositoryImpl implements ReproducaoRepository {
       if (dataFim != null) queryParameters['data_fim'] = dataFim.toIso8601String().split('T')[0];
 
       Response response = await httpService.get(
-        path: '/api/v1/relatorios/prenhez/',
+        path: API.relatoriosPrenhez,
         queryParameters: queryParameters,
         isAuth: true,
       );
@@ -456,7 +456,7 @@ class ReproducaoRepositoryImpl implements ReproducaoRepository {
       if (dataFim != null) queryParameters['data_fim'] = dataFim.toIso8601String().split('T')[0];
 
       Response response = await httpService.get(
-        path: '/api/v1/relatorios/estatisticas-reproducao/',
+        path: API.relatoriosEstatisticasReproducao,
         queryParameters: queryParameters,
         isAuth: true,
       );
@@ -471,7 +471,7 @@ class ReproducaoRepositoryImpl implements ReproducaoRepository {
   Future<Map<String, dynamic>> getResumoReproducao() async {
     try {
       Response response = await httpService.get(
-        path: '/api/v1/inseminacoes/estatisticas_reproducao/',
+        path: API.estatisticasReproducao,
         isAuth: true,
       );
 
