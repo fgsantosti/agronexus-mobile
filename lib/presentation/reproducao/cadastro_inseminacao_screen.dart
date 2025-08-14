@@ -7,6 +7,7 @@ import 'package:agronexus/presentation/bloc/reproducao/reproducao_state.dart';
 import 'package:agronexus/domain/models/reproducao_entity.dart';
 import 'package:agronexus/domain/models/animal_entity.dart';
 import 'package:agronexus/presentation/widgets/animal_search_field.dart';
+import 'package:agronexus/presentation/widgets/standard_app_bar.dart';
 import 'package:intl/intl.dart';
 
 class CadastroInseminacaoScreen extends StatefulWidget {
@@ -109,17 +110,8 @@ class _CadastroInseminacaoScreenState extends State<CadastroInseminacaoScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Nova Inseminação'),
-        backgroundColor: Theme.of(context).primaryColor,
-        foregroundColor: Colors.white,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () {
-            // Não interferir no estado principal ao voltar
-            Navigator.of(context).pop();
-          },
-        ),
+      appBar: buildStandardAppBar(
+        title: 'Nova Inseminação',
       ),
       body: BlocListener<ReproducaoBloc, ReproducaoState>(
         listener: (context, state) {

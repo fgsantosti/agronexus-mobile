@@ -5,6 +5,7 @@ import 'package:agronexus/presentation/bloc/reproducao/reproducao_event.dart';
 import 'package:agronexus/presentation/bloc/reproducao/reproducao_state.dart';
 import 'package:agronexus/domain/models/reproducao_entity.dart';
 import 'package:agronexus/presentation/widgets/inseminacao_search_field.dart';
+import 'package:agronexus/presentation/widgets/standard_app_bar.dart';
 import 'package:intl/intl.dart';
 
 class CadastroDiagnosticoGestacaoScreen extends StatefulWidget {
@@ -159,16 +160,8 @@ class _CadastroDiagnosticoGestacaoScreenState extends State<CadastroDiagnosticoG
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Novo Diagnóstico'),
-        backgroundColor: Theme.of(context).primaryColor,
-        foregroundColor: Colors.white,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () {
-            Navigator.of(context).pop();
-          },
-        ),
+      appBar: buildStandardAppBar(
+        title: 'Novo Diagnóstico',
       ),
       body: BlocListener<ReproducaoBloc, ReproducaoState>(
         listener: (context, state) {
