@@ -19,6 +19,7 @@ class AnimalBloc extends Bloc<AnimalEvent, AnimalState> {
     on<LoadOpcoesCadastroEvent>(_onLoadOpcoesCadastro);
     on<LoadRacasByEspecieEvent>(_onLoadRacasByEspecie);
     on<LoadCategoriasByEspecieEvent>(_onLoadCategoriasByEspecie);
+    on<LoadFilhosDaMaeEvent>(_onLoadFilhosDaMae);
     on<NextPageAnimaisEvent>(_onNextPageAnimais);
   }
 
@@ -219,6 +220,26 @@ class AnimalBloc extends Bloc<AnimalEvent, AnimalState> {
         errorMessage = e.message;
       } else {
         errorMessage = 'Erro ao carregar categorias: ${e.toString()}';
+      }
+      emit(AnimalError(errorMessage));
+    }
+  }
+
+  Future<void> _onLoadFilhosDaMae(
+    LoadFilhosDaMaeEvent event,
+    Emitter<AnimalState> emit,
+  ) async {
+    try {
+      emit(AnimalLoading());
+      final filhos = await _animalService.getFilhosDaMae(event.maeId, status: event.status);
+
+      emit(FilhosDaMaeLoaded(filhos: filhos, maeId: event.maeId));
+    } catch (e) {
+      String errorMessage;
+      if (e is AgroNexusException) {
+        errorMessage = e.message;
+      } else {
+        errorMessage = 'Erro ao carregar filhos: ${e.toString()}';
       }
       emit(AnimalError(errorMessage));
     }

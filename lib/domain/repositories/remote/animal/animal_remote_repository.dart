@@ -38,4 +38,7 @@ abstract class AnimalRemoteRepository {
     String? especieId,
     String? status = 'ativo',
   });
+
+  /// Busca animais filhos de uma mãe específica
+  Future<List<AnimalEntity>> getFilhosDaMae(String maeId, {String? status = 'ativo'});
 }

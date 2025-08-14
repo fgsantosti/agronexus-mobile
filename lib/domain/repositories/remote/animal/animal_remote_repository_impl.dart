@@ -301,4 +301,25 @@ class AnimalRemoteRepositoryImpl implements AnimalRemoteRepository {
       throw await AgroNexusException.fromDioError(e);
     }
   }
+
+  @override
+  Future<List<AnimalEntity>> getFilhosDaMae(String maeId, {String? status = 'ativo'}) async {
+    try {
+      Map<String, dynamic> queryParameters = {
+        'mae': maeId,
+        'status': status,
+      };
+
+      Response response = await httpService.get(
+        path: API.animais,
+        queryParameters: queryParameters,
+        isAuth: true,
+      );
+
+      List<dynamic> data = response.data is List ? response.data : (response.data['results'] ?? []);
+      return data.map((json) => AnimalEntity.fromJson(json)).toList();
+    } catch (e) {
+      throw await AgroNexusException.fromDioError(e);
+    }
+  }
 }
