@@ -13,7 +13,8 @@ enum StatusAnimal {
   const StatusAnimal({required this.label, required this.value});
 
   static StatusAnimal fromString(String value) {
-    switch (value) {
+    final lowerValue = value.toLowerCase();
+    switch (lowerValue) {
       case 'ativo':
         return StatusAnimal.ativo;
       case 'vendido':
@@ -23,7 +24,8 @@ enum StatusAnimal {
       case 'descartado':
         return StatusAnimal.descartado;
       default:
-        throw Exception('Invalid StatusAnimal value: $value');
+        print('Warning: Unknown StatusAnimal value: $value, defaulting to ativo');
+        return StatusAnimal.ativo; // Valor padrão ao invés de erro
     }
   }
 }
@@ -98,7 +100,8 @@ enum CategoriaAnimal {
   const CategoriaAnimal({required this.label, required this.value});
 
   static CategoriaAnimal fromString(String value) {
-    switch (value) {
+    final lowerValue = value.toLowerCase();
+    switch (lowerValue) {
       case 'bezerro':
         return CategoriaAnimal.bezerro;
       case 'bezerra':
@@ -112,7 +115,8 @@ enum CategoriaAnimal {
       case 'vaca':
         return CategoriaAnimal.vaca;
       default:
-        throw Exception('Invalid CategoriaAnimal value: $value');
+        print('Warning: Unknown CategoriaAnimal value: $value, defaulting to bezerro');
+        return CategoriaAnimal.bezerro; // Valor padrão ao invés de erro
     }
   }
 }

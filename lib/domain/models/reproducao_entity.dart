@@ -256,8 +256,8 @@ class DiagnosticoGestacaoEntity extends BaseEntity {
   final InseminacaoEntity inseminacao;
   final DateTime dataDiagnostico;
   final ResultadoDiagnostico resultado;
-  final String? metodo;
-  final String? observacoes;
+  final String metodo;
+  final String observacoes;
   final DateTime? dataPartoPrevista;
 
   DiagnosticoGestacaoEntity({
@@ -265,8 +265,8 @@ class DiagnosticoGestacaoEntity extends BaseEntity {
     required this.inseminacao,
     required this.dataDiagnostico,
     required this.resultado,
-    this.metodo,
-    this.observacoes,
+    required this.metodo,
+    required this.observacoes,
     this.dataPartoPrevista,
   });
 
@@ -276,8 +276,8 @@ class DiagnosticoGestacaoEntity extends BaseEntity {
       inseminacao: InseminacaoEntity.fromJson(json['inseminacao']),
       dataDiagnostico: DateTime.parse(json['data_diagnostico']),
       resultado: ResultadoDiagnostico.fromString(json['resultado']),
-      metodo: json['metodo'],
-      observacoes: json['observacoes'],
+      metodo: json['metodo'] ?? '',
+      observacoes: json['observacoes'] ?? '', // Garantir que não seja null
       dataPartoPrevista: json['data_parto_prevista'] != null ? DateTime.parse(json['data_parto_prevista']) : null,
     );
   }
@@ -356,9 +356,29 @@ class OpcoesCadastroInseminacao {
   });
 
   factory OpcoesCadastroInseminacao.fromJson(Map<String, dynamic> json) {
-    final femeas = (json['femeas'] as List? ?? []).map((e) => AnimalEntity.fromInseminacaoJson(e)).toList();
+    // Parse fêmeas de forma segura
+    final femeas = <AnimalEntity>[];
+    if (json['femeas'] != null) {
+      for (var item in (json['femeas'] as List)) {
+        try {
+          femeas.add(AnimalEntity.fromInseminacaoJson(item));
+        } catch (e) {
+          print('Warning: Skipping invalid femea: $e');
+        }
+      }
+    }
 
-    final reprodutores = (json['reprodutores'] as List? ?? []).map((e) => AnimalEntity.fromInseminacaoJson(e)).toList();
+    // Parse reprodutores de forma segura
+    final reprodutores = <AnimalEntity>[];
+    if (json['reprodutores'] != null) {
+      for (var item in (json['reprodutores'] as List)) {
+        try {
+          reprodutores.add(AnimalEntity.fromInseminacaoJson(item));
+        } catch (e) {
+          print('Warning: Skipping invalid reprodutor: $e');
+        }
+      }
+    }
 
     return OpcoesCadastroInseminacao(
       femeas: femeas,
