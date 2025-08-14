@@ -256,7 +256,7 @@ class DiagnosticoGestacaoEntity extends BaseEntity {
   final InseminacaoEntity inseminacao;
   final DateTime dataDiagnostico;
   final ResultadoDiagnostico resultado;
-  final String? metodo;
+  final String metodo;
   final String observacoes;
   final DateTime? dataPartoPrevista;
 
@@ -265,7 +265,7 @@ class DiagnosticoGestacaoEntity extends BaseEntity {
     required this.inseminacao,
     required this.dataDiagnostico,
     required this.resultado,
-    this.metodo,
+    required this.metodo,
     required this.observacoes,
     this.dataPartoPrevista,
   });
@@ -276,7 +276,7 @@ class DiagnosticoGestacaoEntity extends BaseEntity {
       inseminacao: InseminacaoEntity.fromJson(json['inseminacao']),
       dataDiagnostico: DateTime.parse(json['data_diagnostico']),
       resultado: ResultadoDiagnostico.fromString(json['resultado']),
-      metodo: json['metodo'],
+      metodo: json['metodo'] ?? '',
       observacoes: json['observacoes'] ?? '', // Garantir que não seja null
       dataPartoPrevista: json['data_parto_prevista'] != null ? DateTime.parse(json['data_parto_prevista']) : null,
     );
