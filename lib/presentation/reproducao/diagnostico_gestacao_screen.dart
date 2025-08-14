@@ -4,10 +4,13 @@ import 'package:agronexus/presentation/bloc/reproducao/reproducao_bloc.dart';
 import 'package:agronexus/presentation/bloc/reproducao/reproducao_event.dart';
 import 'package:agronexus/presentation/bloc/reproducao/reproducao_state.dart';
 import 'package:agronexus/domain/models/reproducao_entity.dart';
+import 'package:agronexus/presentation/reproducao/cadastro_diagnostico_gestacao_screen.dart';
 import 'package:intl/intl.dart';
 
 class DiagnosticoGestacaoScreen extends StatefulWidget {
-  const DiagnosticoGestacaoScreen({super.key});
+  final Function(int)? onNavigateToTab;
+
+  const DiagnosticoGestacaoScreen({super.key, this.onNavigateToTab});
 
   @override
   State<DiagnosticoGestacaoScreen> createState() => _DiagnosticoGestacaoScreenState();
@@ -15,6 +18,8 @@ class DiagnosticoGestacaoScreen extends StatefulWidget {
 
 class _DiagnosticoGestacaoScreenState extends State<DiagnosticoGestacaoScreen> {
   final DateFormat _dateFormat = DateFormat('dd/MM/yyyy');
+  bool _isInitialized = false;
+  List<DiagnosticoGestacaoEntity>? _cachedDiagnosticos; // Cache local dos diagnósticos
 
   @override
   void initState() {
@@ -31,6 +36,7 @@ class _DiagnosticoGestacaoScreenState extends State<DiagnosticoGestacaoScreen> {
             dataFim: now,
           ),
         );
+    _isInitialized = true;
   }
 
   @override
@@ -38,41 +44,91 @@ class _DiagnosticoGestacaoScreenState extends State<DiagnosticoGestacaoScreen> {
     return Scaffold(
       body: RefreshIndicator(
         onRefresh: () async => _loadDiagnosticos(),
-        child: BlocBuilder<ReproducaoBloc, ReproducaoState>(
-          builder: (context, state) {
-            if (state is DiagnosticosGestacaoLoading) {
-              return const Center(child: CircularProgressIndicator());
+        child: BlocListener<ReproducaoBloc, ReproducaoState>(
+          listener: (context, state) {
+            // Cache dos diagnósticos para preservar estado
+            if (state is DiagnosticosGestacaoLoaded) {
+              _cachedDiagnosticos = state.diagnosticos;
             }
-
-            if (state is ReproducaoError) {
-              return Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.error_outline, size: 64, color: Colors.red.shade400),
-                    const SizedBox(height: 16),
-                    Text(
-                      'Erro ao carregar diagnósticos',
-                      style: TextStyle(fontSize: 18, color: Colors.red.shade400),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      state.message,
-                      style: TextStyle(color: Colors.grey.shade600),
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 16),
-                    ElevatedButton(
-                      onPressed: _loadDiagnosticos,
-                      child: const Text('Tentar Novamente'),
-                    ),
-                  ],
+            // Tratar sucesso na criação
+            else if (state is DiagnosticoGestacaoCreated) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Diagnóstico cadastrado com sucesso!'),
+                  backgroundColor: Colors.green,
+                ),
+              );
+              // Recarregar a lista de diagnósticos
+              _loadDiagnosticos();
+            }
+            // Tratar sucesso na exclusão
+            else if (state is DiagnosticoGestacaoDeleted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Diagnóstico excluído com sucesso!'),
+                  backgroundColor: Colors.green,
+                ),
+              );
+              // Recarregar a lista de diagnósticos
+              _loadDiagnosticos();
+            }
+            // Apenas escutar erros e outros estados relevantes
+            else if (state is ReproducaoError) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Erro: ${state.message}'),
+                  backgroundColor: Colors.red,
                 ),
               );
             }
+          },
+          child: BlocBuilder<ReproducaoBloc, ReproducaoState>(
+            builder: (context, state) {
+              // Se não foi inicializado e não está carregando, forçar carregamento
+              if (!_isInitialized && state is! DiagnosticosGestacaoLoading) {
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  if (mounted) {
+                    _loadDiagnosticos();
+                  }
+                });
+              }
 
-            if (state is DiagnosticosGestacaoLoaded) {
-              if (state.diagnosticos.isEmpty) {
+              // Mostrar loading apenas se não temos cache e está carregando
+              if (state is DiagnosticosGestacaoLoading && _cachedDiagnosticos == null) {
+                return const Center(child: CircularProgressIndicator());
+              }
+
+              if (state is ReproducaoError && _cachedDiagnosticos == null) {
+                return Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.error_outline, size: 64, color: Colors.red.shade400),
+                      const SizedBox(height: 16),
+                      Text(
+                        'Erro ao carregar diagnósticos',
+                        style: TextStyle(fontSize: 18, color: Colors.red.shade400),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        state.message,
+                        style: TextStyle(color: Colors.grey.shade600),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 16),
+                      ElevatedButton(
+                        onPressed: _loadDiagnosticos,
+                        child: const Text('Tentar Novamente'),
+                      ),
+                    ],
+                  ),
+                );
+              }
+
+              // Usar dados do cache ou dados atuais do estado
+              final diagnosticos = _cachedDiagnosticos ?? [];
+
+              if (diagnosticos.isEmpty) {
                 return Center(
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -95,25 +151,36 @@ class _DiagnosticoGestacaoScreenState extends State<DiagnosticoGestacaoScreen> {
 
               return ListView.builder(
                 padding: const EdgeInsets.all(16),
-                itemCount: state.diagnosticos.length,
+                itemCount: diagnosticos.length,
                 itemBuilder: (context, index) {
-                  final diagnostico = state.diagnosticos[index];
+                  final diagnostico = diagnosticos[index];
                   return _buildDiagnosticoCard(diagnostico);
                 },
               );
-            }
-
-            return const Center(child: Text('Carregando...'));
-          },
+            },
+          ),
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        heroTag: 'fabDiagnosticoGestacao',
-        backgroundColor: Colors.orange.shade400,
-        onPressed: () {
-          _showAddDiagnosticoDialog();
-        },
-        child: const Icon(Icons.add, color: Colors.white),
+      floatingActionButton: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (widget.onNavigateToTab != null)
+            FloatingActionButton.small(
+              heroTag: 'fabNavigateToInseminacao',
+              backgroundColor: Colors.pink.shade400,
+              onPressed: () => widget.onNavigateToTab!(0), // Aba 0 = Inseminações
+              child: const Icon(Icons.favorite, color: Colors.white, size: 20),
+            ),
+          if (widget.onNavigateToTab != null) const SizedBox(height: 8),
+          FloatingActionButton(
+            heroTag: 'fabDiagnosticoGestacao',
+            backgroundColor: Colors.orange.shade400,
+            onPressed: () {
+              _showAddDiagnosticoDialog();
+            },
+            child: const Icon(Icons.add, color: Colors.white),
+          ),
+        ],
       ),
     );
   }
@@ -259,61 +326,163 @@ class _DiagnosticoGestacaoScreenState extends State<DiagnosticoGestacaoScreen> {
   }
 
   void _showDiagnosticoDetails(DiagnosticoGestacaoEntity diagnostico) {
-    showDialog(
+    showModalBottomSheet(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Detalhes do Diagnóstico'),
-        content: SingleChildScrollView(
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => DraggableScrollableSheet(
+        initialChildSize: 0.6,
+        maxChildSize: 0.9,
+        minChildSize: 0.3,
+        expand: false,
+        builder: (context, scrollController) => Container(
+          padding: const EdgeInsets.all(20),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
             children: [
-              _buildDetailRow('Animal', 'Animal ${diagnostico.inseminacao.animal.idAnimal}'),
-              _buildDetailRow('Resultado', diagnostico.resultado.label),
-              _buildDetailRow('Data Diagnóstico', _dateFormat.format(diagnostico.dataDiagnostico)),
-              _buildDetailRow('Data Inseminação', _dateFormat.format(diagnostico.inseminacao.dataInseminacao)),
-              _buildDetailRow('Tipo Inseminação', diagnostico.inseminacao.tipo.label),
-              if (diagnostico.metodo != null && diagnostico.metodo!.isNotEmpty) _buildDetailRow('Método', diagnostico.metodo!),
-              if (diagnostico.dataPartoPrevista != null) _buildDetailRow('Parto Previsto', _dateFormat.format(diagnostico.dataPartoPrevista!)),
-              if (diagnostico.observacoes != null && diagnostico.observacoes!.isNotEmpty) _buildDetailRow('Observações', diagnostico.observacoes!),
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade300,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
+              Row(
+                children: [
+                  CircleAvatar(
+                    backgroundColor: _getResultadoColor(diagnostico.resultado),
+                    child: Icon(
+                      _getResultadoIcon(diagnostico.resultado),
+                      color: Colors.white,
+                      size: 20,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      'Detalhes do Diagnóstico',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.orange.shade400,
+                      ),
+                    ),
+                  ),
+                  PopupMenuButton<String>(
+                    onSelected: (value) {
+                      Navigator.of(context).pop(); // Fechar o modal primeiro
+                      if (value == 'editar') {
+                        // TODO: Implementar edição
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Funcionalidade de edição em desenvolvimento')),
+                        );
+                      } else if (value == 'excluir') {
+                        _confirmDelete(diagnostico);
+                      }
+                    },
+                    itemBuilder: (context) => [
+                      const PopupMenuItem(
+                        value: 'editar',
+                        child: Row(
+                          children: [
+                            Icon(Icons.edit, size: 20),
+                            SizedBox(width: 8),
+                            Text('Editar'),
+                          ],
+                        ),
+                      ),
+                      const PopupMenuItem(
+                        value: 'excluir',
+                        child: Row(
+                          children: [
+                            Icon(Icons.delete, size: 20, color: Colors.red),
+                            SizedBox(width: 8),
+                            Text('Excluir', style: TextStyle(color: Colors.red)),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20),
+              Expanded(
+                child: ListView(
+                  controller: scrollController,
+                  children: [
+                    _buildDetalheItem('Animal', diagnostico.inseminacao.animal.situacao.isNotEmpty ? diagnostico.inseminacao.animal.situacao : 'ID: ${diagnostico.inseminacao.animal.idAnimal}'),
+                    _buildDetalheItem('Resultado', diagnostico.resultado.label),
+                    _buildDetalheItem('Data do Diagnóstico', _dateFormat.format(diagnostico.dataDiagnostico)),
+                    _buildDetalheItem('Data da Inseminação', _dateFormat.format(diagnostico.inseminacao.dataInseminacao)),
+                    _buildDetalheItem('Tipo de Inseminação', diagnostico.inseminacao.tipo.label),
+                    if (diagnostico.metodo != null && diagnostico.metodo!.isNotEmpty) _buildDetalheItem('Método de Diagnóstico', diagnostico.metodo!),
+                    if (diagnostico.dataPartoPrevista != null) _buildDetalheItem('Data Prevista do Parto', _dateFormat.format(diagnostico.dataPartoPrevista!)),
+                    if (diagnostico.observacoes != null && diagnostico.observacoes!.isNotEmpty) _buildDetalheItem('Observações', diagnostico.observacoes!),
+                  ],
+                ),
+              ),
             ],
           ),
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Fechar'),
+      ),
+    );
+  }
+
+  Widget _buildDetalheItem(String titulo, String valor) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            titulo,
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
+              color: Colors.grey.shade700,
+            ),
           ),
-          TextButton(
-            onPressed: () {
-              Navigator.of(context).pop();
-              // TODO: Implementar edição
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Edição em desenvolvimento')),
-              );
-            },
-            child: const Text('Editar'),
+          const SizedBox(height: 4),
+          Text(
+            valor,
+            style: const TextStyle(
+              fontSize: 16,
+              color: Colors.black87,
+            ),
           ),
+          const SizedBox(height: 8),
+          Divider(color: Colors.grey.shade200, height: 1),
         ],
       ),
     );
   }
 
-  Widget _buildDetailRow(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(
-            width: 120,
-            child: Text(
-              '$label:',
-              style: const TextStyle(fontWeight: FontWeight.w600),
-            ),
+  void _confirmDelete(DiagnosticoGestacaoEntity diagnostico) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Confirmar Exclusão'),
+        content: Text('Deseja realmente excluir o diagnóstico do animal ${diagnostico.inseminacao.animal.idAnimal}?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Cancelar'),
           ),
-          Expanded(
-            child: Text(value),
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+              context.read<ReproducaoBloc>().add(
+                    DeleteDiagnosticoGestacaoEvent(diagnostico.id),
+                  );
+            },
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Excluir'),
           ),
         ],
       ),
@@ -321,18 +490,20 @@ class _DiagnosticoGestacaoScreenState extends State<DiagnosticoGestacaoScreen> {
   }
 
   void _showAddDiagnosticoDialog() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Novo Diagnóstico'),
-        content: const Text('Funcionalidade em desenvolvimento'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Fechar'),
-          ),
-        ],
+    final bloc = context.read<ReproducaoBloc>();
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => BlocProvider.value(
+          value: bloc,
+          child: const CadastroDiagnosticoGestacaoScreen(),
+        ),
       ),
-    );
+    ).then((result) {
+      if (result == true) {
+        // Recarregar a lista se o cadastro foi bem-sucedido
+        _loadDiagnosticos();
+      }
+    });
   }
 }

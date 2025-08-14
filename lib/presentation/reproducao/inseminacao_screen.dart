@@ -6,10 +6,13 @@ import 'package:agronexus/presentation/bloc/reproducao/reproducao_state.dart';
 import 'package:agronexus/domain/models/reproducao_entity.dart';
 import 'package:agronexus/presentation/reproducao/cadastro_inseminacao_screen.dart';
 import 'package:agronexus/presentation/reproducao/editar_inseminacao_screen.dart';
+import 'package:agronexus/presentation/reproducao/cadastro_diagnostico_gestacao_screen.dart';
 import 'package:intl/intl.dart';
 
 class InseminacaoScreen extends StatefulWidget {
-  const InseminacaoScreen({super.key});
+  final Function(int)? onNavigateToTab;
+
+  const InseminacaoScreen({super.key, this.onNavigateToTab});
 
   @override
   State<InseminacaoScreen> createState() => _InseminacaoScreenState();
@@ -168,11 +171,24 @@ class _InseminacaoScreenState extends State<InseminacaoScreen> {
           ),
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        heroTag: 'fabInseminacao',
-        backgroundColor: Colors.pink.shade400,
-        onPressed: () => _navegarParaCadastro(),
-        child: const Icon(Icons.add, color: Colors.white),
+      floatingActionButton: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (widget.onNavigateToTab != null)
+            FloatingActionButton.small(
+              heroTag: 'fabNavigateToDiagnostico',
+              backgroundColor: Colors.orange.shade400,
+              onPressed: () => widget.onNavigateToTab!(1), // Aba 1 = Diagnósticos
+              child: const Icon(Icons.medical_services, color: Colors.white, size: 20),
+            ),
+          if (widget.onNavigateToTab != null) const SizedBox(height: 8),
+          FloatingActionButton(
+            heroTag: 'fabInseminacao',
+            backgroundColor: Colors.pink.shade400,
+            onPressed: () => _navegarParaCadastro(),
+            child: const Icon(Icons.add, color: Colors.white),
+          ),
+        ],
       ),
     );
   }
@@ -242,6 +258,16 @@ class _InseminacaoScreenState extends State<InseminacaoScreen> {
                             Icon(Icons.edit, size: 20),
                             SizedBox(width: 8),
                             Text('Editar'),
+                          ],
+                        ),
+                      ),
+                      const PopupMenuItem(
+                        value: 'diagnostico',
+                        child: Row(
+                          children: [
+                            Icon(Icons.medical_services, size: 20, color: Colors.purple),
+                            SizedBox(width: 8),
+                            Text('Criar Diagnóstico', style: TextStyle(color: Colors.purple)),
                           ],
                         ),
                       ),
@@ -412,6 +438,27 @@ class _InseminacaoScreenState extends State<InseminacaoScreen> {
     }
   }
 
+  void _navegarParaDiagnostico(InseminacaoEntity inseminacao) async {
+    final bloc = context.read<ReproducaoBloc>();
+    print('DEBUG LISTAGEM - Navegando para diagnóstico da inseminação ${inseminacao.id}');
+    final resultado = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        builder: (context) => BlocProvider.value(
+          value: bloc,
+          child: CadastroDiagnosticoGestacaoScreen(
+            inseminacaoSelecionada: inseminacao,
+          ),
+        ),
+      ),
+    );
+
+    print('DEBUG LISTAGEM - Resultado do diagnóstico: $resultado');
+    if (resultado == true) {
+      print('DEBUG LISTAGEM - Recarregando lista após diagnóstico');
+      _loadInseminacoes();
+    }
+  }
+
   void _mostrarDetalhes(InseminacaoEntity inseminacao) {
     showModalBottomSheet(
       context: context,
@@ -521,6 +568,9 @@ class _InseminacaoScreenState extends State<InseminacaoScreen> {
         break;
       case 'editar':
         _navegarParaEdicao(inseminacao);
+        break;
+      case 'diagnostico':
+        _navegarParaDiagnostico(inseminacao);
         break;
       case 'excluir':
         _confirmarExclusao(inseminacao);
