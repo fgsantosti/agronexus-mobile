@@ -423,7 +423,7 @@ class _DiagnosticoGestacaoScreenState extends State<DiagnosticoGestacaoScreen> {
                     _buildDetalheItem('Tipo de Inseminação', diagnostico.inseminacao.tipo.label),
                     if (diagnostico.metodo != null && diagnostico.metodo!.isNotEmpty) _buildDetalheItem('Método de Diagnóstico', diagnostico.metodo!),
                     if (diagnostico.dataPartoPrevista != null) _buildDetalheItem('Data Prevista do Parto', _dateFormat.format(diagnostico.dataPartoPrevista!)),
-                    if (diagnostico.observacoes != null && diagnostico.observacoes!.isNotEmpty) _buildDetalheItem('Observações', diagnostico.observacoes!),
+                    if (diagnostico.observacoes.isNotEmpty) _buildDetalheItem('Observações', diagnostico.observacoes),
                   ],
                 ),
               ),

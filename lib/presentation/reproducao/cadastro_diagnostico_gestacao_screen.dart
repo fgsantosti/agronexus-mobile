@@ -34,6 +34,7 @@ class _CadastroDiagnosticoGestacaoScreenState extends State<CadastroDiagnosticoG
 
   // Opções disponíveis
   List<InseminacaoEntity>? _inseminacoes;
+  List<DiagnosticoGestacaoEntity>? _diagnosticos;
 
   DateTime _dataSelecionada = DateTime.now();
   bool _isLoading = false;
@@ -44,6 +45,7 @@ class _CadastroDiagnosticoGestacaoScreenState extends State<CadastroDiagnosticoG
     _dataDiagnosticoController.text = _dateFormat.format(_dataSelecionada);
     _inseminacaoSelecionada = widget.inseminacaoSelecionada;
     _carregarInseminacoes();
+    _carregarDiagnosticos();
   }
 
   @override
@@ -60,6 +62,18 @@ class _CadastroDiagnosticoGestacaoScreenState extends State<CadastroDiagnosticoG
     final inicio = DateTime(now.year, now.month - 6, 1);
     context.read<ReproducaoBloc>().add(
           LoadInseminacoesEvent(
+            dataInicio: inicio,
+            dataFim: now,
+          ),
+        );
+  }
+
+  void _carregarDiagnosticos() {
+    // Carregar diagnósticos existentes para evitar duplicatas
+    final now = DateTime.now();
+    final inicio = DateTime(now.year, now.month - 6, 1);
+    context.read<ReproducaoBloc>().add(
+          LoadDiagnosticosGestacaoEvent(
             dataInicio: inicio,
             dataFim: now,
           ),
@@ -120,7 +134,7 @@ class _CadastroDiagnosticoGestacaoScreenState extends State<CadastroDiagnosticoG
       dataDiagnostico: _dataSelecionada,
       resultado: _resultadoSelecionado!,
       metodo: _metodoController.text.isNotEmpty ? _metodoController.text : null,
-      observacoes: _observacoesController.text.isNotEmpty ? _observacoesController.text : null,
+      observacoes: _observacoesController.text.trim(), // Sempre obrigatório
       dataPartoPrevista: _resultadoSelecionado == ResultadoDiagnostico.positivo ? _calcularDataPartoPrevista() : null,
     );
 
@@ -162,6 +176,10 @@ class _CadastroDiagnosticoGestacaoScreenState extends State<CadastroDiagnosticoG
             setState(() {
               _inseminacoes = state.inseminacoes;
               _isLoading = false;
+            });
+          } else if (state is DiagnosticosGestacaoLoaded) {
+            setState(() {
+              _diagnosticos = state.diagnosticos;
             });
           } else if (state is DiagnosticoGestacaoCreated) {
             _mostrarSnackbar('Diagnóstico cadastrado com sucesso!');
@@ -263,6 +281,7 @@ class _CadastroDiagnosticoGestacaoScreenState extends State<CadastroDiagnosticoG
 
     return InseminacaoSearchField(
       inseminacoes: _inseminacoes ?? [],
+      diagnosticos: _diagnosticos ?? [],
       inseminacaoSelecionada: _inseminacaoSelecionada,
       labelText: 'Selecionar Inseminação*',
       onChanged: (inseminacao) {
@@ -354,12 +373,18 @@ class _CadastroDiagnosticoGestacaoScreenState extends State<CadastroDiagnosticoG
     return TextFormField(
       controller: _observacoesController,
       decoration: const InputDecoration(
-        labelText: 'Observações',
+        labelText: 'Observações*',
         border: OutlineInputBorder(),
         prefixIcon: Icon(Icons.notes),
         hintText: 'Observações adicionais sobre o diagnóstico',
       ),
       maxLines: 3,
+      validator: (value) {
+        if (value == null || value.trim().isEmpty) {
+          return 'As observações são obrigatórias';
+        }
+        return null;
+      },
     );
   }
 
