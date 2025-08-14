@@ -88,6 +88,16 @@ class LoadCategoriasByEspecieEvent extends AnimalEvent {
   List<Object> get props => [especieId];
 }
 
+class LoadFilhosDaMaeEvent extends AnimalEvent {
+  final String maeId;
+  final String? status;
+
+  const LoadFilhosDaMaeEvent(this.maeId, {this.status = 'ativo'});
+
+  @override
+  List<Object?> get props => [maeId, status];
+}
+
 class NextPageAnimaisEvent extends AnimalEvent {
   const NextPageAnimaisEvent();
 }

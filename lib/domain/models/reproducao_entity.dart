@@ -315,27 +315,48 @@ class PartoEntity extends BaseEntity {
   });
 
   factory PartoEntity.fromJson(Map<String, dynamic> json) {
-    return PartoEntity(
-      id: json['id'],
-      mae: AnimalEntity.fromJson(json['mae']),
-      dataParto: DateTime.parse(json['data_parto']),
-      resultado: ResultadoParto.fromString(json['resultado']),
-      dificuldade: DificuldadeParto.fromString(json['dificuldade']),
-      bezerro: json['bezerro'] != null ? AnimalEntity.fromJson(json['bezerro']) : null,
-      pesoNascimento: json['peso_nascimento']?.toDouble(),
-      observacoes: json['observacoes'],
-    );
+    try {
+      return PartoEntity(
+        id: json['id'] ?? '',
+        mae: AnimalEntity.fromJson(json['mae'] ?? {}),
+        dataParto: DateTime.parse(json['data_parto'] ?? DateTime.now().toIso8601String()),
+        resultado: ResultadoParto.fromString(json['resultado'] ?? 'nascido_vivo'),
+        dificuldade: DificuldadeParto.fromString(json['dificuldade'] ?? 'normal'),
+        bezerro: json['bezerro'] != null ? AnimalEntity.fromJson(json['bezerro']) : null,
+        pesoNascimento: _parseDouble(json['peso_nascimento']),
+        observacoes: json['observacoes'] ?? '',
+      );
+    } catch (e) {
+      print('DEBUG - Erro ao fazer parse do PartoEntity: $e');
+      print('DEBUG - JSON recebido: $json');
+      rethrow;
+    }
+  }
+
+  static double? _parseDouble(dynamic value) {
+    if (value == null) return null;
+    if (value is double) return value;
+    if (value is int) return value.toDouble();
+    if (value is String) {
+      try {
+        return double.parse(value);
+      } catch (e) {
+        print('DEBUG - Erro ao converter String para double: $value');
+        return null;
+      }
+    }
+    return null;
   }
 
   Map<String, dynamic> toJson() {
     return {
-      'mae_id': mae.idAnimal,
+      'mae_id': mae.id,
       'data_parto': dataParto.toIso8601String().split('T')[0],
       'resultado': resultado.value,
       'dificuldade': dificuldade.value,
-      'bezerro_id': bezerro?.idAnimal,
+      'bezerro_id': bezerro?.id,
       'peso_nascimento': pesoNascimento,
-      'observacoes': observacoes,
+      'observacoes': observacoes ?? '',
     };
   }
 }

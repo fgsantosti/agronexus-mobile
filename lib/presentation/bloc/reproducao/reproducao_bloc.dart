@@ -170,10 +170,14 @@ class ReproducaoBloc extends Bloc<ReproducaoEvent, ReproducaoState> {
   Future<void> _onCreateParto(CreatePartoEvent event, Emitter<ReproducaoState> emit) async {
     emit(ReproducaoLoading());
     try {
+      print('DEBUG BLOC - Criando parto...');
       final parto = await _service.createParto(event.parto);
+      print('DEBUG BLOC - Parto criado com sucesso: ${parto.id}');
+      print('DEBUG BLOC - Emitindo estado PartoCreated');
       emit(PartoCreated(parto));
     } catch (e) {
-      emit(ReproducaoError(e.toString()));
+      print('DEBUG BLOC - Erro ao criar parto: $e');
+      emit(ReproducaoError('Erro ao criar parto: ${e.toString()}'));
     }
   }
 

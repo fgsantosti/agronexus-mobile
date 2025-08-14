@@ -24,4 +24,21 @@ abstract class AnimalRemoteRepository {
   Future<List<RacaAnimal>> getRacasByEspecie(String especieId);
 
   Future<List<String>> getCategoriasByEspecie(String especieId);
+
+  /// Busca animais fêmeas para seleção como mães
+  Future<List<AnimalEntity>> getFemeas({
+    String? propriedadeId,
+    String? especieId,
+    String? status = 'ativo',
+  });
+
+  /// Busca animais machos para seleção como pais/reprodutores
+  Future<List<AnimalEntity>> getMachos({
+    String? propriedadeId,
+    String? especieId,
+    String? status = 'ativo',
+  });
+
+  /// Busca animais filhos de uma mãe específica
+  Future<List<AnimalEntity>> getFilhosDaMae(String maeId, {String? status = 'ativo'});
 }

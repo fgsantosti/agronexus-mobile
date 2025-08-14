@@ -3,11 +3,16 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:agronexus/presentation/bloc/reproducao/reproducao_bloc.dart';
 import 'package:agronexus/presentation/bloc/reproducao/reproducao_event.dart';
 import 'package:agronexus/presentation/bloc/reproducao/reproducao_state.dart';
+import 'package:agronexus/presentation/bloc/animal/animal_bloc.dart';
 import 'package:agronexus/domain/models/reproducao_entity.dart';
+import 'package:agronexus/presentation/reproducao/cadastro_parto_screen.dart';
+import 'package:agronexus/presentation/reproducao/editar_parto_screen.dart';
 import 'package:intl/intl.dart';
 
 class PartoScreen extends StatefulWidget {
-  const PartoScreen({super.key});
+  final Function(int)? onNavigateToTab;
+
+  const PartoScreen({super.key, this.onNavigateToTab});
 
   @override
   State<PartoScreen> createState() => _PartoScreenState();
@@ -15,6 +20,8 @@ class PartoScreen extends StatefulWidget {
 
 class _PartoScreenState extends State<PartoScreen> {
   final DateFormat _dateFormat = DateFormat('dd/MM/yyyy');
+  bool _isInitialized = false;
+  List<PartoEntity>? _cachedPartos; // Cache local dos partos
 
   @override
   void initState() {
@@ -31,6 +38,7 @@ class _PartoScreenState extends State<PartoScreen> {
             dataFim: now,
           ),
         );
+    _isInitialized = true;
   }
 
   @override
@@ -38,41 +46,102 @@ class _PartoScreenState extends State<PartoScreen> {
     return Scaffold(
       body: RefreshIndicator(
         onRefresh: () async => _loadPartos(),
-        child: BlocBuilder<ReproducaoBloc, ReproducaoState>(
-          builder: (context, state) {
-            if (state is PartosLoading) {
-              return const Center(child: CircularProgressIndicator());
+        child: BlocListener<ReproducaoBloc, ReproducaoState>(
+          listener: (context, state) {
+            // Cache dos partos para preservar estado
+            if (state is PartosLoaded) {
+              _cachedPartos = state.partos;
             }
-
-            if (state is ReproducaoError) {
-              return Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.error_outline, size: 64, color: Colors.red.shade400),
-                    const SizedBox(height: 16),
-                    Text(
-                      'Erro ao carregar partos',
-                      style: TextStyle(fontSize: 18, color: Colors.red.shade400),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      state.message,
-                      style: TextStyle(color: Colors.grey.shade600),
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 16),
-                    ElevatedButton(
-                      onPressed: _loadPartos,
-                      child: const Text('Tentar Novamente'),
-                    ),
-                  ],
+            // Tratar sucesso na criação
+            else if (state is PartoCreated) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Parto cadastrado com sucesso!'),
+                  backgroundColor: Colors.green,
+                ),
+              );
+              // Recarregar a lista de partos
+              _loadPartos();
+            }
+            // Tratar sucesso na atualização
+            else if (state is PartoUpdated) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Parto atualizado com sucesso!'),
+                  backgroundColor: Colors.green,
+                ),
+              );
+              // Recarregar a lista de partos
+              _loadPartos();
+            }
+            // Tratar sucesso na exclusão
+            else if (state is PartoDeleted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Parto excluído com sucesso!'),
+                  backgroundColor: Colors.green,
+                ),
+              );
+              // Recarregar a lista de partos
+              _loadPartos();
+            }
+            // Apenas escutar erros e outros estados relevantes
+            else if (state is ReproducaoError) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Erro: ${state.message}'),
+                  backgroundColor: Colors.red,
                 ),
               );
             }
+          },
+          child: BlocBuilder<ReproducaoBloc, ReproducaoState>(
+            builder: (context, state) {
+              // Se não foi inicializado e não está carregando, forçar carregamento
+              if (!_isInitialized && state is! PartosLoading) {
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  if (mounted) {
+                    _loadPartos();
+                  }
+                });
+              }
 
-            if (state is PartosLoaded) {
-              if (state.partos.isEmpty) {
+              // Mostrar loading apenas se não temos cache e está carregando
+              if (state is PartosLoading && _cachedPartos == null) {
+                return const Center(child: CircularProgressIndicator());
+              }
+
+              if (state is ReproducaoError && _cachedPartos == null) {
+                return Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.error_outline, size: 64, color: Colors.red.shade400),
+                      const SizedBox(height: 16),
+                      Text(
+                        'Erro ao carregar partos',
+                        style: TextStyle(fontSize: 18, color: Colors.red.shade400),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        state.message,
+                        style: TextStyle(color: Colors.grey.shade600),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 16),
+                      ElevatedButton(
+                        onPressed: _loadPartos,
+                        child: const Text('Tentar Novamente'),
+                      ),
+                    ],
+                  ),
+                );
+              }
+
+              // Usar dados do cache ou dados atuais do estado
+              final partos = _cachedPartos ?? [];
+
+              if (partos.isEmpty) {
                 return Center(
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -95,25 +164,36 @@ class _PartoScreenState extends State<PartoScreen> {
 
               return ListView.builder(
                 padding: const EdgeInsets.all(16),
-                itemCount: state.partos.length,
+                itemCount: partos.length,
                 itemBuilder: (context, index) {
-                  final parto = state.partos[index];
+                  final parto = partos[index];
                   return _buildPartoCard(parto);
                 },
               );
-            }
-
-            return const Center(child: Text('Carregando...'));
-          },
+            },
+          ),
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        heroTag: 'fabParto',
-        backgroundColor: Colors.green.shade400,
-        onPressed: () {
-          _showAddPartoDialog();
-        },
-        child: const Icon(Icons.add, color: Colors.white),
+      floatingActionButton: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (widget.onNavigateToTab != null)
+            FloatingActionButton.small(
+              heroTag: 'fabNavigateToDiagnostico',
+              backgroundColor: Colors.orange.shade400,
+              onPressed: () => widget.onNavigateToTab!(2), // Aba 2 = Diagnóstico de Gestação
+              child: const Icon(Icons.medical_services, color: Colors.white, size: 20),
+            ),
+          if (widget.onNavigateToTab != null) const SizedBox(height: 8),
+          FloatingActionButton(
+            heroTag: 'fabParto',
+            backgroundColor: Colors.green.shade400,
+            onPressed: () {
+              _showAddPartoDialog();
+            },
+            child: const Icon(Icons.add, color: Colors.white),
+          ),
+        ],
       ),
     );
   }
@@ -244,60 +324,175 @@ class _PartoScreenState extends State<PartoScreen> {
   }
 
   void _showPartoDetails(PartoEntity parto) {
-    showDialog(
+    showModalBottomSheet(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Detalhes do Parto'),
-        content: SingleChildScrollView(
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => DraggableScrollableSheet(
+        initialChildSize: 0.6,
+        maxChildSize: 0.9,
+        minChildSize: 0.3,
+        expand: false,
+        builder: (context, scrollController) => Container(
+          padding: const EdgeInsets.all(20),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
             children: [
-              _buildDetailRow('Mãe', 'Animal ${parto.mae.idAnimal}'),
-              _buildDetailRow('Data do Parto', _dateFormat.format(parto.dataParto)),
-              _buildDetailRow('Resultado', parto.resultado.label),
-              _buildDetailRow('Dificuldade', parto.dificuldade.label),
-              if (parto.bezerro != null) _buildDetailRow('Cria', 'Animal ${parto.bezerro!.idAnimal}'),
-              if (parto.pesoNascimento != null) _buildDetailRow('Peso Nascimento', '${parto.pesoNascimento!.toStringAsFixed(1)} kg'),
-              if (parto.observacoes != null && parto.observacoes!.isNotEmpty) _buildDetailRow('Observações', parto.observacoes!),
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade300,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
+              Row(
+                children: [
+                  CircleAvatar(
+                    backgroundColor: _getResultadoColor(parto.resultado),
+                    child: Icon(
+                      _getResultadoIcon(parto.resultado),
+                      color: Colors.white,
+                      size: 20,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      'Detalhes do Parto',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.green.shade400,
+                      ),
+                    ),
+                  ),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      IconButton(
+                        onPressed: () {
+                          Navigator.of(context).pop(); // Fechar o modal primeiro
+                          _editarParto(parto);
+                        },
+                        icon: const Icon(Icons.edit),
+                        tooltip: 'Editar',
+                        color: Colors.blue,
+                      ),
+                      IconButton(
+                        onPressed: () {
+                          Navigator.of(context).pop(); // Fechar o modal primeiro
+                          _confirmDelete(parto);
+                        },
+                        icon: const Icon(Icons.delete),
+                        tooltip: 'Excluir',
+                        color: Colors.red,
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20),
+              Expanded(
+                child: ListView(
+                  controller: scrollController,
+                  children: [
+                    _buildDetalheItem('Mãe', 'Animal ${parto.mae.idAnimal}'),
+                    _buildDetalheItem('Data do Parto', _dateFormat.format(parto.dataParto)),
+                    _buildDetalheItem('Resultado', parto.resultado.label),
+                    _buildDetalheItem('Dificuldade', parto.dificuldade.label),
+                    if (parto.bezerro != null) _buildDetalheItem('Cria', 'Animal ${parto.bezerro!.idAnimal}'),
+                    if (parto.pesoNascimento != null) _buildDetalheItem('Peso Nascimento', '${parto.pesoNascimento!.toStringAsFixed(1)} kg'),
+                    if (parto.observacoes != null && parto.observacoes!.isNotEmpty) _buildDetalheItem('Observações', parto.observacoes!),
+                  ],
+                ),
+              ),
             ],
           ),
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Fechar'),
+      ),
+    );
+  }
+
+  Widget _buildDetalheItem(String titulo, String valor) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            titulo,
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
+              color: Colors.grey.shade700,
+            ),
           ),
-          TextButton(
-            onPressed: () {
-              Navigator.of(context).pop();
-              // TODO: Implementar edição
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Edição em desenvolvimento')),
-              );
-            },
-            child: const Text('Editar'),
+          const SizedBox(height: 4),
+          Text(
+            valor,
+            style: const TextStyle(
+              fontSize: 16,
+              color: Colors.black87,
+            ),
           ),
+          const SizedBox(height: 8),
+          Divider(color: Colors.grey.shade200, height: 1),
         ],
       ),
     );
   }
 
-  Widget _buildDetailRow(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(
-            width: 120,
-            child: Text(
-              '$label:',
-              style: const TextStyle(fontWeight: FontWeight.w600),
-            ),
+  void _editarParto(PartoEntity parto) async {
+    final reproducaoBloc = context.read<ReproducaoBloc>();
+    final animalBloc = context.read<AnimalBloc>();
+    final resultado = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(
+        builder: (context) => MultiBlocProvider(
+          providers: [
+            BlocProvider.value(value: reproducaoBloc),
+            BlocProvider.value(value: animalBloc),
+          ],
+          child: EditarPartoScreen(parto: parto),
+        ),
+      ),
+    );
+
+    // Se retornou true, significa que foi editado com sucesso
+    if (resultado == true) {
+      _loadPartos(); // Recarregar a lista
+    }
+  }
+
+  void _confirmDelete(PartoEntity parto) {
+    // Salvar referência ao BLoC antes de abrir o dialog
+    final reproducaoBloc = context.read<ReproducaoBloc>();
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Confirmar Exclusão'),
+        content: Text('Deseja realmente excluir o parto do animal ${parto.mae.idAnimal}?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Cancelar'),
           ),
-          Expanded(
-            child: Text(value),
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+              reproducaoBloc.add(
+                DeletePartoEvent(parto.id),
+              );
+            },
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Excluir'),
           ),
         ],
       ),
@@ -305,18 +500,24 @@ class _PartoScreenState extends State<PartoScreen> {
   }
 
   void _showAddPartoDialog() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Novo Parto'),
-        content: const Text('Funcionalidade em desenvolvimento'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Fechar'),
-          ),
-        ],
+    final reproducaoBloc = context.read<ReproducaoBloc>();
+    final animalBloc = context.read<AnimalBloc>();
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => MultiBlocProvider(
+          providers: [
+            BlocProvider.value(value: reproducaoBloc),
+            BlocProvider.value(value: animalBloc),
+          ],
+          child: const CadastroPartoScreen(),
+        ),
       ),
-    );
+    ).then((result) {
+      if (result == true) {
+        // Recarregar a lista se o cadastro foi bem-sucedido
+        _loadPartos();
+      }
+    });
   }
 }

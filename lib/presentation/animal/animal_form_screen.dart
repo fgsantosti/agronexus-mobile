@@ -47,6 +47,7 @@ class _AnimalFormScreenState extends State<AnimalFormScreen> {
 
   OpcoesCadastroAnimal? _opcoesCadastro;
   List<RacaAnimal> _racasDisponiveis = [];
+  List<String> _categoriasDisponiveis = [];
 
   @override
   void initState() {
@@ -114,6 +115,106 @@ class _AnimalFormScreenState extends State<AnimalFormScreen> {
     super.dispose();
   }
 
+  /// Filtra possíveis mães baseado na propriedade, espécie e categoria selecionadas
+  List<AnimalEntity> _getPossiveisMaesFiltradas() {
+    if (_opcoesCadastro == null) return [];
+
+    List<AnimalEntity> maes = _opcoesCadastro!.possiveisMaes;
+
+    // Filtrar apenas fêmeas reprodutivas (categorias apropriadas para mães)
+    final categoriasMaes = [
+      CategoriaAnimal.vaca, // Bovinos
+      CategoriaAnimal.cabra, // Caprinos
+      CategoriaAnimal.ovelha, // Ovinos
+      CategoriaAnimal.egua, // Equinos
+      // Para suínos, usamos 'porco' já que não há distinção específica de categoria por sexo
+    ];
+
+    maes = maes.where((animal) {
+      // Verifica se é uma categoria reprodutiva feminina específica
+      if (categoriasMaes.contains(animal.categoria)) {
+        return true;
+      }
+
+      // Para suínos, filtra por sexo feminino e categoria 'porco'
+      if (animal.categoria == CategoriaAnimal.porco && animal.sexo == Sexo.femea) {
+        return true;
+      }
+
+      return false;
+    }).toList();
+
+    // Filtrar por propriedade se selecionada
+    if (_propriedadeSelecionada != null) {
+      maes = maes.where((animal) => animal.propriedade?.id == _propriedadeSelecionada!.id).toList();
+    }
+
+    // Filtrar por espécie se selecionada
+    if (_especieSelecionada != null) {
+      maes = maes.where((animal) => animal.especie?.id == _especieSelecionada!.id).toList();
+    }
+
+    // Garantir que a mãe atualmente selecionada sempre esteja na lista (para edição)
+    if (_maeSelecionada != null && _maeSelecionada!.id != null) {
+      final existeNaLista = maes.any((animal) => animal.id == _maeSelecionada!.id);
+      if (!existeNaLista) {
+        maes.add(_maeSelecionada!);
+      }
+    }
+
+    return maes;
+  }
+
+  /// Filtra possíveis pais baseado na propriedade, espécie e categoria selecionadas
+  List<AnimalEntity> _getPossiveisPaisFiltrados() {
+    if (_opcoesCadastro == null) return [];
+
+    List<AnimalEntity> pais = _opcoesCadastro!.posiveisPais;
+
+    // Filtrar apenas machos reprodutivos (categorias apropriadas para pais)
+    final categoriasPais = [
+      CategoriaAnimal.touro, // Bovinos
+      CategoriaAnimal.bode, // Caprinos
+      CategoriaAnimal.carneiro, // Ovinos
+      CategoriaAnimal.cavalo, // Equinos
+      // Para suínos, usamos 'porco' já que não há distinção específica de categoria por sexo
+    ];
+
+    pais = pais.where((animal) {
+      // Verifica se é uma categoria reprodutiva masculina específica
+      if (categoriasPais.contains(animal.categoria)) {
+        return true;
+      }
+
+      // Para suínos, filtra por sexo masculino e categoria 'porco'
+      if (animal.categoria == CategoriaAnimal.porco && animal.sexo == Sexo.macho) {
+        return true;
+      }
+
+      return false;
+    }).toList();
+
+    // Filtrar por propriedade se selecionada
+    if (_propriedadeSelecionada != null) {
+      pais = pais.where((animal) => animal.propriedade?.id == _propriedadeSelecionada!.id).toList();
+    }
+
+    // Filtrar por espécie se selecionada
+    if (_especieSelecionada != null) {
+      pais = pais.where((animal) => animal.especie?.id == _especieSelecionada!.id).toList();
+    }
+
+    // Garantir que o pai atualmente selecionado sempre esteja na lista (para edição)
+    if (_paiSelecionado != null && _paiSelecionado!.id != null) {
+      final existeNaLista = pais.any((animal) => animal.id == _paiSelecionado!.id);
+      if (!existeNaLista) {
+        pais.add(_paiSelecionado!);
+      }
+    }
+
+    return pais;
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -134,8 +235,9 @@ class _AnimalFormScreenState extends State<AnimalFormScreen> {
                   );
                   _especieSelecionada = especieCorreta;
 
-                  // Carregar raças para a espécie
+                  // Carregar raças e categorias para a espécie
                   context.read<AnimalBloc>().add(LoadRacasByEspecieEvent(_especieSelecionada!.id));
+                  context.read<AnimalBloc>().add(LoadCategoriasByEspecieEvent(_especieSelecionada!.id));
                 }
 
                 // Encontrar a propriedade correta na lista de opções
@@ -155,6 +257,23 @@ class _AnimalFormScreenState extends State<AnimalFormScreen> {
                   );
                   _loteSelecionado = loteCorreto;
                 }
+
+                // Sincronizar pai e mãe selecionados com as listas de opções
+                if (_paiSelecionado != null) {
+                  final paiCorreto = state.opcoes.posiveisPais.firstWhere(
+                    (p) => p.id == _paiSelecionado!.id,
+                    orElse: () => _paiSelecionado!,
+                  );
+                  _paiSelecionado = paiCorreto;
+                }
+
+                if (_maeSelecionada != null) {
+                  final maeCorreta = state.opcoes.possiveisMaes.firstWhere(
+                    (m) => m.id == _maeSelecionada!.id,
+                    orElse: () => _maeSelecionada!,
+                  );
+                  _maeSelecionada = maeCorreta;
+                }
               }
             });
           } else if (state is RacasLoaded) {
@@ -169,6 +288,10 @@ class _AnimalFormScreenState extends State<AnimalFormScreen> {
                 );
                 _racaSelecionada = racaCorreta;
               }
+            });
+          } else if (state is CategoriasLoaded) {
+            setState(() {
+              _categoriasDisponiveis = state.categorias;
             });
           } else if (state is AnimalCreated || state is AnimalUpdated) {
             // Retorna o animal criado/atualizado para a tela anterior para atualização otimista do cache
@@ -446,10 +569,21 @@ class _AnimalFormScreenState extends State<AnimalFormScreen> {
                   _racaSelecionada = null;
                   _categoriaSelecionada = null;
                   _racasDisponiveis = [];
+                  _categoriasDisponiveis = [];
+
+                  // Limpar seleções de pai e mãe quando a espécie mudar
+                  // para garantir que apenas animais da mesma espécie sejam selecionáveis
+                  if (_paiSelecionado != null && _paiSelecionado!.especie?.id != value?.id) {
+                    _paiSelecionado = null;
+                  }
+                  if (_maeSelecionada != null && _maeSelecionada!.especie?.id != value?.id) {
+                    _maeSelecionada = null;
+                  }
                 });
 
                 if (value != null) {
                   context.read<AnimalBloc>().add(LoadRacasByEspecieEvent(value.id));
+                  context.read<AnimalBloc>().add(LoadCategoriasByEspecieEvent(value.id));
                 }
               },
               validator: (value) {
@@ -495,7 +629,8 @@ class _AnimalFormScreenState extends State<AnimalFormScreen> {
               border: OutlineInputBorder(),
               prefixIcon: Icon(Icons.label),
             ),
-            items: CategoriaAnimal.values.map((categoria) {
+            items: _categoriasDisponiveis.map((categoriaString) {
+              final categoria = CategoriaAnimal.fromString(categoriaString);
               return DropdownMenuItem(
                 value: categoria,
                 child: Text(categoria.label),
@@ -555,6 +690,15 @@ class _AnimalFormScreenState extends State<AnimalFormScreen> {
                 setState(() {
                   _propriedadeSelecionada = value;
                   _loteSelecionado = null; // Reset lote ao mudar propriedade
+
+                  // Limpar seleções de pai e mãe quando a propriedade mudar
+                  // para garantir que apenas animais da mesma propriedade sejam selecionáveis
+                  if (_paiSelecionado != null && _paiSelecionado!.propriedade?.id != value?.id) {
+                    _paiSelecionado = null;
+                  }
+                  if (_maeSelecionada != null && _maeSelecionada!.propriedade?.id != value?.id) {
+                    _maeSelecionada = null;
+                  }
                 });
               },
             ),
@@ -594,7 +738,7 @@ class _AnimalFormScreenState extends State<AnimalFormScreen> {
                 border: OutlineInputBorder(),
                 prefixIcon: Icon(Icons.male),
               ),
-              items: _opcoesCadastro!.posiveisPais.map((animal) {
+              items: _getPossiveisPaisFiltrados().map((animal) {
                 return DropdownMenuItem(
                   value: animal,
                   child: Text('${animal.identificacaoUnica} - ${animal.nomeRegistro ?? 'Sem nome'}'),
@@ -618,7 +762,7 @@ class _AnimalFormScreenState extends State<AnimalFormScreen> {
                 border: OutlineInputBorder(),
                 prefixIcon: Icon(Icons.female),
               ),
-              items: _opcoesCadastro!.possiveisMaes.map((animal) {
+              items: _getPossiveisMaesFiltradas().map((animal) {
                 return DropdownMenuItem(
                   value: animal,
                   child: Text('${animal.identificacaoUnica} - ${animal.nomeRegistro ?? 'Sem nome'}'),

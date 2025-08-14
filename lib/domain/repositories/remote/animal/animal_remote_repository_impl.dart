@@ -127,34 +127,44 @@ class AnimalRemoteRepositoryImpl implements AnimalRemoteRepository {
 
       // Faz chamadas separadas para cada endpoint
       final especiesResponse = await httpService.get(
-        path: 'api/v1/especies/',
+        path: API.especies,
         isAuth: true,
       );
       print('✅ Espécies carregadas: ${especiesResponse.data is List ? especiesResponse.data.length : especiesResponse.data['results']?.length ?? 0}');
 
       final racasResponse = await httpService.get(
-        path: 'api/v1/racas/',
+        path: API.racas,
         isAuth: true,
       );
       print('✅ Raças carregadas: ${racasResponse.data is List ? racasResponse.data.length : racasResponse.data['results']?.length ?? 0}');
 
       final propriedadesResponse = await httpService.get(
-        path: 'api/v1/propriedades/',
+        path: API.propriedades,
         isAuth: true,
       );
       print('✅ Propriedades carregadas: ${propriedadesResponse.data is List ? propriedadesResponse.data.length : propriedadesResponse.data['results']?.length ?? 0}');
 
       final lotesResponse = await httpService.get(
-        path: 'api/v1/lotes/',
+        path: API.lotes,
         isAuth: true,
       );
       print('✅ Lotes carregados: ${lotesResponse.data is List ? lotesResponse.data.length : lotesResponse.data['results']?.length ?? 0}');
 
-      final animaisResponse = await httpService.get(
+      // Carrega apenas machos para possíveis pais
+      final paisResponse = await httpService.get(
         path: API.animais,
+        queryParameters: {'sexo': 'M', 'status': 'ativo'},
         isAuth: true,
       );
-      print('✅ Animais carregados: ${animaisResponse.data is List ? animaisResponse.data.length : animaisResponse.data['results']?.length ?? 0}');
+      print('✅ Possíveis pais carregados: ${paisResponse.data is List ? paisResponse.data.length : paisResponse.data['results']?.length ?? 0}');
+
+      // Carrega apenas fêmeas para possíveis mães
+      final maesResponse = await httpService.get(
+        path: API.animais,
+        queryParameters: {'sexo': 'F', 'status': 'ativo'},
+        isAuth: true,
+      );
+      print('✅ Possíveis mães carregadas: ${maesResponse.data is List ? maesResponse.data.length : maesResponse.data['results']?.length ?? 0}');
 
       // Combina os dados em uma única estrutura
       final opcoes = {
@@ -162,8 +172,8 @@ class AnimalRemoteRepositoryImpl implements AnimalRemoteRepository {
         'racas': racasResponse.data is List ? racasResponse.data : (racasResponse.data['results'] ?? []),
         'propriedades': propriedadesResponse.data is List ? propriedadesResponse.data : (propriedadesResponse.data['results'] ?? []),
         'lotes': lotesResponse.data is List ? lotesResponse.data : (lotesResponse.data['results'] ?? []),
-        'possiveis_pais': animaisResponse.data is List ? animaisResponse.data : (animaisResponse.data['results'] ?? []),
-        'possiveis_maes': animaisResponse.data is List ? animaisResponse.data : (animaisResponse.data['results'] ?? []),
+        'possiveis_pais': paisResponse.data is List ? paisResponse.data : (paisResponse.data['results'] ?? []),
+        'possiveis_maes': maesResponse.data is List ? maesResponse.data : (maesResponse.data['results'] ?? []),
         'categorias': ['Bezerro', 'Bezerro desmamado', 'Garrote', 'Boi', 'Touro', 'Bezerra', 'Bezerra desmamada', 'Novilha', 'Vaca', 'Matriz'], // Categorias fixas
       };
 
@@ -183,7 +193,7 @@ class AnimalRemoteRepositoryImpl implements AnimalRemoteRepository {
   Future<List<RacaAnimal>> getRacasByEspecie(String especieId) async {
     try {
       Response response = await httpService.get(
-        path: 'api/v1/racas/',
+        path: API.racas,
         queryParameters: {'especie': especieId},
         isAuth: true,
       );
@@ -198,9 +208,116 @@ class AnimalRemoteRepositoryImpl implements AnimalRemoteRepository {
   @override
   Future<List<String>> getCategoriasByEspecie(String especieId) async {
     try {
-      // Retorna categorias com os valores que a API espera (em minúscula)
-      // Baseado nas categorias disponíveis retornadas pela API
+      // Como o endpoint específico ainda não existe no backend,
+      // vamos implementar localmente baseado no mapeamento das espécies
+
+      // Primeiro, tentamos buscar a espécie para obter o nome
+      Response especieResponse = await httpService.get(
+        path: API.especieById(especieId),
+        isAuth: true,
+      );
+
+      String especieNome = especieResponse.data['nome'] ?? '';
+
+      // Mapeamento local das categorias por espécie
+      Map<String, List<String>> categoriasPorEspecie = {
+        'bovino': ['bezerro', 'bezerra', 'novilho', 'novilha', 'touro', 'vaca'],
+        'caprino': ['cabrito', 'cabrita', 'bode_jovem', 'cabra_jovem', 'bode', 'cabra'],
+        'ovino': ['cordeiro', 'cordeira', 'carneiro_jovem', 'ovelha_jovem', 'carneiro', 'ovelha'],
+      };
+
+      List<String> categorias = categoriasPorEspecie[especieNome] ?? [];
+
+      return categorias;
+    } catch (e) {
+      print('❌ Erro ao carregar categorias por espécie: $e');
+      // Em caso de erro, retornar categorias bovinas como padrão
       return ['bezerro', 'bezerra', 'novilho', 'novilha', 'touro', 'vaca'];
+    }
+  }
+
+  @override
+  Future<List<AnimalEntity>> getFemeas({
+    String? propriedadeId,
+    String? especieId,
+    String? status = 'ativo',
+  }) async {
+    try {
+      Map<String, dynamic> queryParameters = {
+        'sexo': 'F',
+        'status': status,
+      };
+
+      if (propriedadeId != null) {
+        queryParameters['propriedade'] = propriedadeId;
+      }
+
+      if (especieId != null) {
+        queryParameters['especie'] = especieId;
+      }
+
+      Response response = await httpService.get(
+        path: API.animais,
+        queryParameters: queryParameters,
+        isAuth: true,
+      );
+
+      List<dynamic> data = response.data is List ? response.data : (response.data['results'] ?? []);
+      return data.map((json) => AnimalEntity.fromJson(json)).toList();
+    } catch (e) {
+      throw await AgroNexusException.fromDioError(e);
+    }
+  }
+
+  @override
+  Future<List<AnimalEntity>> getMachos({
+    String? propriedadeId,
+    String? especieId,
+    String? status = 'ativo',
+  }) async {
+    try {
+      Map<String, dynamic> queryParameters = {
+        'sexo': 'M',
+        'status': status,
+      };
+
+      if (propriedadeId != null) {
+        queryParameters['propriedade'] = propriedadeId;
+      }
+
+      if (especieId != null) {
+        queryParameters['especie'] = especieId;
+      }
+
+      Response response = await httpService.get(
+        path: API.animais,
+        queryParameters: queryParameters,
+        isAuth: true,
+      );
+
+      List<dynamic> data = response.data is List ? response.data : (response.data['results'] ?? []);
+      return data.map((json) => AnimalEntity.fromJson(json)).toList();
+    } catch (e) {
+      throw await AgroNexusException.fromDioError(e);
+    }
+  }
+
+  @override
+  Future<List<AnimalEntity>> getFilhosDaMae(String maeId, {String? status = 'ativo'}) async {
+    try {
+      Map<String, dynamic> queryParameters = {
+        'mae': maeId,
+        'status': status,
+      };
+
+      Response response = await httpService.get(
+        path: API.animais,
+        queryParameters: queryParameters,
+        isAuth: true,
+      );
+
+      List<dynamic> data = response.data is List ? response.data : (response.data['results'] ?? []);
+      return data.map((json) => AnimalEntity.fromJson(json)).toList();
     } catch (e) {
       throw await AgroNexusException.fromDioError(e);
     }

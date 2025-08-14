@@ -52,4 +52,8 @@ class AnimalService {
   Future<List<String>> getCategoriasByEspecie(String especieId) async {
     return await _repository.getCategoriasByEspecie(especieId);
   }
+
+  Future<List<AnimalEntity>> getFilhosDaMae(String maeId, {String? status = 'ativo'}) async {
+    return await _repository.getFilhosDaMae(maeId, status: status);
+  }
 }
