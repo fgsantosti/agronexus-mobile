@@ -6,7 +6,6 @@ import 'package:agronexus/presentation/bloc/reproducao/reproducao_state.dart';
 import 'package:agronexus/domain/models/reproducao_entity.dart';
 import 'package:agronexus/presentation/reproducao/cadastro_inseminacao_screen.dart';
 import 'package:agronexus/presentation/reproducao/editar_inseminacao_screen.dart';
-import 'package:agronexus/presentation/reproducao/cadastro_diagnostico_gestacao_screen.dart';
 import 'package:intl/intl.dart';
 
 class InseminacaoScreen extends StatefulWidget {
@@ -229,7 +228,7 @@ class _InseminacaoScreenState extends State<InseminacaoScreen> {
                           ),
                         ),
                         Text(
-                          'ID: ${inseminacao.animal.idAnimal}',
+                          'Identificação: ${inseminacao.animal.idAnimal}',
                           style: TextStyle(
                             fontSize: 12,
                             color: Colors.grey.shade600,
@@ -237,41 +236,6 @@ class _InseminacaoScreenState extends State<InseminacaoScreen> {
                         ),
                       ],
                     ),
-                  ),
-                  PopupMenuButton<String>(
-                    onSelected: (value) => _executarAcao(value, inseminacao),
-                    itemBuilder: (context) => [
-                      const PopupMenuItem(
-                        value: 'detalhes',
-                        child: Row(
-                          children: [
-                            Icon(Icons.visibility, size: 20),
-                            SizedBox(width: 8),
-                            Text('Ver Detalhes'),
-                          ],
-                        ),
-                      ),
-                      const PopupMenuItem(
-                        value: 'editar',
-                        child: Row(
-                          children: [
-                            Icon(Icons.edit, size: 20),
-                            SizedBox(width: 8),
-                            Text('Editar'),
-                          ],
-                        ),
-                      ),
-                      const PopupMenuItem(
-                        value: 'excluir',
-                        child: Row(
-                          children: [
-                            Icon(Icons.delete, size: 20, color: Colors.red),
-                            SizedBox(width: 8),
-                            Text('Excluir', style: TextStyle(color: Colors.red)),
-                          ],
-                        ),
-                      ),
-                    ],
                   ),
                 ],
               ),
@@ -321,24 +285,6 @@ class _InseminacaoScreenState extends State<InseminacaoScreen> {
                         ),
                       ),
                   ],
-                ),
-              ],
-              if (inseminacao.observacoes != null) ...[
-                const SizedBox(height: 8),
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: Colors.grey.shade50,
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                  child: Text(
-                    'Obs: ${inseminacao.observacoes}',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Colors.grey.shade700,
-                    ),
-                  ),
                 ),
               ],
             ],
@@ -428,26 +374,27 @@ class _InseminacaoScreenState extends State<InseminacaoScreen> {
     }
   }
 
-  void _navegarParaDiagnostico(InseminacaoEntity inseminacao) async {
-    final bloc = context.read<ReproducaoBloc>();
-    print('DEBUG LISTAGEM - Navegando para diagnóstico da inseminação ${inseminacao.id}');
-    final resultado = await Navigator.of(context).push<bool>(
-      MaterialPageRoute(
-        builder: (context) => BlocProvider.value(
-          value: bloc,
-          child: CadastroDiagnosticoGestacaoScreen(
-            inseminacaoSelecionada: inseminacao,
-          ),
-        ),
-      ),
-    );
-
-    print('DEBUG LISTAGEM - Resultado do diagnóstico: $resultado');
-    if (resultado == true) {
-      print('DEBUG LISTAGEM - Recarregando lista após diagnóstico');
-      _loadInseminacoes();
-    }
-  }
+  // Método mantido como referência (não usado atualmente)
+  // void _navegarParaDiagnostico(InseminacaoEntity inseminacao) async {
+  //   final bloc = context.read<ReproducaoBloc>();
+  //   print('DEBUG LISTAGEM - Navegando para diagnóstico da inseminação ${inseminacao.id}');
+  //   final resultado = await Navigator.of(context).push<bool>(
+  //     MaterialPageRoute(
+  //       builder: (context) => BlocProvider.value(
+  //         value: bloc,
+  //         child: CadastroDiagnosticoGestacaoScreen(
+  //           inseminacaoSelecionada: inseminacao,
+  //         ),
+  //       ),
+  //     ),
+  //   );
+  //
+  //   print('DEBUG LISTAGEM - Resultado do diagnóstico: $resultado');
+  //   if (resultado == true) {
+  //     print('DEBUG LISTAGEM - Recarregando lista após diagnóstico');
+  //     _loadInseminacoes();
+  //   }
+  // }
 
   void _mostrarDetalhes(InseminacaoEntity inseminacao) {
     showModalBottomSheet(
@@ -491,10 +438,28 @@ class _InseminacaoScreenState extends State<InseminacaoScreen> {
                       ),
                     ),
                   ),
-                  IconButton(
-                    onPressed: () => _navegarParaEdicao(inseminacao),
-                    icon: const Icon(Icons.edit),
-                    tooltip: 'Editar',
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      IconButton(
+                        onPressed: () {
+                          Navigator.of(context).pop(); // Fechar o modal primeiro
+                          _navegarParaEdicao(inseminacao);
+                        },
+                        icon: const Icon(Icons.edit),
+                        tooltip: 'Editar',
+                        color: Colors.blue,
+                      ),
+                      IconButton(
+                        onPressed: () {
+                          Navigator.of(context).pop(); // Fechar o modal primeiro
+                          _confirmarExclusao(inseminacao);
+                        },
+                        icon: const Icon(Icons.delete),
+                        tooltip: 'Excluir',
+                        color: Colors.red,
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -551,27 +516,25 @@ class _InseminacaoScreenState extends State<InseminacaoScreen> {
     );
   }
 
-  void _executarAcao(String acao, InseminacaoEntity inseminacao) {
-    switch (acao) {
-      case 'detalhes':
-        _mostrarDetalhes(inseminacao);
-        break;
-      case 'editar':
-        _navegarParaEdicao(inseminacao);
-        break;
-      case 'diagnostico':
-        _navegarParaDiagnostico(inseminacao);
-        break;
-      case 'excluir':
-        _confirmarExclusao(inseminacao);
-        break;
-    }
-  }
+  // Método mantido como referência (não usado atualmente)
+  // void _executarAcao(String acao, InseminacaoEntity inseminacao) {
+  //   switch (acao) {
+  //     case 'detalhes':
+  //       _mostrarDetalhes(inseminacao);
+  //       break;
+  //     case 'editar':
+  //       _navegarParaEdicao(inseminacao);
+  //       break;
+  //     case 'diagnostico':
+  //       _navegarParaDiagnostico(inseminacao);
+  //       break;
+  //     case 'excluir':
+  //       _confirmarExclusao(inseminacao);
+  //       break;
+  //   }
+  // }
 
   void _confirmarExclusao(InseminacaoEntity inseminacao) {
-    // Obter referência ao bloc antes de criar o dialog
-    final reproductionBloc = context.read<ReproducaoBloc>();
-
     showDialog(
       context: context,
       builder: (dialogContext) => AlertDialog(
@@ -588,7 +551,8 @@ class _InseminacaoScreenState extends State<InseminacaoScreen> {
           TextButton(
             onPressed: () {
               Navigator.of(dialogContext).pop();
-              reproductionBloc.add(DeleteInseminacaoEvent(inseminacao.id));
+              // Usar o contexto da tela principal, não do dialog
+              context.read<ReproducaoBloc>().add(DeleteInseminacaoEvent(inseminacao.id));
             },
             style: TextButton.styleFrom(foregroundColor: Colors.red),
             child: const Text('Excluir'),

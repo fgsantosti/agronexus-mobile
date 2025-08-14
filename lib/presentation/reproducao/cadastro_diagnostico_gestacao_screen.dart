@@ -133,7 +133,7 @@ class _CadastroDiagnosticoGestacaoScreenState extends State<CadastroDiagnosticoG
       inseminacao: _inseminacaoSelecionada!,
       dataDiagnostico: _dataSelecionada,
       resultado: _resultadoSelecionado!,
-      metodo: _metodoController.text.isNotEmpty ? _metodoController.text : null,
+      metodo: _metodoController.text.trim(),
       observacoes: _observacoesController.text.trim(), // Sempre obrigatório
       dataPartoPrevista: _resultadoSelecionado == ResultadoDiagnostico.positivo ? _calcularDataPartoPrevista() : null,
     );
@@ -360,12 +360,18 @@ class _CadastroDiagnosticoGestacaoScreenState extends State<CadastroDiagnosticoG
     return TextFormField(
       controller: _metodoController,
       decoration: const InputDecoration(
-        labelText: 'Método Utilizado',
+        labelText: 'Método Utilizado*',
         border: OutlineInputBorder(),
         prefixIcon: Icon(Icons.biotech),
         hintText: 'Ex: Ultrassom, Palpação, Exame de sangue',
       ),
       maxLines: 1,
+      validator: (value) {
+        if (value == null || value.trim().isEmpty) {
+          return 'Informe o método utilizado';
+        }
+        return null;
+      },
     );
   }
 

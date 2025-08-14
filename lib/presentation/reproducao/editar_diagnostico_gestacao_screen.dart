@@ -46,7 +46,7 @@ class _EditarDiagnosticoGestacaoScreenState extends State<EditarDiagnosticoGesta
     _dataSelecionada = diagnostico.dataDiagnostico;
     _dataDiagnosticoController.text = _dateFormat.format(_dataSelecionada);
     _resultadoSelecionado = diagnostico.resultado;
-    _metodoController.text = diagnostico.metodo ?? '';
+    _metodoController.text = diagnostico.metodo;
     _observacoesController.text = diagnostico.observacoes;
   }
 
@@ -94,16 +94,12 @@ class _EditarDiagnosticoGestacaoScreenState extends State<EditarDiagnosticoGesta
       return;
     }
 
-    setState(() {
-      _isLoading = true;
-    });
-
     final diagnosticoAtualizado = DiagnosticoGestacaoEntity(
       id: widget.diagnostico.id,
       inseminacao: widget.diagnostico.inseminacao,
       dataDiagnostico: _dataSelecionada,
       resultado: _resultadoSelecionado!,
-      metodo: _metodoController.text.isNotEmpty ? _metodoController.text : null,
+      metodo: _metodoController.text.trim(),
       observacoes: _observacoesController.text.trim(), // Sempre obrigatório
       dataPartoPrevista: _resultadoSelecionado == ResultadoDiagnostico.positivo ? _calcularDataPartoPrevista() : null,
     );
@@ -124,13 +120,6 @@ class _EditarDiagnosticoGestacaoScreenState extends State<EditarDiagnosticoGesta
         title: const Text('Editar Diagnóstico'),
         backgroundColor: Colors.green,
         foregroundColor: Colors.white,
-        actions: [
-          TextButton.icon(
-            onPressed: _isLoading ? null : _atualizarDiagnostico,
-            icon: _isLoading ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)) : const Icon(Icons.save, color: Colors.white),
-            label: const Text('Salvar', style: TextStyle(color: Colors.white)),
-          ),
-        ],
       ),
       body: BlocListener<ReproducaoBloc, ReproducaoState>(
         listener: (context, state) {
@@ -141,6 +130,10 @@ class _EditarDiagnosticoGestacaoScreenState extends State<EditarDiagnosticoGesta
             _mostrarSnackbar('Erro: ${state.message}');
             setState(() {
               _isLoading = false;
+            });
+          } else if (state is ReproducaoLoading) {
+            setState(() {
+              _isLoading = true;
             });
           }
         },
@@ -173,6 +166,10 @@ class _EditarDiagnosticoGestacaoScreenState extends State<EditarDiagnosticoGesta
 
                 // Data de parto prevista (se positivo)
                 _buildDataPartoPrevista(),
+                const SizedBox(height: 24),
+
+                // Botão de atualizar
+                _buildBotaoAtualizar(),
               ],
             ),
           ),
@@ -298,12 +295,18 @@ class _EditarDiagnosticoGestacaoScreenState extends State<EditarDiagnosticoGesta
     return TextFormField(
       controller: _metodoController,
       decoration: const InputDecoration(
-        labelText: 'Método Utilizado',
+        labelText: 'Método Utilizado*',
         border: OutlineInputBorder(),
         prefixIcon: Icon(Icons.biotech),
         hintText: 'Ex: Ultrassom, Palpação, Exame de sangue',
       ),
       maxLines: 1,
+      validator: (value) {
+        if (value == null || value.trim().isEmpty) {
+          return 'Informe o método utilizado';
+        }
+        return null;
+      },
     );
   }
 
@@ -365,6 +368,43 @@ class _EditarDiagnosticoGestacaoScreenState extends State<EditarDiagnosticoGesta
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildBotaoAtualizar() {
+    return SizedBox(
+      width: double.infinity,
+      child: ElevatedButton(
+        onPressed: _isLoading ? null : _atualizarDiagnostico,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Theme.of(context).primaryColor,
+          foregroundColor: Colors.white,
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(8),
+          ),
+        ),
+        child: _isLoading
+            ? const Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  SizedBox(
+                    height: 20,
+                    width: 20,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                    ),
+                  ),
+                  SizedBox(width: 8),
+                  Text('Atualizando...'),
+                ],
+              )
+            : const Text(
+                'Atualizar Diagnóstico',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              ),
       ),
     );
   }

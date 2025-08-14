@@ -292,7 +292,7 @@ class _DiagnosticoGestacaoScreenState extends State<DiagnosticoGestacaoScreen> {
                   ),
                 ],
               ),
-              if (diagnostico.metodo != null && diagnostico.metodo!.isNotEmpty) ...[
+              if (diagnostico.metodo.isNotEmpty) ...[
                 const SizedBox(height: 8),
                 Row(
                   children: [
@@ -386,35 +386,26 @@ class _DiagnosticoGestacaoScreenState extends State<DiagnosticoGestacaoScreen> {
                       ),
                     ),
                   ),
-                  PopupMenuButton<String>(
-                    onSelected: (value) {
-                      Navigator.of(context).pop(); // Fechar o modal primeiro
-                      if (value == 'editar') {
-                        _editarDiagnostico(diagnostico);
-                      } else if (value == 'excluir') {
-                        _confirmDelete(diagnostico);
-                      }
-                    },
-                    itemBuilder: (context) => [
-                      const PopupMenuItem(
-                        value: 'editar',
-                        child: Row(
-                          children: [
-                            Icon(Icons.edit, size: 20),
-                            SizedBox(width: 8),
-                            Text('Editar'),
-                          ],
-                        ),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      IconButton(
+                        onPressed: () {
+                          Navigator.of(context).pop(); // Fechar o modal primeiro
+                          _editarDiagnostico(diagnostico);
+                        },
+                        icon: const Icon(Icons.edit),
+                        tooltip: 'Editar',
+                        color: Colors.blue,
                       ),
-                      const PopupMenuItem(
-                        value: 'excluir',
-                        child: Row(
-                          children: [
-                            Icon(Icons.delete, size: 20, color: Colors.red),
-                            SizedBox(width: 8),
-                            Text('Excluir', style: TextStyle(color: Colors.red)),
-                          ],
-                        ),
+                      IconButton(
+                        onPressed: () {
+                          Navigator.of(context).pop(); // Fechar o modal primeiro
+                          _confirmDelete(diagnostico);
+                        },
+                        icon: const Icon(Icons.delete),
+                        tooltip: 'Excluir',
+                        color: Colors.red,
                       ),
                     ],
                   ),
@@ -430,7 +421,7 @@ class _DiagnosticoGestacaoScreenState extends State<DiagnosticoGestacaoScreen> {
                     _buildDetalheItem('Data do Diagnóstico', _dateFormat.format(diagnostico.dataDiagnostico)),
                     _buildDetalheItem('Data da Inseminação', _dateFormat.format(diagnostico.inseminacao.dataInseminacao)),
                     _buildDetalheItem('Tipo de Inseminação', diagnostico.inseminacao.tipo.label),
-                    if (diagnostico.metodo != null && diagnostico.metodo!.isNotEmpty) _buildDetalheItem('Método de Diagnóstico', diagnostico.metodo!),
+                    if (diagnostico.metodo.isNotEmpty) _buildDetalheItem('Método de Diagnóstico', diagnostico.metodo),
                     if (diagnostico.dataPartoPrevista != null) _buildDetalheItem('Data Prevista do Parto', _dateFormat.format(diagnostico.dataPartoPrevista!)),
                     if (diagnostico.observacoes.isNotEmpty) _buildDetalheItem('Observações', diagnostico.observacoes),
                   ],
@@ -491,6 +482,9 @@ class _DiagnosticoGestacaoScreenState extends State<DiagnosticoGestacaoScreen> {
   }
 
   void _confirmDelete(DiagnosticoGestacaoEntity diagnostico) {
+    // Salvar referência ao BLoC antes de abrir o dialog
+    final reproducaoBloc = context.read<ReproducaoBloc>();
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -504,9 +498,9 @@ class _DiagnosticoGestacaoScreenState extends State<DiagnosticoGestacaoScreen> {
           TextButton(
             onPressed: () {
               Navigator.of(context).pop();
-              context.read<ReproducaoBloc>().add(
-                    DeleteDiagnosticoGestacaoEvent(diagnostico.id),
-                  );
+              reproducaoBloc.add(
+                DeleteDiagnosticoGestacaoEvent(diagnostico.id),
+              );
             },
             style: TextButton.styleFrom(foregroundColor: Colors.red),
             child: const Text('Excluir'),
