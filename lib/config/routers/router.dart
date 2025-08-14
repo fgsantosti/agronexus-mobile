@@ -510,6 +510,9 @@ enum AgroNexusRouter {
                     BlocProvider(
                       create: (context) => ReproducaoBloc(getIt<ReproducaoService>()),
                     ),
+                    BlocProvider(
+                      create: (context) => getIt<AnimalBloc>(),
+                    ),
                   ],
                   child: ManejoReprodutivoScreen(),
                 ),

@@ -197,11 +197,9 @@ class ReproducaoService {
       dataFim: now,
     );
 
-    // Filtrar apenas gestações positivas que ainda não têm parto registrado
+    // Filtrar apenas gestações positivas (independente de ter data prevista de parto)
     return diagnosticos.where((diagnostico) {
-      return diagnostico.resultado == ResultadoDiagnostico.positivo &&
-          diagnostico.dataPartoPrevista != null &&
-          diagnostico.dataPartoPrevista!.isBefore(now.add(Duration(days: 30))); // Próximas a parir
+      return diagnostico.resultado == ResultadoDiagnostico.positivo;
     }).toList();
   }
 
