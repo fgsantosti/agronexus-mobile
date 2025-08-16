@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:agronexus/presentation/bloc/reproducao/reproducao_bloc.dart';
 import 'package:agronexus/presentation/bloc/reproducao/reproducao_event.dart';
 import 'package:agronexus/presentation/bloc/reproducao/reproducao_state.dart';
+import 'package:agronexus/presentation/widgets/standard_app_bar.dart';
 
 class SelecionarLotesScreen extends StatefulWidget {
   final String estacaoMontaId;
@@ -39,10 +40,8 @@ class _SelecionarLotesScreenState extends State<SelecionarLotesScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Selecionar Lotes'),
-        backgroundColor: Colors.green.shade700,
-        foregroundColor: Colors.white,
+      appBar: buildStandardAppBar(
+        title: 'Selecionar Lotes',
         actions: [
           TextButton(
             onPressed: _isLoading ? null : _salvarAssociacoes,

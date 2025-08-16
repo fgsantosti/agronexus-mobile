@@ -4,6 +4,7 @@ import 'package:agronexus/presentation/bloc/reproducao/reproducao_bloc.dart';
 import 'package:agronexus/presentation/bloc/reproducao/reproducao_event.dart';
 import 'package:agronexus/presentation/bloc/reproducao/reproducao_state.dart';
 import 'package:agronexus/domain/models/reproducao_entity.dart';
+import 'package:agronexus/presentation/widgets/standard_app_bar.dart';
 import 'package:intl/intl.dart';
 
 class EditarEstacaoMontaScreen extends StatefulWidget {
@@ -156,11 +157,8 @@ class _EditarEstacaoMontaScreenState extends State<EditarEstacaoMontaScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Editar Estação de Monta'),
-        backgroundColor: Colors.blue.shade600,
-        foregroundColor: Colors.white,
-        elevation: 0,
+      appBar: buildStandardAppBar(
+        title: 'Editar Estação de Monta',
         actions: [
           IconButton(
             icon: const Icon(Icons.delete),

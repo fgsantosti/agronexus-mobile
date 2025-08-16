@@ -9,6 +9,7 @@ import 'package:agronexus/presentation/reproducao/parto_screen.dart';
 import 'package:agronexus/presentation/reproducao/estacao_monta_screen.dart';
 import 'package:agronexus/presentation/reproducao/protocolo_iatf_screen.dart';
 import 'package:agronexus/presentation/reproducao/relatorios_screen.dart';
+import 'package:agronexus/presentation/widgets/standard_app_bar.dart';
 
 class ManejoReprodutivoScreen extends StatefulWidget {
   const ManejoReprodutivoScreen({super.key});
@@ -60,11 +61,9 @@ class _ManejoReprodutivoScreenState extends State<ManejoReprodutivoScreen> with 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Manejo Reprodutivo'),
-        backgroundColor: Colors.pink.shade400,
-        foregroundColor: Colors.white,
-        elevation: 0,
+      appBar: buildStandardAppBar(
+        title: 'Manejo Reprodutivo',
+        showBack: false,
         bottom: TabBar(
           controller: _tabController,
           isScrollable: true,

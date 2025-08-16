@@ -4,10 +4,13 @@ import 'package:agronexus/presentation/bloc/reproducao/reproducao_bloc.dart';
 import 'package:agronexus/presentation/bloc/reproducao/reproducao_event.dart';
 import 'package:agronexus/presentation/bloc/reproducao/reproducao_state.dart';
 import 'package:agronexus/domain/models/reproducao_entity.dart';
+import 'package:agronexus/domain/models/animal_entity.dart';
 import 'package:agronexus/presentation/reproducao/selecionar_lotes_screen.dart';
 import 'package:agronexus/presentation/reproducao/cadastro_inseminacao_screen.dart';
 import 'package:agronexus/presentation/reproducao/cadastro_diagnostico_gestacao_screen.dart';
 import 'package:agronexus/presentation/reproducao/cadastro_parto_screen.dart';
+import 'package:agronexus/presentation/reproducao/configurar_padroes_estacao_screen.dart';
+import 'package:agronexus/presentation/widgets/standard_app_bar.dart';
 import 'package:intl/intl.dart';
 
 class EstacaoMontaDetalheScreen extends StatefulWidget {
@@ -32,11 +35,28 @@ class _EstacaoMontaDetalheScreenState extends State<EstacaoMontaDetalheScreen> w
   List<dynamic> _lotes = [];
   Map<String, dynamic>? _dashboard;
 
+  // Configurações padrão da estação
+  TipoInseminacao? _tipoInseminacaoPadrao;
+  ProtocoloIATFEntity? _protocoloPadrao;
+  AnimalEntity? _reprodutorPadrao;
+  String? _semenUtilizadoPadrao;
+
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 5, vsync: this);
     _estacao = widget.estacao;
+
+    // Inicializar configurações padrão demonstrativas
+    _tipoInseminacaoPadrao = TipoInseminacao.iatf;
+    _semenUtilizadoPadrao = "Sêmen Premium IATF";
+
+    print('DEBUG INIT: Configurações iniciais:');
+    print('- Tipo: ${_tipoInseminacaoPadrao?.label ?? "Nenhum"}');
+    print('- Reprodutor: ${_reprodutorPadrao?.identificacaoUnica ?? "Nenhum"}');
+    print('- Protocolo: ${_protocoloPadrao?.nome ?? "Nenhum"}');
+    print('- Sêmen: ${_semenUtilizadoPadrao ?? "Nenhum"}');
+
     _loadData();
   }
 
@@ -49,15 +69,29 @@ class _EstacaoMontaDetalheScreenState extends State<EstacaoMontaDetalheScreen> w
   void _loadData() {
     context.read<ReproducaoBloc>().add(LoadEstacaoMontaDetalheEvent(widget.estacaoMontaId));
     context.read<ReproducaoBloc>().add(LoadDashboardEstacaoEvent(widget.estacaoMontaId));
+    // Carregar dados das abas
+    _loadInseminacoes();
+    _loadDiagnosticos();
+    _loadPartos();
+  }
+
+  void _loadInseminacoes() {
+    context.read<ReproducaoBloc>().add(LoadInseminacoesPorEstacaoEvent(widget.estacaoMontaId));
+  }
+
+  void _loadDiagnosticos() {
+    context.read<ReproducaoBloc>().add(LoadDiagnosticosPorEstacaoEvent(widget.estacaoMontaId));
+  }
+
+  void _loadPartos() {
+    context.read<ReproducaoBloc>().add(LoadPartosPorEstacaoEvent(widget.estacaoMontaId));
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text(_estacao?.nome ?? 'Estação de Monta'),
-        backgroundColor: Colors.green.shade700,
-        foregroundColor: Colors.white,
+      appBar: buildStandardAppBar(
+        title: _estacao?.nome ?? 'Estação de Monta',
         bottom: TabBar(
           controller: _tabController,
           indicatorColor: Colors.white,
@@ -124,6 +158,8 @@ class _EstacaoMontaDetalheScreenState extends State<EstacaoMontaDetalheScreen> w
         children: [
           _buildInfoCard(),
           const SizedBox(height: 16),
+          _buildConfiguracoesPadraoCard(),
+          const SizedBox(height: 16),
           _buildResumoCard(),
           const SizedBox(height: 16),
           _buildProgressoCard(),
@@ -132,6 +168,194 @@ class _EstacaoMontaDetalheScreenState extends State<EstacaoMontaDetalheScreen> w
         ],
       ),
     );
+  }
+
+  Widget _buildConfiguracoesPadraoCard() {
+    final temConfiguracoes = _tipoInseminacaoPadrao != null || _protocoloPadrao != null || _reprodutorPadrao != null || (_semenUtilizadoPadrao != null && _semenUtilizadoPadrao!.isNotEmpty);
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Configurações Padrão para Inseminações',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      if (temConfiguracoes) ...[
+                        const SizedBox(height: 4),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: Colors.green.shade100,
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Text(
+                            'Ativo',
+                            style: TextStyle(
+                              fontSize: 10,
+                              color: Colors.green.shade700,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            _buildCampoConfiguracaoPadrao(
+              'Protocolo IATF',
+              _protocoloPadrao?.nome ?? 'Não configurado',
+              Icons.description,
+            ),
+            const SizedBox(height: 8),
+            _buildCampoConfiguracaoPadrao(
+              'Tipo de Inseminação',
+              _tipoInseminacaoPadrao?.label ?? 'Não configurado',
+              Icons.category,
+            ),
+            const SizedBox(height: 8),
+            _buildCampoConfiguracaoPadrao(
+              'Reprodutor',
+              _reprodutorPadrao?.identificacaoUnica ?? 'Não configurado',
+              Icons.pets,
+            ),
+            const SizedBox(height: 8),
+            _buildCampoConfiguracaoPadrao(
+              'Sêmen Utilizado',
+              _semenUtilizadoPadrao ?? 'Não configurado',
+              Icons.science,
+            ),
+            const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: _configurarPadroes,
+                icon: const Icon(Icons.edit),
+                label: Text(
+                  temConfiguracoes ? 'Editar Configurações Padrão' : 'Configurar Padrões para Inseminação',
+                  overflow: TextOverflow.ellipsis,
+                ),
+                style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  backgroundColor: temConfiguracoes ? Colors.green.shade600 : Colors.blue.shade600,
+                  foregroundColor: Colors.white,
+                ),
+              ),
+            ),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCampoConfiguracaoPadrao(String label, String? valor, IconData icon) {
+    final isConfigured = valor != null && valor != 'Não configurado';
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 2),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, size: 16, color: isConfigured ? Colors.green.shade600 : Colors.grey[600]),
+          const SizedBox(width: 8),
+          Expanded(
+            flex: 2,
+            child: Text(
+              '$label:',
+              style: const TextStyle(fontWeight: FontWeight.w500),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            flex: 3,
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    valor ?? 'Não configurado',
+                    style: TextStyle(
+                      color: isConfigured ? Colors.green.shade700 : Colors.grey[600],
+                      fontStyle: isConfigured ? FontStyle.normal : FontStyle.italic,
+                      fontWeight: isConfigured ? FontWeight.w500 : FontWeight.normal,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                    maxLines: 1,
+                  ),
+                ),
+                if (isConfigured) ...[
+                  const SizedBox(width: 4),
+                  Icon(
+                    Icons.check_circle,
+                    size: 16,
+                    color: Colors.green.shade600,
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _configurarPadroes() {
+    if (_estacao == null) return;
+
+    final reproductionBloc = context.read<ReproducaoBloc>();
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => BlocProvider.value(
+          value: reproductionBloc,
+          child: ConfigurarPadroesEstacaoScreen(
+            estacao: _estacao!,
+            tipoInseminacaoPadrao: _tipoInseminacaoPadrao,
+            protocoloPadrao: _protocoloPadrao,
+            reprodutorPadrao: _reprodutorPadrao,
+            semenUtilizadoPadrao: _semenUtilizadoPadrao,
+          ),
+        ),
+      ),
+    ).then((configuracoes) {
+      if (configuracoes != null) {
+        // Atualizar as configurações locais
+        setState(() {
+          // Atualizar tipo de inseminação
+          _tipoInseminacaoPadrao = configuracoes['tipo_inseminacao_obj'];
+
+          // Atualizar sêmen utilizado
+          _semenUtilizadoPadrao = configuracoes['semen_utilizado'];
+
+          // Atualizar reprodutor
+          _reprodutorPadrao = configuracoes['reprodutor_obj'];
+
+          // Atualizar protocolo IATF
+          _protocoloPadrao = configuracoes['protocolo_iatf_obj'];
+
+          print('DEBUG: Configurações atualizadas:');
+          print('- Tipo: ${_tipoInseminacaoPadrao?.label ?? "Nenhum"}');
+          print('- Reprodutor: ${_reprodutorPadrao?.identificacaoUnica ?? "Nenhum"}');
+          print('- Protocolo: ${_protocoloPadrao?.nome ?? "Nenhum"}');
+          print('- Sêmen: ${_semenUtilizadoPadrao ?? "Nenhum"}');
+        });
+      }
+    });
   }
 
   Widget _buildInfoCard() {
@@ -464,11 +688,51 @@ class _EstacaoMontaDetalheScreenState extends State<EstacaoMontaDetalheScreen> w
                 return const Center(child: CircularProgressIndicator());
               }
 
-              // Carregar inseminações da estação quando necessário
-              context.read<ReproducaoBloc>().add(LoadInseminacoesPorEstacaoEvent(widget.estacaoMontaId));
+              if (state is InseminacoesLoaded) {
+                final inseminacoes = state.inseminacoes;
+
+                if (inseminacoes.isEmpty) {
+                  return const Center(
+                    child: Text('Nenhuma inseminação encontrada para esta estação'),
+                  );
+                }
+
+                return ListView.builder(
+                  itemCount: inseminacoes.length,
+                  itemBuilder: (context, index) {
+                    final inseminacao = inseminacoes[index];
+                    return Card(
+                      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                      child: ListTile(
+                        title: Text(inseminacao.animal.identificacaoUnica),
+                        subtitle: Text('Data: ${DateFormat('dd/MM/yyyy').format(inseminacao.dataInseminacao)}'),
+                        trailing: Text(inseminacao.tipo.label),
+                      ),
+                    );
+                  },
+                );
+              }
+
+              if (state is ReproducaoError) {
+                return Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.error_outline, size: 64, color: Colors.red),
+                      const SizedBox(height: 16),
+                      Text('Erro ao carregar inseminações: ${state.message}'),
+                      const SizedBox(height: 16),
+                      ElevatedButton(
+                        onPressed: () => _loadInseminacoes(),
+                        child: const Text('Tentar Novamente'),
+                      ),
+                    ],
+                  ),
+                );
+              }
 
               return const Center(
-                child: Text('Carregando inseminações...'),
+                child: Text('Nenhuma inseminação carregada'),
               );
             },
           ),
@@ -509,11 +773,51 @@ class _EstacaoMontaDetalheScreenState extends State<EstacaoMontaDetalheScreen> w
                 return const Center(child: CircularProgressIndicator());
               }
 
-              // Carregar diagnósticos da estação quando necessário
-              context.read<ReproducaoBloc>().add(LoadDiagnosticosPorEstacaoEvent(widget.estacaoMontaId));
+              if (state is DiagnosticosGestacaoLoaded) {
+                final diagnosticos = state.diagnosticos;
+
+                if (diagnosticos.isEmpty) {
+                  return const Center(
+                    child: Text('Nenhum diagnóstico encontrado para esta estação'),
+                  );
+                }
+
+                return ListView.builder(
+                  itemCount: diagnosticos.length,
+                  itemBuilder: (context, index) {
+                    final diagnostico = diagnosticos[index];
+                    return Card(
+                      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                      child: ListTile(
+                        title: Text('${diagnostico.inseminacao.animal.identificacaoUnica} - ${diagnostico.resultado.label}'),
+                        subtitle: Text('Data: ${DateFormat('dd/MM/yyyy').format(diagnostico.dataDiagnostico)}'),
+                        trailing: Text(diagnostico.metodo),
+                      ),
+                    );
+                  },
+                );
+              }
+
+              if (state is ReproducaoError) {
+                return Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.error_outline, size: 64, color: Colors.red),
+                      const SizedBox(height: 16),
+                      Text('Erro ao carregar diagnósticos: ${state.message}'),
+                      const SizedBox(height: 16),
+                      ElevatedButton(
+                        onPressed: () => _loadDiagnosticos(),
+                        child: const Text('Tentar Novamente'),
+                      ),
+                    ],
+                  ),
+                );
+              }
 
               return const Center(
-                child: Text('Carregando diagnósticos...'),
+                child: Text('Nenhum diagnóstico carregado'),
               );
             },
           ),
@@ -554,11 +858,51 @@ class _EstacaoMontaDetalheScreenState extends State<EstacaoMontaDetalheScreen> w
                 return const Center(child: CircularProgressIndicator());
               }
 
-              // Carregar partos da estação quando necessário
-              context.read<ReproducaoBloc>().add(LoadPartosPorEstacaoEvent(widget.estacaoMontaId));
+              if (state is PartosLoaded) {
+                final partos = state.partos;
+
+                if (partos.isEmpty) {
+                  return const Center(
+                    child: Text('Nenhum parto encontrado para esta estação'),
+                  );
+                }
+
+                return ListView.builder(
+                  itemCount: partos.length,
+                  itemBuilder: (context, index) {
+                    final parto = partos[index];
+                    return Card(
+                      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                      child: ListTile(
+                        title: Text(parto.mae.identificacaoUnica),
+                        subtitle: Text('Data: ${DateFormat('dd/MM/yyyy').format(parto.dataParto)}'),
+                        trailing: Text(parto.resultado.label),
+                      ),
+                    );
+                  },
+                );
+              }
+
+              if (state is ReproducaoError) {
+                return Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.error_outline, size: 64, color: Colors.red),
+                      const SizedBox(height: 16),
+                      Text('Erro ao carregar partos: ${state.message}'),
+                      const SizedBox(height: 16),
+                      ElevatedButton(
+                        onPressed: () => _loadPartos(),
+                        child: const Text('Tentar Novamente'),
+                      ),
+                    ],
+                  ),
+                );
+              }
 
               return const Center(
-                child: Text('Carregando partos...'),
+                child: Text('Nenhum parto carregado'),
               );
             },
           ),
@@ -592,7 +936,14 @@ class _EstacaoMontaDetalheScreenState extends State<EstacaoMontaDetalheScreen> w
       MaterialPageRoute(
         builder: (context) => BlocProvider.value(
           value: reproductionBloc,
-          child: const CadastroInseminacaoScreen(),
+          child: CadastroInseminacaoScreen(
+            estacaoMontaPadrao: _estacao,
+            // Usar configurações padrão definidas pelo usuário
+            tipoInseminacaoPadrao: _tipoInseminacaoPadrao ?? TipoInseminacao.iatf,
+            protocoloPadrao: _protocoloPadrao,
+            reprodutorPadrao: _reprodutorPadrao,
+            semenUtilizadoPadrao: _semenUtilizadoPadrao ?? "Sêmen Premium IATF - ${_estacao?.nome ?? 'Estação'}",
+          ),
         ),
       ),
     );

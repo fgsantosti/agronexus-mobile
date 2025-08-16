@@ -9,6 +9,7 @@ import 'package:agronexus/presentation/bloc/propriedade/propriedade_state_new.da
 import 'package:agronexus/domain/models/reproducao_entity.dart';
 import 'package:agronexus/domain/models/propriedade_entity.dart';
 import 'package:agronexus/presentation/reproducao/selecionar_lotes_screen.dart';
+import 'package:agronexus/presentation/widgets/standard_app_bar.dart';
 import 'package:intl/intl.dart';
 
 class CadastroEstacaoMontaScreen extends StatefulWidget {
@@ -138,11 +139,8 @@ class _CadastroEstacaoMontaScreenState extends State<CadastroEstacaoMontaScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Nova Estação de Monta'),
-        backgroundColor: Colors.blue.shade600,
-        foregroundColor: Colors.white,
-        elevation: 0,
+      appBar: buildStandardAppBar(
+        title: 'Nova Estação de Monta',
       ),
       body: BlocListener<ReproducaoBloc, ReproducaoState>(
         listener: (context, state) {
