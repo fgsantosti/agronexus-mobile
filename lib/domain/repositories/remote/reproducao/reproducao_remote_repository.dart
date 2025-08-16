@@ -67,4 +67,12 @@ abstract class ReproducaoRepository {
   });
 
   Future<Map<String, dynamic>> getResumoReproducao();
+
+  // Novos métodos para estação de monta avançada
+  Future<Map<String, dynamic>> getEstacaoMontaDetalhe(String estacaoMontaId);
+  Future<List<dynamic>> getLotesDisponivel({String? propriedadeId});
+  Future<void> associarLotesEstacao(String estacaoMontaId, List<String> loteIds);
+  Future<List<DiagnosticoGestacaoEntity>> getDiagnosticosPorEstacao(String estacaoMontaId);
+  Future<List<PartoEntity>> getPartosPorEstacao(String estacaoMontaId);
+  Future<Map<String, dynamic>> getDashboardEstacao(String estacaoMontaId);
 }
