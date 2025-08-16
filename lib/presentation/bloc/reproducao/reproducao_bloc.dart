@@ -2,6 +2,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:agronexus/domain/services/reproducao_service.dart';
 import 'package:agronexus/presentation/bloc/reproducao/reproducao_event.dart';
 import 'package:agronexus/presentation/bloc/reproducao/reproducao_state.dart';
+import 'package:agronexus/domain/models/reproducao_entity.dart';
+import 'package:agronexus/config/exceptions.dart';
 
 class ReproducaoBloc extends Bloc<ReproducaoEvent, ReproducaoState> {
   final ReproducaoService _service;
@@ -44,6 +46,15 @@ class ReproducaoBloc extends Bloc<ReproducaoEvent, ReproducaoState> {
     on<LoadResumoReproducaoEvent>(_onLoadResumoReproducao);
     on<LoadInseminacoesPendenteDiagnosticoEvent>(_onLoadInseminacoesPendenteDiagnostico);
     on<LoadGestacoesPendentePartoEvent>(_onLoadGestacoesPendenteParto);
+
+    // Novos handlers para estação de monta avançada
+    on<LoadEstacaoMontaDetalheEvent>(_onLoadEstacaoMontaDetalhe);
+    on<LoadLotesDisponivelEvent>(_onLoadLotesDisponivel);
+    on<AssociarLotesEstacaoEvent>(_onAssociarLotesEstacao);
+    on<LoadInseminacoesPorEstacaoEvent>(_onLoadInseminacoesPorEstacao);
+    on<LoadDiagnosticosPorEstacaoEvent>(_onLoadDiagnosticosPorEstacao);
+    on<LoadPartosPorEstacaoEvent>(_onLoadPartosPorEstacao);
+    on<LoadDashboardEstacaoEvent>(_onLoadDashboardEstacao);
   }
 
   // Inseminação handlers
@@ -336,6 +347,84 @@ class ReproducaoBloc extends Bloc<ReproducaoEvent, ReproducaoState> {
     try {
       final gestacoes = await _service.getGestacoesPendenteParto();
       emit(GestacoesPendentePartoLoaded(gestacoes));
+    } catch (e) {
+      emit(ReproducaoError(e.toString()));
+    }
+  }
+
+  // Novos handlers para estação de monta avançada
+  Future<void> _onLoadEstacaoMontaDetalhe(LoadEstacaoMontaDetalheEvent event, Emitter<ReproducaoState> emit) async {
+    emit(EstacaoMontaDetalheLoading());
+    try {
+      final detalhe = await _service.getEstacaoMontaDetalhe(event.estacaoMontaId);
+      // Converter o Map para EstacaoMontaEntity
+      final estacao = EstacaoMontaEntity.fromJson(detalhe['estacao']);
+      final lotes = detalhe['lotes'] as List<dynamic>;
+      emit(EstacaoMontaDetalheLoaded(estacao, lotes));
+    } catch (e) {
+      emit(ReproducaoError(e.toString()));
+    }
+  }
+
+  Future<void> _onLoadLotesDisponivel(LoadLotesDisponivelEvent event, Emitter<ReproducaoState> emit) async {
+    emit(LotesDisponivelLoading());
+    try {
+      final lotes = await _service.getLotesDisponivel(propriedadeId: event.propriedadeId);
+      emit(LotesDisponivelLoaded(lotes));
+    } catch (e) {
+      String errorMessage = e.toString();
+      if (e is AgroNexusException) {
+        errorMessage = e.message;
+      }
+      emit(ReproducaoError(errorMessage));
+    }
+  }
+
+  Future<void> _onAssociarLotesEstacao(AssociarLotesEstacaoEvent event, Emitter<ReproducaoState> emit) async {
+    emit(ReproducaoLoading());
+    try {
+      await _service.associarLotesEstacao(event.estacaoMontaId, event.loteIds);
+      emit(const LotesAssociados('Lotes associados com sucesso!'));
+    } catch (e) {
+      emit(ReproducaoError(e.toString()));
+    }
+  }
+
+  Future<void> _onLoadInseminacoesPorEstacao(LoadInseminacoesPorEstacaoEvent event, Emitter<ReproducaoState> emit) async {
+    emit(InseminacoesLoading());
+    try {
+      final inseminacoes = await _service.getInseminacoes(estacaoMontaId: event.estacaoMontaId);
+      emit(InseminacoesLoaded(inseminacoes));
+    } catch (e) {
+      emit(ReproducaoError(e.toString()));
+    }
+  }
+
+  Future<void> _onLoadDiagnosticosPorEstacao(LoadDiagnosticosPorEstacaoEvent event, Emitter<ReproducaoState> emit) async {
+    emit(DiagnosticosGestacaoLoading());
+    try {
+      final diagnosticos = await _service.getDiagnosticosPorEstacao(event.estacaoMontaId);
+      emit(DiagnosticosGestacaoLoaded(diagnosticos));
+    } catch (e) {
+      emit(ReproducaoError(e.toString()));
+    }
+  }
+
+  Future<void> _onLoadPartosPorEstacao(LoadPartosPorEstacaoEvent event, Emitter<ReproducaoState> emit) async {
+    emit(PartosLoading());
+    try {
+      final partos = await _service.getPartosPorEstacao(event.estacaoMontaId);
+      emit(PartosLoaded(partos));
+    } catch (e) {
+      emit(ReproducaoError(e.toString()));
+    }
+  }
+
+  Future<void> _onLoadDashboardEstacao(LoadDashboardEstacaoEvent event, Emitter<ReproducaoState> emit) async {
+    emit(DashboardEstacaoLoading());
+    try {
+      final dashboard = await _service.getDashboardEstacao(event.estacaoMontaId);
+      emit(DashboardEstacaoLoaded(dashboard));
     } catch (e) {
       emit(ReproducaoError(e.toString()));
     }

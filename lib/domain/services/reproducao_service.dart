@@ -206,4 +206,29 @@ class ReproducaoService {
   Future<Map<String, dynamic>> getResumoReproducao() async {
     return await _repository.getResumoReproducao();
   }
+
+  // Novos métodos para estação de monta avançada
+  Future<Map<String, dynamic>> getEstacaoMontaDetalhe(String estacaoMontaId) async {
+    return await _repository.getEstacaoMontaDetalhe(estacaoMontaId);
+  }
+
+  Future<List<dynamic>> getLotesDisponivel({String? propriedadeId}) async {
+    return await _repository.getLotesDisponivel(propriedadeId: propriedadeId);
+  }
+
+  Future<void> associarLotesEstacao(String estacaoMontaId, List<String> loteIds) async {
+    return await _repository.associarLotesEstacao(estacaoMontaId, loteIds);
+  }
+
+  Future<List<DiagnosticoGestacaoEntity>> getDiagnosticosPorEstacao(String estacaoMontaId) async {
+    return await _repository.getDiagnosticosPorEstacao(estacaoMontaId);
+  }
+
+  Future<List<PartoEntity>> getPartosPorEstacao(String estacaoMontaId) async {
+    return await _repository.getPartosPorEstacao(estacaoMontaId);
+  }
+
+  Future<Map<String, dynamic>> getDashboardEstacao(String estacaoMontaId) async {
+    return await _repository.getDashboardEstacao(estacaoMontaId);
+  }
 }

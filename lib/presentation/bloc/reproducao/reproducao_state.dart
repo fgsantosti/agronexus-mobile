@@ -276,3 +276,47 @@ class OpcoesCadastroInseminacaoLoaded extends ReproducaoState {
   @override
   List<Object> get props => [opcoes];
 }
+
+// Novos states para estação de monta avançada
+class EstacaoMontaDetalheLoading extends ReproducaoState {}
+
+class EstacaoMontaDetalheLoaded extends ReproducaoState {
+  final EstacaoMontaEntity estacao;
+  final List<dynamic> lotes; // Lista de lotes associados
+
+  const EstacaoMontaDetalheLoaded(this.estacao, this.lotes);
+
+  @override
+  List<Object> get props => [estacao, lotes];
+}
+
+class LotesDisponivelLoading extends ReproducaoState {}
+
+class LotesDisponivelLoaded extends ReproducaoState {
+  final List<dynamic> lotes; // Lista de lotes disponíveis para associar
+
+  const LotesDisponivelLoaded(this.lotes);
+
+  @override
+  List<Object> get props => [lotes];
+}
+
+class LotesAssociados extends ReproducaoState {
+  final String message;
+
+  const LotesAssociados(this.message);
+
+  @override
+  List<Object> get props => [message];
+}
+
+class DashboardEstacaoLoading extends ReproducaoState {}
+
+class DashboardEstacaoLoaded extends ReproducaoState {
+  final Map<String, dynamic> dashboard;
+
+  const DashboardEstacaoLoaded(this.dashboard);
+
+  @override
+  List<Object> get props => [dashboard];
+}

@@ -257,3 +257,68 @@ class LoadInseminacoesPendenteDiagnosticoEvent extends ReproducaoEvent {}
 class LoadGestacoesPendentePartoEvent extends ReproducaoEvent {}
 
 class LoadOpcoesCadastroInseminacaoEvent extends ReproducaoEvent {}
+
+// Novos eventos para estação de monta avançada
+class LoadEstacaoMontaDetalheEvent extends ReproducaoEvent {
+  final String estacaoMontaId;
+
+  const LoadEstacaoMontaDetalheEvent(this.estacaoMontaId);
+
+  @override
+  List<Object> get props => [estacaoMontaId];
+}
+
+class LoadLotesDisponivelEvent extends ReproducaoEvent {
+  final String? propriedadeId;
+
+  const LoadLotesDisponivelEvent({this.propriedadeId});
+
+  @override
+  List<Object?> get props => [propriedadeId];
+}
+
+class AssociarLotesEstacaoEvent extends ReproducaoEvent {
+  final String estacaoMontaId;
+  final List<String> loteIds;
+
+  const AssociarLotesEstacaoEvent(this.estacaoMontaId, this.loteIds);
+
+  @override
+  List<Object> get props => [estacaoMontaId, loteIds];
+}
+
+class LoadInseminacoesPorEstacaoEvent extends ReproducaoEvent {
+  final String estacaoMontaId;
+
+  const LoadInseminacoesPorEstacaoEvent(this.estacaoMontaId);
+
+  @override
+  List<Object> get props => [estacaoMontaId];
+}
+
+class LoadDiagnosticosPorEstacaoEvent extends ReproducaoEvent {
+  final String estacaoMontaId;
+
+  const LoadDiagnosticosPorEstacaoEvent(this.estacaoMontaId);
+
+  @override
+  List<Object> get props => [estacaoMontaId];
+}
+
+class LoadPartosPorEstacaoEvent extends ReproducaoEvent {
+  final String estacaoMontaId;
+
+  const LoadPartosPorEstacaoEvent(this.estacaoMontaId);
+
+  @override
+  List<Object> get props => [estacaoMontaId];
+}
+
+class LoadDashboardEstacaoEvent extends ReproducaoEvent {
+  final String estacaoMontaId;
+
+  const LoadDashboardEstacaoEvent(this.estacaoMontaId);
+
+  @override
+  List<Object> get props => [estacaoMontaId];
+}
