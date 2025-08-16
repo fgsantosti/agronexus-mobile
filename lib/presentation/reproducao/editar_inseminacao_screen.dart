@@ -5,6 +5,7 @@ import 'package:agronexus/presentation/bloc/reproducao/reproducao_event.dart';
 import 'package:agronexus/presentation/bloc/reproducao/reproducao_state.dart';
 import 'package:agronexus/domain/models/reproducao_entity.dart';
 import 'package:agronexus/domain/models/animal_entity.dart';
+import 'package:agronexus/presentation/widgets/estacao_monta_search_field.dart';
 import 'package:agronexus/presentation/widgets/standard_app_bar.dart';
 import 'package:intl/intl.dart';
 
@@ -176,7 +177,7 @@ class _EditarInseminacaoScreenState extends State<EditarInseminacaoScreen> {
                           const SizedBox(height: 16),
                           _buildProtocoloDropdown(),
                           const SizedBox(height: 16),
-                          _buildEstacaoDropdown(),
+                          _buildEstacaoSearchField(),
                           const SizedBox(height: 16),
                           _buildSemenUtilizado(),
                           const SizedBox(height: 16),
@@ -291,26 +292,12 @@ class _EditarInseminacaoScreenState extends State<EditarInseminacaoScreen> {
     );
   }
 
-  Widget _buildEstacaoDropdown() {
-    return DropdownButtonFormField<EstacaoMontaEntity>(
-      decoration: const InputDecoration(
-        labelText: 'Estação de Monta',
-        border: OutlineInputBorder(),
-        prefixIcon: Icon(Icons.event),
-      ),
-      value: _estacaoSelecionada,
-      items: [
-        const DropdownMenuItem<EstacaoMontaEntity>(
-          value: null,
-          child: Text('Nenhuma estação'),
-        ),
-        ..._opcoes!.estacoesMonta.map((estacao) {
-          return DropdownMenuItem(
-            value: estacao,
-            child: Text(estacao.nome),
-          );
-        }),
-      ],
+  Widget _buildEstacaoSearchField() {
+    return EstacaoMontaSearchField(
+      estacoes: _opcoes?.estacoesMonta ?? [],
+      estacaoSelecionada: _estacaoSelecionada,
+      labelText: 'Estação de Monta',
+      apenasAtivas: true,
       onChanged: (estacao) {
         setState(() {
           _estacaoSelecionada = estacao;
