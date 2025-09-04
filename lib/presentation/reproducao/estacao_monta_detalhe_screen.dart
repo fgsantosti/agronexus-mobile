@@ -35,6 +35,11 @@ class _EstacaoMontaDetalheScreenState extends State<EstacaoMontaDetalheScreen> w
   List<dynamic> _lotes = [];
   Map<String, dynamic>? _dashboard;
 
+  // Cache local para as abas
+  List<InseminacaoEntity>? _cachedInseminacoes;
+  List<DiagnosticoGestacaoEntity>? _cachedDiagnosticos;
+  List<PartoEntity>? _cachedPartos;
+
   // Configurações padrão da estação
   TipoInseminacao? _tipoInseminacaoPadrao;
   ProtocoloIATFEntity? _protocoloPadrao;
@@ -123,6 +128,92 @@ class _EstacaoMontaDetalheScreenState extends State<EstacaoMontaDetalheScreen> w
               SnackBar(content: Text(state.message)),
             );
             _loadData(); // Recarregar dados após associar lotes
+          } else if (state is InseminacoesLoaded) {
+            setState(() {
+              _cachedInseminacoes = state.inseminacoes;
+            });
+          } else if (state is InseminacaoCreated) {
+            // Recarregar dados quando uma nova inseminação for criada
+            _loadInseminacoes();
+            _loadData(); // Recarregar dashboard também
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Inseminação cadastrada com sucesso!')),
+            );
+          } else if (state is InseminacaoUpdated) {
+            // Recarregar dados quando uma inseminação for atualizada
+            _loadInseminacoes();
+            _loadData(); // Recarregar dashboard também
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Inseminação atualizada com sucesso!')),
+            );
+          } else if (state is InseminacaoDeleted) {
+            // Recarregar dados quando uma inseminação for deletada
+            _loadInseminacoes();
+            _loadData(); // Recarregar dashboard também
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Inseminação excluída com sucesso!')),
+            );
+          } else if (state is DiagnosticosGestacaoLoaded) {
+            setState(() {
+              _cachedDiagnosticos = state.diagnosticos;
+            });
+          } else if (state is DiagnosticoGestacaoCreated) {
+            // Recarregar dados quando um novo diagnóstico for criado
+            _loadDiagnosticos();
+            _loadData(); // Recarregar dashboard também
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Diagnóstico cadastrado com sucesso!')),
+            );
+          } else if (state is DiagnosticoGestacaoUpdated) {
+            // Recarregar dados quando um diagnóstico for atualizado
+            _loadDiagnosticos();
+            _loadData(); // Recarregar dashboard também
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Diagnóstico atualizado com sucesso!')),
+            );
+          } else if (state is DiagnosticoGestacaoDeleted) {
+            // Recarregar dados quando um diagnóstico for deletado
+            _loadDiagnosticos();
+            _loadData(); // Recarregar dashboard também
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Diagnóstico excluído com sucesso!')),
+            );
+          } else if (state is PartosLoaded) {
+            setState(() {
+              _cachedPartos = state.partos;
+            });
+          } else if (state is PartoCreated) {
+            // Recarregar dados quando um novo parto for criado
+            _loadPartos();
+            _loadData(); // Recarregar dashboard também
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Parto cadastrado com sucesso!')),
+            );
+          } else if (state is PartoUpdated) {
+            // Recarregar dados quando um parto for atualizado
+            _loadPartos();
+            _loadData(); // Recarregar dashboard também
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Parto atualizado com sucesso!')),
+            );
+          } else if (state is PartoDeleted) {
+            // Recarregar dados quando um parto for deletado
+            _loadPartos();
+            _loadData(); // Recarregar dashboard também
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Parto excluído com sucesso!')),
+            );
+            // Recarregar dados quando um novo parto for criado
+            _loadPartos();
+            _loadData(); // Recarregar dashboard também
+          } else if (state is PartoUpdated) {
+            // Recarregar dados quando um parto for atualizado
+            _loadPartos();
+            _loadData(); // Recarregar dashboard também
+          } else if (state is PartoDeleted) {
+            // Recarregar dados quando um parto for deletado
+            _loadPartos();
+            _loadData(); // Recarregar dashboard também
           } else if (state is ReproducaoError) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
@@ -684,20 +775,21 @@ class _EstacaoMontaDetalheScreenState extends State<EstacaoMontaDetalheScreen> w
         Expanded(
           child: BlocBuilder<ReproducaoBloc, ReproducaoState>(
             builder: (context, state) {
-              if (state is InseminacoesLoading) {
+              if (state is InseminacoesLoading && _cachedInseminacoes == null) {
                 return const Center(child: CircularProgressIndicator());
               }
 
-              if (state is InseminacoesLoaded) {
-                final inseminacoes = state.inseminacoes;
+              final inseminacoes = _cachedInseminacoes ?? [];
 
-                if (inseminacoes.isEmpty) {
-                  return const Center(
-                    child: Text('Nenhuma inseminação encontrada para esta estação'),
-                  );
-                }
+              if (inseminacoes.isEmpty) {
+                return const Center(
+                  child: Text('Nenhuma inseminação encontrada para esta estação'),
+                );
+              }
 
-                return ListView.builder(
+              return RefreshIndicator(
+                onRefresh: () async => _loadInseminacoes(),
+                child: ListView.builder(
                   itemCount: inseminacoes.length,
                   itemBuilder: (context, index) {
                     final inseminacao = inseminacoes[index];
@@ -710,29 +802,7 @@ class _EstacaoMontaDetalheScreenState extends State<EstacaoMontaDetalheScreen> w
                       ),
                     );
                   },
-                );
-              }
-
-              if (state is ReproducaoError) {
-                return Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Icon(Icons.error_outline, size: 64, color: Colors.red),
-                      const SizedBox(height: 16),
-                      Text('Erro ao carregar inseminações: ${state.message}'),
-                      const SizedBox(height: 16),
-                      ElevatedButton(
-                        onPressed: () => _loadInseminacoes(),
-                        child: const Text('Tentar Novamente'),
-                      ),
-                    ],
-                  ),
-                );
-              }
-
-              return const Center(
-                child: Text('Nenhuma inseminação carregada'),
+                ),
               );
             },
           ),
@@ -769,20 +839,21 @@ class _EstacaoMontaDetalheScreenState extends State<EstacaoMontaDetalheScreen> w
         Expanded(
           child: BlocBuilder<ReproducaoBloc, ReproducaoState>(
             builder: (context, state) {
-              if (state is DiagnosticosGestacaoLoading) {
+              if (state is DiagnosticosGestacaoLoading && _cachedDiagnosticos == null) {
                 return const Center(child: CircularProgressIndicator());
               }
 
-              if (state is DiagnosticosGestacaoLoaded) {
-                final diagnosticos = state.diagnosticos;
+              final diagnosticos = _cachedDiagnosticos ?? [];
 
-                if (diagnosticos.isEmpty) {
-                  return const Center(
-                    child: Text('Nenhum diagnóstico encontrado para esta estação'),
-                  );
-                }
+              if (diagnosticos.isEmpty) {
+                return const Center(
+                  child: Text('Nenhum diagnóstico encontrado para esta estação'),
+                );
+              }
 
-                return ListView.builder(
+              return RefreshIndicator(
+                onRefresh: () async => _loadDiagnosticos(),
+                child: ListView.builder(
                   itemCount: diagnosticos.length,
                   itemBuilder: (context, index) {
                     final diagnostico = diagnosticos[index];
@@ -795,29 +866,7 @@ class _EstacaoMontaDetalheScreenState extends State<EstacaoMontaDetalheScreen> w
                       ),
                     );
                   },
-                );
-              }
-
-              if (state is ReproducaoError) {
-                return Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Icon(Icons.error_outline, size: 64, color: Colors.red),
-                      const SizedBox(height: 16),
-                      Text('Erro ao carregar diagnósticos: ${state.message}'),
-                      const SizedBox(height: 16),
-                      ElevatedButton(
-                        onPressed: () => _loadDiagnosticos(),
-                        child: const Text('Tentar Novamente'),
-                      ),
-                    ],
-                  ),
-                );
-              }
-
-              return const Center(
-                child: Text('Nenhum diagnóstico carregado'),
+                ),
               );
             },
           ),
@@ -854,20 +903,21 @@ class _EstacaoMontaDetalheScreenState extends State<EstacaoMontaDetalheScreen> w
         Expanded(
           child: BlocBuilder<ReproducaoBloc, ReproducaoState>(
             builder: (context, state) {
-              if (state is PartosLoading) {
+              if (state is PartosLoading && _cachedPartos == null) {
                 return const Center(child: CircularProgressIndicator());
               }
 
-              if (state is PartosLoaded) {
-                final partos = state.partos;
+              final partos = _cachedPartos ?? [];
 
-                if (partos.isEmpty) {
-                  return const Center(
-                    child: Text('Nenhum parto encontrado para esta estação'),
-                  );
-                }
+              if (partos.isEmpty) {
+                return const Center(
+                  child: Text('Nenhum parto encontrado para esta estação'),
+                );
+              }
 
-                return ListView.builder(
+              return RefreshIndicator(
+                onRefresh: () async => _loadPartos(),
+                child: ListView.builder(
                   itemCount: partos.length,
                   itemBuilder: (context, index) {
                     final parto = partos[index];
@@ -880,29 +930,7 @@ class _EstacaoMontaDetalheScreenState extends State<EstacaoMontaDetalheScreen> w
                       ),
                     );
                   },
-                );
-              }
-
-              if (state is ReproducaoError) {
-                return Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Icon(Icons.error_outline, size: 64, color: Colors.red),
-                      const SizedBox(height: 16),
-                      Text('Erro ao carregar partos: ${state.message}'),
-                      const SizedBox(height: 16),
-                      ElevatedButton(
-                        onPressed: () => _loadPartos(),
-                        child: const Text('Tentar Novamente'),
-                      ),
-                    ],
-                  ),
-                );
-              }
-
-              return const Center(
-                child: Text('Nenhum parto carregado'),
+                ),
               );
             },
           ),
@@ -946,7 +974,7 @@ class _EstacaoMontaDetalheScreenState extends State<EstacaoMontaDetalheScreen> w
           ),
         ),
       ),
-    );
+    ).then((_) => _loadData()); // Recarregar ao voltar
   }
 
   void _navegarParaCadastroDiagnostico() {
@@ -960,7 +988,7 @@ class _EstacaoMontaDetalheScreenState extends State<EstacaoMontaDetalheScreen> w
           child: const CadastroDiagnosticoGestacaoScreen(),
         ),
       ),
-    );
+    ).then((_) => _loadData()); // Recarregar ao voltar
   }
 
   void _navegarParaCadastroParto() {
@@ -974,6 +1002,6 @@ class _EstacaoMontaDetalheScreenState extends State<EstacaoMontaDetalheScreen> w
           child: const CadastroPartoScreen(),
         ),
       ),
-    );
+    ).then((_) => _loadData()); // Recarregar ao voltar
   }
 }
