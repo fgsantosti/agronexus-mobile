@@ -7,11 +7,25 @@ import 'package:agronexus/presentation/bloc/reproducao/reproducao_state.dart';
 import 'package:agronexus/domain/models/reproducao_entity.dart';
 import 'package:agronexus/domain/models/animal_entity.dart';
 import 'package:agronexus/presentation/widgets/animal_search_field.dart';
+import 'package:agronexus/presentation/widgets/estacao_monta_search_field.dart';
 import 'package:agronexus/presentation/widgets/standard_app_bar.dart';
 import 'package:intl/intl.dart';
 
 class CadastroInseminacaoScreen extends StatefulWidget {
-  const CadastroInseminacaoScreen({super.key});
+  final EstacaoMontaEntity? estacaoMontaPadrao;
+  final TipoInseminacao? tipoInseminacaoPadrao;
+  final ProtocoloIATFEntity? protocoloPadrao;
+  final AnimalEntity? reprodutorPadrao;
+  final String? semenUtilizadoPadrao;
+
+  const CadastroInseminacaoScreen({
+    super.key,
+    this.estacaoMontaPadrao,
+    this.tipoInseminacaoPadrao,
+    this.protocoloPadrao,
+    this.reprodutorPadrao,
+    this.semenUtilizadoPadrao,
+  });
 
   @override
   State<CadastroInseminacaoScreen> createState() => _CadastroInseminacaoScreenState();
@@ -43,6 +57,10 @@ class _CadastroInseminacaoScreenState extends State<CadastroInseminacaoScreen> {
   void initState() {
     super.initState();
     _dataInseminacaoController.text = _dateFormat.format(_dataSelecionada);
+
+    // Pré-preencher campos com dados padrão da estação de monta
+    _preencherCamposComDadosPadrao();
+
     _carregarOpcoes();
   }
 
@@ -52,6 +70,80 @@ class _CadastroInseminacaoScreenState extends State<CadastroInseminacaoScreen> {
     _semenUtilizadoController.dispose();
     _observacoesController.dispose();
     super.dispose();
+  }
+
+  void _preencherCamposComDadosPadrao() {
+    // Pré-preencher estação de monta
+    if (widget.estacaoMontaPadrao != null) {
+      _estacaoSelecionada = widget.estacaoMontaPadrao;
+    }
+
+    // Pré-preencher tipo de inseminação
+    if (widget.tipoInseminacaoPadrao != null) {
+      _tipoSelecionado = widget.tipoInseminacaoPadrao;
+    }
+
+    // Pré-preencher protocolo IATF
+    if (widget.protocoloPadrao != null) {
+      _protocoloSelecionado = widget.protocoloPadrao;
+    }
+
+    // Pré-preencher reprodutor
+    if (widget.reprodutorPadrao != null) {
+      _reprodutorSelecionado = widget.reprodutorPadrao;
+    }
+
+    // Pré-preencher sêmen utilizado
+    if (widget.semenUtilizadoPadrao != null) {
+      _semenUtilizadoController.text = widget.semenUtilizadoPadrao!;
+    }
+
+    // Debug para confirmar preenchimento
+    print('DEBUG: Campos pré-preenchidos:');
+    print('- Estação: ${_estacaoSelecionada?.nome ?? "Nenhuma"}');
+    print('- Tipo: ${_tipoSelecionado?.label ?? "Nenhum"}');
+    print('- Protocolo: ${_protocoloSelecionado?.nome ?? "Nenhum"}');
+    print('- Reprodutor: ${_reprodutorSelecionado?.identificacaoUnica ?? "Nenhum"}');
+    print('- Sêmen: ${_semenUtilizadoController.text}');
+  }
+
+  void _preencherProtocoloPadraoSeDisponivel() {
+    // Se ainda não tem protocolo selecionado e tipo é IATF
+    if (_protocoloSelecionado == null && _tipoSelecionado == TipoInseminacao.iatf && _opcoes != null && _opcoes!.protocolosIatf.isNotEmpty) {
+      // Selecionar o primeiro protocolo disponível como padrão
+      setState(() {
+        _protocoloSelecionado = _opcoes!.protocolosIatf.first;
+      });
+      print('DEBUG: Protocolo IATF padrão selecionado: ${_protocoloSelecionado!.nome}');
+    }
+  }
+
+  void _preencherReprodutorPadraoSeDisponivel() {
+    // Se ainda não tem reprodutor selecionado
+    if (_reprodutorSelecionado == null && _opcoes != null && _opcoes!.reprodutores.isNotEmpty) {
+      // Selecionar o primeiro reprodutor disponível como padrão
+      setState(() {
+        _reprodutorSelecionado = _opcoes!.reprodutores.first;
+      });
+      print('DEBUG: Reprodutor padrão selecionado: ${_reprodutorSelecionado!.identificacaoUnica}');
+    }
+  }
+
+  void _onTipoInseminacaoChanged(TipoInseminacao? tipo) {
+    setState(() {
+      _tipoSelecionado = tipo;
+
+      // Se mudou para IATF e há protocolos disponíveis, selecionar o primeiro
+      if (tipo == TipoInseminacao.iatf && _protocoloSelecionado == null && _opcoes != null && _opcoes!.protocolosIatf.isNotEmpty) {
+        _protocoloSelecionado = _opcoes!.protocolosIatf.first;
+        print('DEBUG: Protocolo IATF auto-selecionado: ${_protocoloSelecionado!.nome}');
+      }
+
+      // Se mudou para outro tipo que não IATF, limpar protocolo
+      if (tipo != TipoInseminacao.iatf) {
+        _protocoloSelecionado = null;
+      }
+    });
   }
 
   void _carregarOpcoes() {
@@ -121,6 +213,10 @@ class _CadastroInseminacaoScreenState extends State<CadastroInseminacaoScreen> {
               _isLoading = false;
             });
 
+            // Preencher campos padrão quando opções são carregadas
+            _preencherProtocoloPadraoSeDisponivel();
+            _preencherReprodutorPadraoSeDisponivel();
+
             // Debug: verificar quantos reprodutores foram carregados
             print('DEBUG CADASTRO - Reprodutores carregados: ${state.opcoes.reprodutores.length}');
             for (var reprodutor in state.opcoes.reprodutores) {
@@ -153,6 +249,9 @@ class _CadastroInseminacaoScreenState extends State<CadastroInseminacaoScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
+                          // Banner informativo sobre pré-preenchimento
+                          if (_temCamposPrePreenchidos()) _buildBannerConfiguracoesAplicadas(),
+                          if (_temCamposPrePreenchidos()) const SizedBox(height: 16),
                           _buildAnimalDropdown(),
                           const SizedBox(height: 16),
                           _buildDataInseminacao(),
@@ -163,7 +262,7 @@ class _CadastroInseminacaoScreenState extends State<CadastroInseminacaoScreen> {
                           const SizedBox(height: 16),
                           _buildProtocoloDropdown(),
                           const SizedBox(height: 16),
-                          _buildEstacaoDropdown(),
+                          _buildEstacaoSearchField(),
                           const SizedBox(height: 16),
                           _buildSemenUtilizado(),
                           const SizedBox(height: 16),
@@ -174,6 +273,46 @@ class _CadastroInseminacaoScreenState extends State<CadastroInseminacaoScreen> {
                       ),
                     ),
                   ),
+      ),
+    );
+  }
+
+  bool _temCamposPrePreenchidos() {
+    return widget.estacaoMontaPadrao != null ||
+        widget.tipoInseminacaoPadrao != null ||
+        widget.protocoloPadrao != null ||
+        widget.reprodutorPadrao != null ||
+        (widget.semenUtilizadoPadrao != null && widget.semenUtilizadoPadrao!.isNotEmpty);
+  }
+
+  Widget _buildBannerConfiguracoesAplicadas() {
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: Colors.blue.shade50,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.blue.shade200),
+      ),
+      padding: const EdgeInsets.all(12),
+      child: Row(
+        children: [
+          Icon(
+            Icons.info_outline,
+            color: Colors.blue.shade700,
+            size: 20,
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              'Configurações da estação de monta aplicadas automaticamente',
+              style: TextStyle(
+                color: Colors.blue.shade700,
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -228,11 +367,7 @@ class _CadastroInseminacaoScreenState extends State<CadastroInseminacaoScreen> {
           child: Text(tipo.label),
         );
       }).toList(),
-      onChanged: (tipo) {
-        setState(() {
-          _tipoSelecionado = tipo;
-        });
-      },
+      onChanged: _onTipoInseminacaoChanged,
       validator: (value) {
         if (value == null) return 'Selecione o tipo';
         return null;
@@ -282,26 +417,12 @@ class _CadastroInseminacaoScreenState extends State<CadastroInseminacaoScreen> {
     );
   }
 
-  Widget _buildEstacaoDropdown() {
-    return DropdownButtonFormField<EstacaoMontaEntity>(
-      decoration: const InputDecoration(
-        labelText: 'Estação de Monta',
-        border: OutlineInputBorder(),
-        prefixIcon: Icon(Icons.event),
-      ),
-      value: _estacaoSelecionada,
-      items: [
-        const DropdownMenuItem<EstacaoMontaEntity>(
-          value: null,
-          child: Text('Nenhuma estação'),
-        ),
-        ..._opcoes!.estacoesMonta.map((estacao) {
-          return DropdownMenuItem(
-            value: estacao,
-            child: Text(estacao.nome),
-          );
-        }),
-      ],
+  Widget _buildEstacaoSearchField() {
+    return EstacaoMontaSearchField(
+      estacoes: _opcoes?.estacoesMonta ?? [],
+      estacaoSelecionada: _estacaoSelecionada,
+      labelText: 'Estação de Monta',
+      apenasAtivas: true,
       onChanged: (estacao) {
         setState(() {
           _estacaoSelecionada = estacao;

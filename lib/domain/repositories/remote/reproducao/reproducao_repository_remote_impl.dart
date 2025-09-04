@@ -480,4 +480,99 @@ class ReproducaoRepositoryImpl implements ReproducaoRepository {
       throw await AgroNexusException.fromDioError(e);
     }
   }
+
+  // Novos métodos para estação de monta avançada
+  @override
+  Future<Map<String, dynamic>> getEstacaoMontaDetalhe(String estacaoMontaId) async {
+    try {
+      Response response = await httpService.get(
+        path: '${API.estacoesMonta}/$estacaoMontaId/detalhe/',
+        isAuth: true,
+      );
+      return response.data;
+    } catch (e) {
+      throw await AgroNexusException.fromDioError(e);
+    }
+  }
+
+  @override
+  Future<List<dynamic>> getLotesDisponivel({String? propriedadeId}) async {
+    try {
+      Map<String, dynamic> queryParameters = {};
+      if (propriedadeId != null) queryParameters['propriedade_id'] = propriedadeId;
+
+      Response response = await httpService.get(
+        path: '${API.lotes}/disponivel/',
+        queryParameters: queryParameters,
+        isAuth: true,
+      );
+
+      // A API retorna uma lista direta, não um objeto com 'results'
+      if (response.data is List) {
+        return response.data;
+      } else {
+        return response.data['results'] ?? response.data;
+      }
+    } catch (e) {
+      throw await AgroNexusException.fromDioError(e);
+    }
+  }
+
+  @override
+  Future<void> associarLotesEstacao(String estacaoMontaId, List<String> loteIds) async {
+    try {
+      await httpService.post(
+        path: '${API.estacoesMonta}/$estacaoMontaId/associar_lotes/',
+        data: {'lote_ids': loteIds},
+        isAuth: true,
+      );
+    } catch (e) {
+      throw await AgroNexusException.fromDioError(e);
+    }
+  }
+
+  @override
+  Future<List<DiagnosticoGestacaoEntity>> getDiagnosticosPorEstacao(String estacaoMontaId) async {
+    try {
+      Response response = await httpService.get(
+        path: API.diagnosticosGestacao,
+        queryParameters: {'estacao_monta_id': estacaoMontaId},
+        isAuth: true,
+      );
+
+      List<dynamic> data = response.data['results'] ?? response.data;
+      return data.map((json) => DiagnosticoGestacaoEntity.fromJson(json)).toList();
+    } catch (e) {
+      throw await AgroNexusException.fromDioError(e);
+    }
+  }
+
+  @override
+  Future<List<PartoEntity>> getPartosPorEstacao(String estacaoMontaId) async {
+    try {
+      Response response = await httpService.get(
+        path: API.partos,
+        queryParameters: {'estacao_monta_id': estacaoMontaId},
+        isAuth: true,
+      );
+
+      List<dynamic> data = response.data['results'] ?? response.data;
+      return data.map((json) => PartoEntity.fromJson(json)).toList();
+    } catch (e) {
+      throw await AgroNexusException.fromDioError(e);
+    }
+  }
+
+  @override
+  Future<Map<String, dynamic>> getDashboardEstacao(String estacaoMontaId) async {
+    try {
+      Response response = await httpService.get(
+        path: '${API.estacoesMonta}/$estacaoMontaId/dashboard/',
+        isAuth: true,
+      );
+      return response.data;
+    } catch (e) {
+      throw await AgroNexusException.fromDioError(e);
+    }
+  }
 }

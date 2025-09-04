@@ -3,7 +3,12 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:agronexus/presentation/bloc/reproducao/reproducao_bloc.dart';
 import 'package:agronexus/presentation/bloc/reproducao/reproducao_event.dart';
 import 'package:agronexus/presentation/bloc/reproducao/reproducao_state.dart';
+import 'package:agronexus/presentation/bloc/propriedade/propriedade_bloc_new.dart';
+import 'package:agronexus/presentation/bloc/propriedade/propriedade_event_new.dart';
 import 'package:agronexus/domain/models/reproducao_entity.dart';
+import 'package:agronexus/presentation/reproducao/cadastro_estacao_monta_screen.dart';
+import 'package:agronexus/presentation/reproducao/estacao_monta_detalhe_screen.dart';
+import 'package:agronexus/config/inject_dependencies.dart';
 import 'package:intl/intl.dart';
 
 class EstacaoMontaScreen extends StatefulWidget {
@@ -15,6 +20,7 @@ class EstacaoMontaScreen extends StatefulWidget {
 
 class _EstacaoMontaScreenState extends State<EstacaoMontaScreen> {
   final DateFormat _dateFormat = DateFormat('dd/MM/yyyy');
+  bool _mostrarApenasAtivas = true;
 
   @override
   void initState() {
@@ -23,90 +29,165 @@ class _EstacaoMontaScreenState extends State<EstacaoMontaScreen> {
   }
 
   void _loadEstacoes() {
-    context.read<ReproducaoBloc>().add(const LoadEstacoesMotaEvent());
+    context.read<ReproducaoBloc>().add(LoadEstacoesMotaEvent(
+          ativa: _mostrarApenasAtivas ? true : null,
+        ));
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: RefreshIndicator(
-        onRefresh: () async => _loadEstacoes(),
-        child: BlocBuilder<ReproducaoBloc, ReproducaoState>(
-          builder: (context, state) {
-            if (state is EstacoesMotaLoading) {
-              return const Center(child: CircularProgressIndicator());
-            }
+      body: BlocListener<ReproducaoBloc, ReproducaoState>(
+        listener: (context, state) {
+          if (state is EstacaoMontaCreated || state is EstacaoMontaUpdated || state is EstacaoMontaDeleted) {
+            _loadEstacoes();
+          }
+        },
+        child: RefreshIndicator(
+          onRefresh: () async => _loadEstacoes(),
+          child: BlocBuilder<ReproducaoBloc, ReproducaoState>(
+            builder: (context, state) {
+              if (state is EstacoesMotaLoading) {
+                return const Center(child: CircularProgressIndicator());
+              }
 
-            if (state is ReproducaoError) {
-              return Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.error_outline, size: 64, color: Colors.red.shade400),
-                    const SizedBox(height: 16),
-                    Text(
-                      'Erro ao carregar estações',
-                      style: TextStyle(fontSize: 18, color: Colors.red.shade400),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      state.message,
-                      style: TextStyle(color: Colors.grey.shade600),
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 16),
-                    ElevatedButton(
-                      onPressed: _loadEstacoes,
-                      child: const Text('Tentar Novamente'),
-                    ),
-                  ],
-                ),
-              );
-            }
-
-            if (state is EstacoesMotaLoaded) {
-              if (state.estacoes.isEmpty) {
+              if (state is ReproducaoError) {
                 return Center(
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(Icons.calendar_today_outlined, size: 64, color: Colors.grey.shade400),
+                      Icon(Icons.error_outline, size: 64, color: Colors.red.shade400),
                       const SizedBox(height: 16),
                       Text(
-                        'Nenhuma estação de monta encontrada',
-                        style: TextStyle(fontSize: 18, color: Colors.grey.shade600),
+                        'Erro ao carregar estações',
+                        style: TextStyle(fontSize: 18, color: Colors.red.shade400),
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        'Crie a primeira estação de monta',
-                        style: TextStyle(color: Colors.grey.shade500),
+                        state.message,
+                        style: TextStyle(color: Colors.grey.shade600),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 16),
+                      ElevatedButton(
+                        onPressed: _loadEstacoes,
+                        child: const Text('Tentar Novamente'),
                       ),
                     ],
                   ),
                 );
               }
 
-              return ListView.builder(
-                padding: const EdgeInsets.all(16),
-                itemCount: state.estacoes.length,
-                itemBuilder: (context, index) {
-                  final estacao = state.estacoes[index];
-                  return _buildEstacaoCard(estacao);
-                },
-              );
-            }
+              if (state is EstacoesMotaLoaded) {
+                if (state.estacoes.isEmpty) {
+                  return Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.calendar_today_outlined, size: 64, color: Colors.grey.shade400),
+                        const SizedBox(height: 16),
+                        Text(
+                          'Nenhuma estação de monta encontrada',
+                          style: TextStyle(fontSize: 18, color: Colors.grey.shade600),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Crie a primeira estação de monta',
+                          style: TextStyle(color: Colors.grey.shade500),
+                        ),
+                      ],
+                    ),
+                  );
+                }
 
-            return const Center(child: Text('Carregando...'));
-          },
+                return Column(
+                  children: [
+                    _buildFilterHeader(),
+                    Expanded(
+                      child: ListView.builder(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        itemCount: state.estacoes.length,
+                        itemBuilder: (context, index) {
+                          final estacao = state.estacoes[index];
+                          return _buildEstacaoCard(estacao);
+                        },
+                      ),
+                    ),
+                  ],
+                );
+              }
+
+              return const Center(child: Text('Carregando...'));
+            },
+          ),
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        heroTag: 'fabEstacaoMonta',
-        backgroundColor: Colors.blue.shade400,
-        onPressed: () {
-          _showAddEstacaoDialog();
+      floatingActionButton: BlocBuilder<ReproducaoBloc, ReproducaoState>(
+        builder: (context, state) {
+          return FloatingActionButton(
+            heroTag: 'fabEstacaoMonta',
+            backgroundColor: Colors.blue.shade400,
+            onPressed: () {
+              _showAddEstacaoDialog(context);
+            },
+            child: const Icon(Icons.add, color: Colors.white),
+          );
         },
-        child: const Icon(Icons.add, color: Colors.white),
+      ),
+    );
+  }
+
+  Widget _buildFilterHeader() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.grey.shade50,
+        border: Border(bottom: BorderSide(color: Colors.grey.shade200)),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.filter_list, color: Colors.grey),
+          const SizedBox(width: 8),
+          const Text(
+            'Filtros:',
+            style: TextStyle(
+              fontWeight: FontWeight.w600,
+              color: Colors.grey,
+            ),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Row(
+              children: [
+                FilterChip(
+                  label: const Text('Apenas Ativas'),
+                  selected: _mostrarApenasAtivas,
+                  onSelected: (selected) {
+                    setState(() {
+                      _mostrarApenasAtivas = selected;
+                    });
+                    _loadEstacoes();
+                  },
+                  selectedColor: Colors.blue.shade100,
+                  checkmarkColor: Colors.blue.shade600,
+                ),
+                const SizedBox(width: 8),
+                FilterChip(
+                  label: const Text('Todas'),
+                  selected: !_mostrarApenasAtivas,
+                  onSelected: (selected) {
+                    setState(() {
+                      _mostrarApenasAtivas = !selected;
+                    });
+                    _loadEstacoes();
+                  },
+                  selectedColor: Colors.grey.shade200,
+                  checkmarkColor: Colors.grey.shade600,
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -218,79 +299,39 @@ class _EstacaoMontaScreenState extends State<EstacaoMontaScreen> {
   }
 
   void _showEstacaoDetails(EstacaoMontaEntity estacao) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Detalhes da Estação de Monta'),
-        content: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              _buildDetailRow('Nome', estacao.nome),
-              _buildDetailRow('Data Início', _dateFormat.format(estacao.dataInicio)),
-              _buildDetailRow('Data Fim', _dateFormat.format(estacao.dataFim)),
-              _buildDetailRow('Status', estacao.ativa ? 'Ativa' : 'Inativa'),
-              _buildDetailRow('Total Fêmeas', estacao.totalFemeas.toString()),
-              _buildDetailRow('Taxa Prenhez', '${estacao.taxaPrenhez.toStringAsFixed(1)}%'),
-              if (estacao.observacoes != null && estacao.observacoes!.isNotEmpty) _buildDetailRow('Observações', estacao.observacoes!),
-            ],
+    final reproductionBloc = context.read<ReproducaoBloc>();
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => BlocProvider.value(
+          value: reproductionBloc,
+          child: EstacaoMontaDetalheScreen(
+            estacaoMontaId: estacao.id,
+            estacao: estacao,
           ),
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Fechar'),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.of(context).pop();
-              // TODO: Implementar edição
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Edição em desenvolvimento')),
-              );
-            },
-            child: const Text('Editar'),
-          ),
-        ],
       ),
-    );
+    ).then((_) => _loadEstacoes()); // Recarregar ao voltar
   }
 
-  Widget _buildDetailRow(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(
-            width: 100,
-            child: Text(
-              '$label:',
-              style: const TextStyle(fontWeight: FontWeight.w600),
-            ),
-          ),
-          Expanded(
-            child: Text(value),
-          ),
-        ],
-      ),
-    );
-  }
+  void _showAddEstacaoDialog(BuildContext context) async {
+    final reproductionBloc = context.read<ReproducaoBloc>();
 
-  void _showAddEstacaoDialog() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Nova Estação de Monta'),
-        content: const Text('Funcionalidade em desenvolvimento'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Fechar'),
-          ),
-        ],
+    final result = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        builder: (context) => MultiBlocProvider(
+          providers: [
+            BlocProvider.value(value: reproductionBloc),
+            BlocProvider(create: (context) => getIt<PropriedadeBlocNew>()..add(const LoadPropriedadesEvent())),
+          ],
+          child: const CadastroEstacaoMontaScreen(),
+        ),
       ),
     );
+
+    if (result == true) {
+      _loadEstacoes();
+    }
   }
 }
