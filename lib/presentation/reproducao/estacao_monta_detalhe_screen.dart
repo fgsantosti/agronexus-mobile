@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:agronexus/presentation/bloc/reproducao/reproducao_bloc.dart';
 import 'package:agronexus/presentation/bloc/reproducao/reproducao_event.dart';
 import 'package:agronexus/presentation/bloc/reproducao/reproducao_state.dart';
+import 'package:agronexus/presentation/bloc/animal/animal_bloc.dart';
 import 'package:agronexus/domain/models/reproducao_entity.dart';
 import 'package:agronexus/domain/models/animal_entity.dart';
 import 'package:agronexus/presentation/reproducao/selecionar_lotes_screen.dart';
@@ -11,6 +12,7 @@ import 'package:agronexus/presentation/reproducao/cadastro_diagnostico_gestacao_
 import 'package:agronexus/presentation/reproducao/cadastro_parto_screen.dart';
 import 'package:agronexus/presentation/reproducao/configurar_padroes_estacao_screen.dart';
 import 'package:agronexus/presentation/widgets/standard_app_bar.dart';
+import 'package:agronexus/config/inject_dependencies.dart';
 import 'package:intl/intl.dart';
 
 class EstacaoMontaDetalheScreen extends StatefulWidget {
@@ -997,8 +999,11 @@ class _EstacaoMontaDetalheScreenState extends State<EstacaoMontaDetalheScreen> w
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => BlocProvider.value(
-          value: reproductionBloc,
+        builder: (context) => MultiBlocProvider(
+          providers: [
+            BlocProvider.value(value: reproductionBloc),
+            BlocProvider(create: (context) => getIt<AnimalBloc>()),
+          ],
           child: const CadastroPartoScreen(),
         ),
       ),
