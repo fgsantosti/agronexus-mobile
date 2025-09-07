@@ -12,10 +12,13 @@ import 'package:agronexus/presentation/bloc/login/login_bloc.dart';
 import 'package:agronexus/presentation/bloc/propriedade/propriedade_bloc.dart';
 import 'package:agronexus/presentation/bloc/propriedade/propriedade_bloc_new.dart';
 import 'package:agronexus/presentation/bloc/lote/lote_bloc.dart';
+import 'package:agronexus/presentation/bloc/import_export/import_export_bloc.dart';
 import 'package:agronexus/presentation/animal/animal_detail_screen.dart';
 import 'package:agronexus/presentation/animal/animal_edit_screen.dart';
 import 'package:agronexus/presentation/animal/animal_form_screen.dart';
 import 'package:agronexus/presentation/animal/animal_list_screen.dart';
+import 'package:agronexus/presentation/import_export/import_animals_screen.dart';
+import 'package:agronexus/presentation/import_export/export_animals_screen.dart';
 import 'package:agronexus/presentation/bloc/propriedade/propriedade_event_new.dart';
 import 'package:agronexus/presentation/bloc/lote/lote_events.dart';
 import 'package:agronexus/presentation/bloc/reproducao/reproducao_bloc.dart';
@@ -472,6 +475,41 @@ enum AgroNexusRouter {
                     child: BlocProvider<AnimalBloc>(
                       create: (context) => getIt<AnimalBloc>(),
                       child: AnimalEditScreen(animalId: animalId),
+                    ),
+                  );
+                },
+              ),
+              GoRoute(
+                path: '/importar',
+                pageBuilder: (context, state) {
+                  return CustomTransitionPage(
+                    key: state.pageKey,
+                    transitionDuration: RoutesUtils.duration,
+                    transitionsBuilder: RoutesUtils.transitionBuilder,
+                    child: BlocProvider<ImportExportBloc>(
+                      create: (context) => getIt<ImportExportBloc>(),
+                      child: const ImportAnimalsScreen(),
+                    ),
+                  );
+                },
+              ),
+              GoRoute(
+                path: '/exportar',
+                pageBuilder: (context, state) {
+                  return CustomTransitionPage(
+                    key: state.pageKey,
+                    transitionDuration: RoutesUtils.duration,
+                    transitionsBuilder: RoutesUtils.transitionBuilder,
+                    child: MultiBlocProvider(
+                      providers: [
+                        BlocProvider<AnimalBloc>(
+                          create: (context) => getIt<AnimalBloc>(),
+                        ),
+                        BlocProvider<ImportExportBloc>(
+                          create: (context) => getIt<ImportExportBloc>(),
+                        ),
+                      ],
+                      child: const ExportAnimalsScreen(),
                     ),
                   );
                 },
