@@ -9,6 +9,7 @@ import 'package:agronexus/presentation/bloc/import_export/import_export_event.da
 import 'package:agronexus/presentation/bloc/import_export/import_export_state.dart';
 import 'package:agronexus/domain/models/export_options_entity.dart';
 import 'package:agronexus/domain/models/animal_entity.dart';
+import 'package:agronexus/domain/models/opcoes_cadastro_animal.dart';
 
 class ExportAnimalsScreen extends StatefulWidget {
   const ExportAnimalsScreen({super.key});
@@ -22,10 +23,16 @@ class _ExportAnimalsScreenState extends State<ExportAnimalsScreen> {
   bool _incluirGenealogia = true;
   String _formatoData = 'dd/MM/yyyy';
 
+  // Filtros
+  PropriedadeSimples? _propriedadeSelecionada;
+  OpcoesCadastroAnimal? _opcoesCadastro;
+
   @override
   void initState() {
     super.initState();
-    context.read<AnimalBloc>().add(const LoadAnimaisEvent());
+    // Carregar apenas opções de cadastro para filtros
+    context.read<AnimalBloc>().add(const LoadOpcoesCadastroEvent());
+    // Não precisamos mais carregar animais localmente - a API fará isso
   }
 
   @override
@@ -36,21 +43,34 @@ class _ExportAnimalsScreenState extends State<ExportAnimalsScreen> {
         backgroundColor: Colors.green[800],
         foregroundColor: Colors.white,
       ),
-      body: BlocListener<ImportExportBloc, ImportExportState>(
-        listener: (context, state) {
-          if (state is ExportacaoSucesso) {
-            _shareExportedFile(state.caminhoArquivo);
-          }
+      body: MultiBlocListener(
+        listeners: [
+          BlocListener<ImportExportBloc, ImportExportState>(
+            listener: (context, state) {
+              if (state is ExportacaoSucesso) {
+                _shareExportedFile(state.caminhoArquivo);
+              }
 
-          if (state is ImportExportError) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(state.message),
-                backgroundColor: Colors.red,
-              ),
-            );
-          }
-        },
+              if (state is ImportExportError) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(state.message),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+              }
+            },
+          ),
+          BlocListener<AnimalBloc, AnimalState>(
+            listener: (context, state) {
+              if (state is OpcoesCadastroLoaded) {
+                setState(() {
+                  _opcoesCadastro = state.opcoes;
+                });
+              }
+            },
+          ),
+        ],
         child: BlocBuilder<AnimalBloc, AnimalState>(
           builder: (context, animalState) {
             if (animalState is AnimalLoading) {
@@ -68,7 +88,7 @@ class _ExportAnimalsScreenState extends State<ExportAnimalsScreen> {
                     const SizedBox(height: 16),
                     ElevatedButton(
                       onPressed: () {
-                        context.read<AnimalBloc>().add(const LoadAnimaisEvent());
+                        context.read<AnimalBloc>().add(const LoadOpcoesCadastroEvent());
                       },
                       child: const Text('Tentar Novamente'),
                     ),
@@ -77,16 +97,14 @@ class _ExportAnimalsScreenState extends State<ExportAnimalsScreen> {
               );
             }
 
-            final animais = animalState is AnimaisLoaded ? animalState.animais : <AnimalEntity>[];
-
             return BlocBuilder<ImportExportBloc, ImportExportState>(
               builder: (context, exportState) {
-                return Padding(
+                return SingleChildScrollView(
                   padding: const EdgeInsets.all(16.0),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      // Estatísticas dos animais
+                      // Seção de Filtros
                       Card(
                         child: Padding(
                           padding: const EdgeInsets.all(16.0),
@@ -94,43 +112,43 @@ class _ExportAnimalsScreenState extends State<ExportAnimalsScreen> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               const Text(
-                                'Resumo dos Animais',
+                                'Filtrar por Propriedade',
                                 style: TextStyle(
                                   fontSize: 18,
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),
                               const SizedBox(height: 12),
-                              Row(
-                                children: [
-                                  Expanded(
-                                    child: _buildStatCard(
-                                      'Total',
-                                      animais.length.toString(),
-                                      Icons.pets,
-                                      Colors.blue,
-                                    ),
+                              if (_opcoesCadastro != null)
+                                DropdownButtonFormField<PropriedadeSimples>(
+                                  value: _propriedadeSelecionada,
+                                  decoration: const InputDecoration(
+                                    labelText: 'Selecionar Propriedade',
+                                    border: OutlineInputBorder(),
+                                    prefixIcon: Icon(Icons.home),
+                                    hintText: 'Todas as minhas propriedades',
                                   ),
-                                  const SizedBox(width: 8),
-                                  Expanded(
-                                    child: _buildStatCard(
-                                      'Machos',
-                                      animais.where((a) => a.sexo.value == 'M').length.toString(),
-                                      Icons.male,
-                                      Colors.indigo,
+                                  items: [
+                                    const DropdownMenuItem<PropriedadeSimples>(
+                                      value: null,
+                                      child: Text('Todas as minhas propriedades'),
                                     ),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Expanded(
-                                    child: _buildStatCard(
-                                      'Fêmeas',
-                                      animais.where((a) => a.sexo.value == 'F').length.toString(),
-                                      Icons.female,
-                                      Colors.pink,
-                                    ),
-                                  ),
-                                ],
-                              ),
+                                    ..._opcoesCadastro!.propriedades.map((propriedade) {
+                                      return DropdownMenuItem(
+                                        value: propriedade,
+                                        child: Text(propriedade.nome),
+                                      );
+                                    }),
+                                  ],
+                                  onChanged: (value) {
+                                    setState(() {
+                                      _propriedadeSelecionada = value;
+                                    });
+                                    _loadAnimaisByPropriedade(value?.id);
+                                  },
+                                )
+                              else
+                                const Center(child: CircularProgressIndicator()),
                             ],
                           ),
                         ),
@@ -205,26 +223,26 @@ class _ExportAnimalsScreenState extends State<ExportAnimalsScreen> {
 
                       // Botão de exportar
                       ElevatedButton(
-                        onPressed: animais.isEmpty || exportState is ImportExportLoading
+                        onPressed: exportState is ImportExportLoading
                             ? null
                             : () {
+                                // Criar opções de exportação para a API
                                 final options = ExportOptionsEntity(
                                   format: ExportFormat.xlsx,
-                                  includeInactives: _incluirEstatisticas,
-                                  selectedFields: [
-                                    'identificacao',
-                                    'nome',
-                                    'raca',
-                                    'sexo',
-                                    'data_nascimento',
-                                    'status',
-                                    if (_incluirGenealogia) 'pai',
-                                    if (_incluirGenealogia) 'mae',
-                                  ],
+                                  includeInactives: false, // Não usado pela API
+                                  selectedFields: [], // Não usado pela API
+                                  incluirGenealogia: _incluirGenealogia,
+                                  incluirEstatisticas: _incluirEstatisticas,
+                                  formatoData: _formatoData,
+                                  propriedadeId: _propriedadeSelecionada?.id,
+                                  status: 'ativo', // Por padrão, só animais ativos
                                 );
 
+                                print('=== EXPORT DEBUG: Exportando via API com propriedadeId: ${options.propriedadeId}');
+                                
+                                // Usar a nova API em vez do método local
                                 context.read<ImportExportBloc>().add(
-                                      ExportarAnimaisEvent(animais, options),
+                                      ExportarAnimaisViaAPIEvent(options),
                                     );
                               },
                         style: ElevatedButton.styleFrom(
@@ -254,14 +272,14 @@ class _ExportAnimalsScreenState extends State<ExportAnimalsScreen> {
                               ),
                       ),
 
-                      if (animais.isEmpty)
+                      if (exportState is ImportExportLoading)
                         const Padding(
                           padding: EdgeInsets.only(top: 16),
                           child: Text(
-                            'Nenhum animal encontrado para exportar.',
+                            'Buscando dados na API e gerando arquivo Excel...',
                             textAlign: TextAlign.center,
                             style: TextStyle(
-                              color: Colors.orange,
+                              color: Colors.blue,
                               fontWeight: FontWeight.bold,
                             ),
                           ),
@@ -277,36 +295,13 @@ class _ExportAnimalsScreenState extends State<ExportAnimalsScreen> {
     );
   }
 
-  Widget _buildStatCard(String label, String value, IconData icon, Color color) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: color.withOpacity(0.3)),
-      ),
-      child: Column(
-        children: [
-          Icon(icon, color: color, size: 24),
-          const SizedBox(height: 4),
-          Text(
-            value,
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: color,
-            ),
-          ),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 12,
-              color: color.withOpacity(0.8),
-            ),
-          ),
-        ],
-      ),
-    );
+  void _loadAnimaisByPropriedade(String? propriedadeId) {
+    print('=== EXPORT DEBUG: _loadAnimaisByPropriedade chamado com propriedadeId: $propriedadeId');
+    
+    // Não precisamos mais carregar dados localmente - apenas armazenar a seleção
+    setState(() {
+      // A propriedade selecionada já foi atualizada no onChanged do dropdown
+    });
   }
 
   Future<void> _shareExportedFile(String filePath) async {

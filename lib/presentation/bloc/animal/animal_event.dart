@@ -98,6 +98,23 @@ class LoadFilhosDaMaeEvent extends AnimalEvent {
   List<Object?> get props => [maeId, status];
 }
 
+class LoadAllAnimaisForExportEvent extends AnimalEvent {
+  final String? search;
+  final String? especieId;
+  final String? status;
+  final String? propriedadeId;
+
+  const LoadAllAnimaisForExportEvent({
+    this.search,
+    this.especieId,
+    this.status,
+    this.propriedadeId,
+  });
+
+  @override
+  List<Object?> get props => [search, especieId, status, propriedadeId];
+}
+
 class NextPageAnimaisEvent extends AnimalEvent {
   const NextPageAnimaisEvent();
 }

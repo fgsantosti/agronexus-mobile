@@ -21,6 +21,14 @@ abstract class AnimalRemoteRepository {
 
   Future<OpcoesCadastroAnimal> getOpcoesCadastro();
 
+  /// Carrega todos os animais para exportação, sem limitação de paginação
+  Future<List<AnimalEntity>> getAllAnimaisForExport({
+    String? search,
+    String? especieId,
+    String? status,
+    String? propriedadeId,
+  });
+
   Future<List<RacaAnimal>> getRacasByEspecie(String especieId);
 
   Future<List<String>> getCategoriasByEspecie(String especieId);

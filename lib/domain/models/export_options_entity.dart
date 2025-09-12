@@ -29,6 +29,15 @@ class ExportOptionsEntity extends BaseEntity {
   final DateTime? dataInicio;
   final DateTime? dataFim;
 
+  // Novos campos para integração com API
+  final bool incluirGenealogia;
+  final bool incluirEstatisticas;
+  final String formatoData;
+  final String? propriedadeId;
+  final String? especieId;
+  final String? status;
+  final String? search;
+
   const ExportOptionsEntity({
     super.id,
     super.createdById,
@@ -41,6 +50,13 @@ class ExportOptionsEntity extends BaseEntity {
     required this.selectedFields,
     this.dataInicio,
     this.dataFim,
+    this.incluirGenealogia = true,
+    this.incluirEstatisticas = true,
+    this.formatoData = 'dd/MM/yyyy',
+    this.propriedadeId,
+    this.especieId,
+    this.status,
+    this.search,
   });
 
   @override
@@ -52,6 +68,13 @@ class ExportOptionsEntity extends BaseEntity {
         selectedFields,
         dataInicio,
         dataFim,
+        incluirGenealogia,
+        incluirEstatisticas,
+        formatoData,
+        propriedadeId,
+        especieId,
+        status,
+        search,
       ];
 
   ExportOptionsEntity copyWith({
@@ -66,6 +89,13 @@ class ExportOptionsEntity extends BaseEntity {
     AgroNexusGetter<List<String>>? selectedFields,
     AgroNexusGetter<DateTime?>? dataInicio,
     AgroNexusGetter<DateTime?>? dataFim,
+    AgroNexusGetter<bool>? incluirGenealogia,
+    AgroNexusGetter<bool>? incluirEstatisticas,
+    AgroNexusGetter<String>? formatoData,
+    AgroNexusGetter<String?>? propriedadeId,
+    AgroNexusGetter<String?>? especieId,
+    AgroNexusGetter<String?>? status,
+    AgroNexusGetter<String?>? search,
   }) {
     return ExportOptionsEntity(
       id: id != null ? id() : this.id,
@@ -79,6 +109,13 @@ class ExportOptionsEntity extends BaseEntity {
       selectedFields: selectedFields != null ? selectedFields() : this.selectedFields,
       dataInicio: dataInicio != null ? dataInicio() : this.dataInicio,
       dataFim: dataFim != null ? dataFim() : this.dataFim,
+      incluirGenealogia: incluirGenealogia != null ? incluirGenealogia() : this.incluirGenealogia,
+      incluirEstatisticas: incluirEstatisticas != null ? incluirEstatisticas() : this.incluirEstatisticas,
+      formatoData: formatoData != null ? formatoData() : this.formatoData,
+      propriedadeId: propriedadeId != null ? propriedadeId() : this.propriedadeId,
+      especieId: especieId != null ? especieId() : this.especieId,
+      status: status != null ? status() : this.status,
+      search: search != null ? search() : this.search,
     );
   }
 
@@ -92,6 +129,13 @@ class ExportOptionsEntity extends BaseEntity {
       'selected_fields': selectedFields,
       'data_inicio': dataInicio?.toIso8601String(),
       'data_fim': dataFim?.toIso8601String(),
+      'incluir_genealogia': incluirGenealogia,
+      'incluir_estatisticas': incluirEstatisticas,
+      'formato_data': formatoData,
+      'propriedade_id': propriedadeId,
+      'especie_id': especieId,
+      'status': status,
+      'search': search,
     });
     return data;
   }
@@ -103,5 +147,12 @@ class ExportOptionsEntity extends BaseEntity {
         selectedFields = List<String>.from(json['selected_fields'] ?? []),
         dataInicio = json['data_inicio'] != null ? DateTime.parse(json['data_inicio']) : null,
         dataFim = json['data_fim'] != null ? DateTime.parse(json['data_fim']) : null,
+        incluirGenealogia = json['incluir_genealogia'] ?? true,
+        incluirEstatisticas = json['incluir_estatisticas'] ?? true,
+        formatoData = json['formato_data'] ?? 'dd/MM/yyyy',
+        propriedadeId = json['propriedade_id'],
+        especieId = json['especie_id'],
+        status = json['status'],
+        search = json['search'],
         super.fromJson(json);
 }

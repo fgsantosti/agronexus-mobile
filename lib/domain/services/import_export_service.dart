@@ -17,6 +17,10 @@ class ImportExportService {
     return await _repository.exportarAnimaisExcel(animais, options);
   }
 
+  Future<String> exportarAnimaisViaAPI(ExportOptionsEntity options) async {
+    return await _repository.exportarAnimaisViaAPI(options);
+  }
+
   Future<File> gerarTemplateImportacao() async {
     return await _repository.gerarTemplateImportacao();
   }

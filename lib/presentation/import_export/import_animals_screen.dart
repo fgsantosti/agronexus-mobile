@@ -48,7 +48,7 @@ class _ImportAnimalsScreenState extends State<ImportAnimalsScreen> {
         },
         child: BlocBuilder<ImportExportBloc, ImportExportState>(
           builder: (context, state) {
-            return Padding(
+            return SingleChildScrollView(
               padding: const EdgeInsets.all(16.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,

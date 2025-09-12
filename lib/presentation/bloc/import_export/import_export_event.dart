@@ -29,6 +29,15 @@ class ExportarAnimaisEvent extends ImportExportEvent {
   List<Object> get props => [animais, options];
 }
 
+class ExportarAnimaisViaAPIEvent extends ImportExportEvent {
+  final ExportOptionsEntity options;
+
+  const ExportarAnimaisViaAPIEvent(this.options);
+
+  @override
+  List<Object> get props => [options];
+}
+
 class GerarTemplateEvent extends ImportExportEvent {
   const GerarTemplateEvent();
 }

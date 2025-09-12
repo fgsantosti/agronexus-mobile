@@ -9,6 +9,7 @@ class ImportExportBloc extends Bloc<ImportExportEvent, ImportExportState> {
   ImportExportBloc(this._service) : super(ImportExportInitial()) {
     on<ImportarAnimaisEvent>(_onImportarAnimais);
     on<ExportarAnimaisEvent>(_onExportarAnimais);
+    on<ExportarAnimaisViaAPIEvent>(_onExportarAnimaisViaAPI);
     on<GerarTemplateEvent>(_onGerarTemplate);
     on<ValidarArquivoEvent>(_onValidarArquivo);
     on<ResetImportExportEvent>(_onReset);
@@ -28,6 +29,16 @@ class ImportExportBloc extends Bloc<ImportExportEvent, ImportExportState> {
     emit(ImportExportLoading());
     try {
       final caminhoArquivo = await _service.exportarAnimaisExcel(event.animais, event.options);
+      emit(ExportacaoSucesso(caminhoArquivo));
+    } catch (e) {
+      emit(ImportExportError(e.toString()));
+    }
+  }
+
+  Future<void> _onExportarAnimaisViaAPI(ExportarAnimaisViaAPIEvent event, Emitter<ImportExportState> emit) async {
+    emit(ImportExportLoading());
+    try {
+      final caminhoArquivo = await _service.exportarAnimaisViaAPI(event.options);
       emit(ExportacaoSucesso(caminhoArquivo));
     } catch (e) {
       emit(ImportExportError(e.toString()));

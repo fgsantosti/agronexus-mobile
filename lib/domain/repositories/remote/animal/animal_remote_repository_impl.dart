@@ -68,6 +68,82 @@ class AnimalRemoteRepositoryImpl implements AnimalRemoteRepository {
   }
 
   @override
+  Future<List<AnimalEntity>> getAllAnimaisForExport({
+    String? search,
+    String? especieId,
+    String? status,
+    String? propriedadeId,
+  }) async {
+    try {
+      List<AnimalEntity> todosAnimais = [];
+      int offset = 0;
+      const int pageSize = 50; // Tamanho da página configurado no backend
+      bool hasMore = true;
+
+      while (hasMore) {
+        Map<String, dynamic> queryParams = {
+          'limit': pageSize,
+          'offset': offset,
+        };
+
+        if (search != null && search.isNotEmpty) {
+          queryParams['search'] = search;
+        }
+
+        if (especieId != null && especieId.isNotEmpty) {
+          queryParams['especie'] = especieId;
+        }
+
+        if (status != null && status.isNotEmpty) {
+          queryParams['status'] = status;
+        }
+
+        if (propriedadeId != null && propriedadeId.isNotEmpty) {
+          queryParams['propriedade'] = propriedadeId;
+          print('=== EXPORT DEBUG: Adicionando filtro de propriedade: $propriedadeId');
+        } else {
+          print('=== EXPORT DEBUG: Sem filtro de propriedade - carregando TODAS as propriedades do usuário');
+        }
+
+        Response response = await httpService.get(
+          path: API.animais,
+          queryParameters: queryParams,
+          isAuth: true,
+        );
+
+        List<dynamic> data = response.data['results'] ?? response.data;
+
+        List<AnimalEntity> animaisPagina = [];
+        for (var json in data) {
+          try {
+            animaisPagina.add(AnimalEntity.fromJson(json));
+          } catch (e) {
+            print('Erro ao fazer parse do animal: $e');
+            print('JSON problemático: $json');
+            // Continue para os próximos animais em caso de erro
+          }
+        }
+
+        todosAnimais.addAll(animaisPagina);
+
+        // Verifica se há mais páginas
+        hasMore = animaisPagina.length == pageSize;
+        offset += pageSize;
+
+        // Proteção contra loop infinito
+        if (offset > 10000) {
+          print('Aviso: Limitando busca a 10.000 animais para evitar loop infinito');
+          break;
+        }
+      }
+
+      return todosAnimais;
+    } catch (e) {
+      throw await AgroNexusException.fromDioError(e);
+    }
+  }
+
+  @override
   Future<AnimalEntity> getAnimal(String id) async {
     try {
       Response response = await httpService.get(

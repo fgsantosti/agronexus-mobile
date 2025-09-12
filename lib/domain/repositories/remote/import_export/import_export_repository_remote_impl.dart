@@ -9,6 +9,9 @@ import 'package:excel/excel.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:intl/intl.dart';
 import 'package:agronexus/config/api.dart';
+import 'package:dio/dio.dart';
+import 'package:agronexus/config/inject_dependencies.dart';
+import 'package:agronexus/domain/services/auth_service.dart';
 
 class ImportExportRepositoryImpl implements ImportExportRepository {
   final HttpService httpService;
@@ -428,5 +431,72 @@ class ImportExportRepositoryImpl implements ImportExportRepository {
   String _calcularPesoTotal(List<AnimalEntity> animais) {
     // Como não temos campo peso na entidade atual, retornamos 0
     return '0';
+  }
+
+  @override
+  Future<String> exportarAnimaisViaAPI(ExportOptionsEntity options) async {
+    try {
+      // Preparar dados para envio à API
+      Map<String, dynamic> requestData = {
+        'incluir_genealogia': options.incluirGenealogia,
+        'incluir_estatisticas': options.incluirEstatisticas,
+        'formato_data': options.formatoData,
+      };
+
+      // Adicionar filtros se especificados
+      if (options.propriedadeId != null && options.propriedadeId!.isNotEmpty) {
+        requestData['propriedade_id'] = options.propriedadeId;
+      }
+
+      if (options.especieId != null && options.especieId!.isNotEmpty) {
+        requestData['especie_id'] = options.especieId;
+      }
+
+      if (options.status != null && options.status!.isNotEmpty) {
+        requestData['status'] = options.status;
+      }
+
+      if (options.search != null && options.search!.isNotEmpty) {
+        requestData['search'] = options.search;
+      }
+
+      print('=== EXPORT DEBUG: Chamando API com dados: $requestData');
+
+      // Obter token de autenticação
+      final token = await getIt<AuthService>().token;
+
+      // Usar diretamente o Dio com responseType bytes para arquivo binário
+      final dio = Dio();
+      final response = await dio.post(
+        '${API.baseUrl}${API.animais}exportar_excel/',
+        data: requestData,
+        options: Options(
+          responseType: ResponseType.bytes,
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer $token',
+          },
+        ),
+      );
+
+      if (response.statusCode == 200) {
+        // Salvar o arquivo recebido
+        final directory = await getApplicationDocumentsDirectory();
+        final timestamp = DateTime.now().millisecondsSinceEpoch;
+        final fileName = 'animais_export_$timestamp.xlsx';
+        final filePath = '${directory.path}/$fileName';
+
+        final file = File(filePath);
+        await file.writeAsBytes(response.data);
+
+        print('=== EXPORT DEBUG: Arquivo salvo em: $filePath');
+        return filePath;
+      } else {
+        throw AgroNexusException(message: 'Erro na API: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('=== EXPORT DEBUG: Erro ao exportar via API: $e');
+      throw await AgroNexusException.fromDioError(e);
+    }
   }
 }
