@@ -22,6 +22,16 @@ class ImportacaoSucesso extends ImportExportState {
   List<Object> get props => [resultado];
 }
 
+class ImportacaoSucessoParcial extends ImportExportState {
+  final ImportResultEntity resultado;
+  final String mensagemPersonalizada;
+
+  const ImportacaoSucessoParcial(this.resultado, this.mensagemPersonalizada);
+
+  @override
+  List<Object> get props => [resultado, mensagemPersonalizada];
+}
+
 class ExportacaoSucesso extends ImportExportState {
   final String caminhoArquivo;
 

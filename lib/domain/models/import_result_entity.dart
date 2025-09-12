@@ -31,6 +31,7 @@ class ImportResultEntity extends BaseEntity {
   final int totalRegistros;
   final int sucessos;
   final int erros;
+  final int duplicados;
   final List<String> mensagensErro;
   final ImportStatus status;
   final String? arquivoPath;
@@ -44,6 +45,7 @@ class ImportResultEntity extends BaseEntity {
     required this.totalRegistros,
     required this.sucessos,
     required this.erros,
+    this.duplicados = 0,
     required this.mensagensErro,
     required this.status,
     this.arquivoPath,
@@ -55,6 +57,7 @@ class ImportResultEntity extends BaseEntity {
         totalRegistros,
         sucessos,
         erros,
+        duplicados,
         mensagensErro,
         status,
         arquivoPath,
@@ -69,6 +72,7 @@ class ImportResultEntity extends BaseEntity {
     AgroNexusGetter<int>? totalRegistros,
     AgroNexusGetter<int>? sucessos,
     AgroNexusGetter<int>? erros,
+    AgroNexusGetter<int>? duplicados,
     AgroNexusGetter<List<String>>? mensagensErro,
     AgroNexusGetter<ImportStatus>? status,
     AgroNexusGetter<String?>? arquivoPath,
@@ -82,6 +86,7 @@ class ImportResultEntity extends BaseEntity {
       totalRegistros: totalRegistros != null ? totalRegistros() : this.totalRegistros,
       sucessos: sucessos != null ? sucessos() : this.sucessos,
       erros: erros != null ? erros() : this.erros,
+      duplicados: duplicados != null ? duplicados() : this.duplicados,
       mensagensErro: mensagensErro != null ? mensagensErro() : this.mensagensErro,
       status: status != null ? status() : this.status,
       arquivoPath: arquivoPath != null ? arquivoPath() : this.arquivoPath,
@@ -95,6 +100,7 @@ class ImportResultEntity extends BaseEntity {
       'total_registros': totalRegistros,
       'sucessos': sucessos,
       'erros': erros,
+      'duplicados': duplicados,
       'mensagens_erro': mensagensErro,
       'status': status.value,
       'arquivo_path': arquivoPath,
@@ -106,6 +112,7 @@ class ImportResultEntity extends BaseEntity {
       : totalRegistros = json['total_registros'] ?? 0,
         sucessos = json['sucessos'] ?? 0,
         erros = json['erros'] ?? 0,
+        duplicados = json['duplicados'] ?? 0,
         mensagensErro = List<String>.from(json['mensagens_erro'] ?? []),
         status = ImportStatus.fromString(json['status'] ?? 'pendente'),
         arquivoPath = json['arquivo_path'],
