@@ -10,6 +10,7 @@ import 'package:agronexus/presentation/bloc/import_export/import_export_state.da
 import 'package:agronexus/domain/models/export_options_entity.dart';
 import 'package:agronexus/domain/models/animal_entity.dart';
 import 'package:agronexus/domain/models/opcoes_cadastro_animal.dart';
+import 'package:agronexus/presentation/widgets/standard_app_bar.dart';
 
 class ExportAnimalsScreen extends StatefulWidget {
   const ExportAnimalsScreen({super.key});
@@ -38,10 +39,8 @@ class _ExportAnimalsScreenState extends State<ExportAnimalsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Exportar Animais'),
-        backgroundColor: Colors.green[800],
-        foregroundColor: Colors.white,
+      appBar: buildStandardAppBar(
+        title: 'Exportar Animais',
       ),
       body: MultiBlocListener(
         listeners: [
@@ -239,7 +238,7 @@ class _ExportAnimalsScreenState extends State<ExportAnimalsScreen> {
                                 );
 
                                 print('=== EXPORT DEBUG: Exportando via API com propriedadeId: ${options.propriedadeId}');
-                                
+
                                 // Usar a nova API em vez do método local
                                 context.read<ImportExportBloc>().add(
                                       ExportarAnimaisViaAPIEvent(options),
@@ -297,7 +296,7 @@ class _ExportAnimalsScreenState extends State<ExportAnimalsScreen> {
 
   void _loadAnimaisByPropriedade(String? propriedadeId) {
     print('=== EXPORT DEBUG: _loadAnimaisByPropriedade chamado com propriedadeId: $propriedadeId');
-    
+
     // Não precisamos mais carregar dados localmente - apenas armazenar a seleção
     setState(() {
       // A propriedade selecionada já foi atualizada no onChanged do dropdown

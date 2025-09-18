@@ -8,6 +8,7 @@ import 'package:agronexus/presentation/bloc/import_export/import_export_event.da
 import 'package:agronexus/presentation/bloc/import_export/import_export_state.dart';
 import 'package:agronexus/presentation/bloc/animal/animal_bloc.dart';
 import 'package:agronexus/presentation/bloc/animal/animal_event.dart';
+import 'package:agronexus/presentation/widgets/standard_app_bar.dart';
 import 'package:agronexus/domain/models/import_result_entity.dart';
 
 class ImportAnimalsScreen extends StatefulWidget {
@@ -23,10 +24,8 @@ class _ImportAnimalsScreenState extends State<ImportAnimalsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Importar Animais'),
-        backgroundColor: Colors.green[800],
-        foregroundColor: Colors.white,
+      appBar: buildStandardAppBar(
+        title: 'Importar Animais',
       ),
       body: MultiBlocListener(
         listeners: [
