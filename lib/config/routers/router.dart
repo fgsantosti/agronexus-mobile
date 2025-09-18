@@ -486,8 +486,15 @@ enum AgroNexusRouter {
                     key: state.pageKey,
                     transitionDuration: RoutesUtils.duration,
                     transitionsBuilder: RoutesUtils.transitionBuilder,
-                    child: BlocProvider<ImportExportBloc>(
-                      create: (context) => getIt<ImportExportBloc>(),
+                    child: MultiBlocProvider(
+                      providers: [
+                        BlocProvider<AnimalBloc>(
+                          create: (context) => getIt<AnimalBloc>(),
+                        ),
+                        BlocProvider<ImportExportBloc>(
+                          create: (context) => getIt<ImportExportBloc>(),
+                        ),
+                      ],
                       child: const ImportAnimalsScreen(),
                     ),
                   );
