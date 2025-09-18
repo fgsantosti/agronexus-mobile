@@ -104,6 +104,17 @@ class FilhosDaMaeLoaded extends AnimalState {
   List<Object> get props => [filhos, maeId];
 }
 
+class AllAnimaisForExportLoaded extends AnimalState {
+  final List<AnimalEntity> animais;
+
+  const AllAnimaisForExportLoaded({
+    required this.animais,
+  });
+
+  @override
+  List<Object> get props => [animais];
+}
+
 class AnimalError extends AnimalState {
   final String message;
 

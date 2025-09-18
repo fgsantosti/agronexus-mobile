@@ -77,6 +77,43 @@ class _AnimalListContentState extends State<_AnimalListContent> with WidgetsBind
       appBar: buildStandardAppBar(
         title: 'Animais',
         showBack: false,
+        actions: [
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.more_vert, color: Colors.white),
+            onSelected: (value) {
+              switch (value) {
+                case 'import':
+                  context.go('/animais/importar');
+                  break;
+                case 'export':
+                  context.go('/animais/exportar');
+                  break;
+              }
+            },
+            itemBuilder: (context) => [
+              const PopupMenuItem(
+                value: 'import',
+                child: Row(
+                  children: [
+                    Icon(Icons.file_upload),
+                    SizedBox(width: 8),
+                    Text('Importar Excel'),
+                  ],
+                ),
+              ),
+              const PopupMenuItem(
+                value: 'export',
+                child: Row(
+                  children: [
+                    Icon(Icons.file_download),
+                    SizedBox(width: 8),
+                    Text('Exportar Excel'),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
       body: RefreshIndicator(
         onRefresh: () async => _loadAnimais(),

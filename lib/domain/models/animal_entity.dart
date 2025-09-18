@@ -74,6 +74,7 @@ enum OrigemAnimal {
     final lowerValue = value.toLowerCase();
     switch (lowerValue) {
       case 'proprio':
+      case 'próprio':
         return OrigemAnimal.proprio;
       case 'compra':
         return OrigemAnimal.compra;
@@ -85,6 +86,12 @@ enum OrigemAnimal {
         return OrigemAnimal.doacao;
       case 'parceria':
         return OrigemAnimal.parceria;
+      // Aceitar variações de fazenda como próprio
+      case 'fazenda a':
+      case 'fazenda b':
+      case 'fazenda c':
+      case 'fazenda':
+        return OrigemAnimal.proprio;
       default:
         print('Warning: Unknown OrigemAnimal value: $value, defaulting to proprio');
         return OrigemAnimal.proprio; // Valor padrão ao invés de erro

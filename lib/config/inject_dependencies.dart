@@ -28,6 +28,8 @@ import 'package:agronexus/domain/repositories/remote/reproducao/reproducao_remot
 import 'package:agronexus/domain/repositories/remote/reproducao/reproducao_repository_remote_impl.dart';
 import 'package:agronexus/domain/repositories/remote/user/user_remote_repository.dart';
 import 'package:agronexus/domain/repositories/remote/user/user_remote_repository_impl.dart';
+import 'package:agronexus/domain/repositories/remote/import_export/import_export_remote_repository.dart';
+import 'package:agronexus/domain/repositories/remote/import_export/import_export_repository_remote_impl.dart';
 import 'package:agronexus/domain/services/animal_service.dart';
 import 'package:agronexus/domain/services/auth_service.dart';
 import 'package:agronexus/domain/services/dashboard_service.dart';
@@ -37,7 +39,9 @@ import 'package:agronexus/domain/services/propriedade_service.dart' as legacy;
 import 'package:agronexus/domain/services/propriedade_service_new.dart' as novo;
 import 'package:agronexus/domain/services/reproducao_service.dart';
 import 'package:agronexus/domain/services/user_service.dart';
+import 'package:agronexus/domain/services/import_export_service.dart';
 import 'package:agronexus/presentation/bloc/propriedade/propriedade_bloc_new.dart';
+import 'package:agronexus/presentation/bloc/import_export/import_export_bloc.dart';
 import 'package:agronexus/domain/services/area_service.dart';
 import 'package:agronexus/domain/repositories/remote/area/area_remote_repository.dart';
 import 'package:agronexus/domain/repositories/remote/area/area_remote_repository_impl.dart';
@@ -129,6 +133,15 @@ void configureDependencies() {
     AreaService(getIt()),
   );
 
+  // Import/Export
+  getIt.registerLazySingleton<ImportExportRepository>(
+    () => ImportExportRepositoryImpl(httpService: getIt<HttpService>()),
+  );
+
+  getIt.registerLazySingleton<ImportExportService>(
+    () => ImportExportService(getIt<ImportExportRepository>()),
+  );
+
   // BLoCs
   getIt.registerFactory<AnimalBloc>(
     () => AnimalBloc(getIt()),
@@ -142,5 +155,9 @@ void configureDependencies() {
   );
   getIt.registerFactory<AreaBloc>(
     () => AreaBloc(getIt()),
+  );
+
+  getIt.registerFactory<ImportExportBloc>(
+    () => ImportExportBloc(getIt<ImportExportService>()),
   );
 }

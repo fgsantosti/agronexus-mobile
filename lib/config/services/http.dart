@@ -7,6 +7,7 @@ abstract class HttpService {
     Map<String, dynamic>? headers,
     bool isAuth = true,
     bool withRelogin = true,
+    ResponseType? responseType,
   });
   Future<Response> post({
     required String path,

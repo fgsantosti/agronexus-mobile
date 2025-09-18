@@ -45,6 +45,20 @@ class AnimalService {
     return await _repository.getOpcoesCadastro();
   }
 
+  Future<List<AnimalEntity>> getAllAnimaisForExport({
+    String? search,
+    String? especieId,
+    String? status,
+    String? propriedadeId,
+  }) async {
+    return await _repository.getAllAnimaisForExport(
+      search: search,
+      especieId: especieId,
+      status: status,
+      propriedadeId: propriedadeId,
+    );
+  }
+
   Future<List<RacaAnimal>> getRacasByEspecie(String especieId) async {
     return await _repository.getRacasByEspecie(especieId);
   }

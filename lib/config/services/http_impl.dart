@@ -26,8 +26,7 @@ class HttpServiceImpl implements HttpService {
     _dio.options.headers['Content-Type'] = 'application/json';
   }
 
-  Future<Map<String, dynamic>> _getAuth(
-      Map<String, dynamic>? oldHeaders, bool isAuth) async {
+  Future<Map<String, dynamic>> _getAuth(Map<String, dynamic>? oldHeaders, bool isAuth) async {
     final Map<String, dynamic> headers = oldHeaders ?? {};
     if (isAuth) {
       String token = await getIt<AuthService>().token;
@@ -53,10 +52,14 @@ class HttpServiceImpl implements HttpService {
     Map<String, dynamic>? headers,
     bool isAuth = true,
     bool withRelogin = true,
+    ResponseType? responseType,
   }) async {
     try {
       Map<String, dynamic> newHeaders = await _getAuth(headers, isAuth);
-      final Options options = Options(headers: newHeaders);
+      final Options options = Options(
+        headers: newHeaders,
+        responseType: responseType,
+      );
       return _dio.get(path, queryParameters: queryParameters, options: options);
     } catch (e) {
       if (e is DioException) {
@@ -68,6 +71,7 @@ class HttpServiceImpl implements HttpService {
             headers: headers,
             isAuth: isAuth,
             withRelogin: false,
+            responseType: responseType,
           );
         }
       }
