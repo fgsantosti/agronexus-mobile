@@ -191,8 +191,9 @@ class ImportExportRepositoryImpl implements ImportExportRepository {
     try {
       // Chamar a API para obter o template
       final response = await httpService.get(
-        path: '${API.animais}template_importacao/',
+        path: API.animaisTemplateImportacao,
         isAuth: true,
+        responseType: ResponseType.bytes,
       );
 
       if (response.statusCode == 200) {
@@ -228,11 +229,56 @@ class ImportExportRepositoryImpl implements ImportExportRepository {
         if (sheet.rows.isEmpty) return false;
 
         // Verificar cabeçalhos mínimos
-        final headers = sheet.rows.first.map((cell) => cell?.value?.toString() ?? '').toList();
-        final headerObrigatorios = ['identificacao', 'especie', 'sexo', 'data_nascimento'];
+        final headers = sheet.rows.first.map((cell) {
+          if (cell?.value != null) {
+            return cell!.value.toString().trim().toLowerCase();
+          }
+          return '';
+        }).toList();
+
+        // Mapeamento de cabeçalhos (mesmo do backend)
+        final mapeamentoHeaders = {
+          'id único': 'identificacao_unica',
+          'identificacao única': 'identificacao_unica',
+          'identificacao_unica': 'identificacao_unica',
+          'identificacao': 'identificacao_unica',
+          'nome/registro': 'nome_registro',
+          'nome registro': 'nome_registro',
+          'nome_registro': 'nome_registro',
+          'nome': 'nome_registro',
+          'propriedade': 'propriedade',
+          'espécie': 'especie',
+          'especie': 'especie',
+          'raça': 'raca',
+          'raca': 'raca',
+          'sexo': 'sexo',
+          'data nascimento': 'data_nascimento',
+          'data_nascimento': 'data_nascimento',
+          'data de nascimento': 'data_nascimento',
+          'nascimento': 'data_nascimento',
+          'categoria': 'categoria',
+          'status': 'status',
+          'lote atual': 'lote_atual',
+          'lote_atual': 'lote_atual',
+          'lote': 'lote_atual',
+          'peso atual (kg)': 'peso_atual',
+          'peso atual': 'peso_atual',
+          'peso_atual': 'peso_atual',
+          'peso': 'peso_atual',
+          'observações': 'observacoes',
+          'observacoes': 'observacoes',
+          'observação': 'observacoes',
+          'obs': 'observacoes',
+        };
+
+        // Converter headers usando o mapeamento
+        final headersNormalizados = headers.map((header) => mapeamentoHeaders[header] ?? header).toList();
+
+        // Headers obrigatórios (mesmos do backend)
+        final headerObrigatorios = ['identificacao_unica', 'especie', 'sexo', 'data_nascimento', 'categoria', 'status'];
 
         for (String header in headerObrigatorios) {
-          if (!headers.contains(header)) {
+          if (!headersNormalizados.contains(header)) {
             return false;
           }
         }
