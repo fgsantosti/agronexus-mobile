@@ -226,6 +226,8 @@ class _InseminacaoScreenState extends State<InseminacaoScreen> {
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
                           ),
+                          overflow: TextOverflow.ellipsis,
+                          maxLines: 1,
                         ),
                         Text(
                           'Identificação: ${inseminacao.animal.idAnimal}',
@@ -233,6 +235,8 @@ class _InseminacaoScreenState extends State<InseminacaoScreen> {
                             fontSize: 12,
                             color: Colors.grey.shade600,
                           ),
+                          overflow: TextOverflow.ellipsis,
+                          maxLines: 1,
                         ),
                       ],
                     ),
@@ -254,7 +258,7 @@ class _InseminacaoScreenState extends State<InseminacaoScreen> {
                   Expanded(
                     child: _buildInfoChip(
                       'Tipo',
-                      inseminacao.tipo.name.toUpperCase(),
+                      inseminacao.tipo.label,
                       Icons.science,
                       Colors.green,
                     ),
@@ -267,9 +271,10 @@ class _InseminacaoScreenState extends State<InseminacaoScreen> {
                   children: [
                     if (inseminacao.reprodutor != null)
                       Expanded(
+                        flex: inseminacao.semenUtilizado != null ? 1 : 1,
                         child: _buildInfoChip(
                           'Reprodutor',
-                          inseminacao.reprodutor!.situacao.isNotEmpty ? inseminacao.reprodutor!.situacao : 'ID: ${inseminacao.reprodutor!.idAnimal}',
+                          _truncateText(inseminacao.reprodutor!.situacao.isNotEmpty ? inseminacao.reprodutor!.situacao : 'ID: ${inseminacao.reprodutor!.idAnimal}', 15),
                           Icons.pets,
                           Colors.orange,
                         ),
@@ -277,9 +282,10 @@ class _InseminacaoScreenState extends State<InseminacaoScreen> {
                     if (inseminacao.reprodutor != null && inseminacao.semenUtilizado != null) const SizedBox(width: 8),
                     if (inseminacao.semenUtilizado != null)
                       Expanded(
+                        flex: inseminacao.reprodutor != null ? 1 : 1,
                         child: _buildInfoChip(
                           'Sêmen',
-                          inseminacao.semenUtilizado!,
+                          _truncateText(inseminacao.semenUtilizado!, 15),
                           Icons.local_hospital,
                           Colors.purple,
                         ),
@@ -303,7 +309,6 @@ class _InseminacaoScreenState extends State<InseminacaoScreen> {
         border: Border.all(color: color.withOpacity(0.3)),
       ),
       child: Row(
-        mainAxisSize: MainAxisSize.min,
         children: [
           Icon(icon, size: 14, color: color),
           const SizedBox(width: 4),
@@ -318,6 +323,7 @@ class _InseminacaoScreenState extends State<InseminacaoScreen> {
                     color: color,
                     fontWeight: FontWeight.bold,
                   ),
+                  overflow: TextOverflow.ellipsis,
                 ),
                 Text(
                   value,
@@ -326,6 +332,7 @@ class _InseminacaoScreenState extends State<InseminacaoScreen> {
                     color: color,
                   ),
                   overflow: TextOverflow.ellipsis,
+                  maxLines: 1,
                 ),
               ],
             ),
@@ -470,7 +477,7 @@ class _InseminacaoScreenState extends State<InseminacaoScreen> {
                   children: [
                     _buildDetalheItem('Animal', inseminacao.animal.situacao.isNotEmpty ? inseminacao.animal.situacao : 'ID: ${inseminacao.animal.idAnimal}'),
                     _buildDetalheItem('Data da Inseminação', _dateFormat.format(inseminacao.dataInseminacao)),
-                    _buildDetalheItem('Tipo', inseminacao.tipo.name.toUpperCase()),
+                    _buildDetalheItem('Tipo', inseminacao.tipo.label),
                     if (inseminacao.reprodutor != null)
                       _buildDetalheItem('Reprodutor', inseminacao.reprodutor!.situacao.isNotEmpty ? inseminacao.reprodutor!.situacao : 'ID: ${inseminacao.reprodutor!.idAnimal}'),
                     if (inseminacao.semenUtilizado != null) _buildDetalheItem('Sêmen Utilizado', inseminacao.semenUtilizado!),
@@ -533,6 +540,13 @@ class _InseminacaoScreenState extends State<InseminacaoScreen> {
   //       break;
   //   }
   // }
+
+  String _truncateText(String text, int maxLength) {
+    if (text.length <= maxLength) {
+      return text;
+    }
+    return '${text.substring(0, maxLength)}...';
+  }
 
   void _confirmarExclusao(InseminacaoEntity inseminacao) {
     showDialog(
