@@ -1,7 +1,7 @@
 name: agronexus
-description: "A new Flutter project."
+description: "Agronexus Mobile Application"
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
-version: 1.0.0+1
+version: 1.0.0+3
 
 environment:
   sdk: ^3.6.0
