@@ -1,10 +1,11 @@
 class API {
   // Para dispositivos físicos (USB debugging), use o IP da sua máquina local
-  static const String baseUrl = 'http://10.0.0.118:8000/'; // Dispositivo físico via USB
+  //static const String baseUrl = 'http://10.0.0.118:8000/'; // Dispositivo físico via USB
   //static const String baseUrl = 'http://10.0.2.2:8000/'; //Android Emulator
   // static const String baseUrl = 'http://localhost:8000/'; // Localhost
   // static const String baseUrl = 'http://your-ip-address:8000/'; // Localhost
   // static const String baseUrl = 'https://api.example.com/'; // Production URL
+  static const String baseUrl = 'https://agronexus.app/';
 
   // AUTH
   static const String login = 'api/auth/login/';

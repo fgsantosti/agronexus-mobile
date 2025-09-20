@@ -21,31 +21,47 @@ class AuthRemoteRepositoryImpl implements AuthRemoteRepository {
     try {
       final data = {"username": email, "password": password};
       print("🟡 Enviando dados de login: $data");
-      
-      Response response = await httpService.post(
+
+      // Primeira chamada: obter tokens
+      Response loginResponse = await httpService.post(
         path: API.login,
         data: data,
         isAuth: false,
       );
-      
-      // Debug: imprimir a resposta para análise
-      print("🟢 Login response status: ${response.statusCode}");
-      print("🟢 Login response data: ${response.data}");
-      
+
+      print("🟢 Login response status: ${loginResponse.statusCode}");
+      print("🟢 Login response data: ${loginResponse.data}");
+
+      // Verificar se os tokens estão presentes
+      if (loginResponse.data["access"] == null || loginResponse.data["refresh"] == null) {
+        throw Exception("Tokens não encontrados na resposta de login");
+      }
+
+      String accessToken = loginResponse.data["access"];
+      String refreshToken = loginResponse.data["refresh"];
+
+      print("🟡 Obtendo dados do usuário...");
+
+      // Segunda chamada: obter dados do usuário
+      Response userResponse = await httpService.get(
+        path: API.usuariosMe,
+        headers: {'Authorization': 'Bearer $accessToken'},
+        isAuth: false, // Desabilitamos a auth automática pois estamos passando manualmente
+      );
+
+      print("� User response status: ${userResponse.statusCode}");
+      print("🟢 User response data: ${userResponse.data}");
+
       try {
-        print("🟡 Tentando criar UserEntity...");
-        print("🟡 Dados do user da resposta: ${response.data["user"]}");
-        print("🟡 Tipo dos dados: ${response.data["user"].runtimeType}");
-        
-        UserEntity user = UserEntity.fromJson(response.data["user"]);
+        UserEntity user = UserEntity.fromJson(userResponse.data);
         print("🟢 User criado: ${user.firstName} - ${user.email}");
-        
+
         user = user.copyWith(
-          accessToken: () => response.data["access"],
-          refreshToken: () => response.data["refresh"],
+          accessToken: () => accessToken,
+          refreshToken: () => refreshToken,
         );
         print("🟢 User com tokens: accessToken=${user.accessToken != null ? 'presente' : 'ausente'}");
-        
+
         return Right(user);
       } catch (userError) {
         print("🔴 Erro ao criar UserEntity: $userError");
@@ -65,13 +81,13 @@ class AuthRemoteRepositoryImpl implements AuthRemoteRepository {
       AuthLocalRepository authLocalRepo = getIt<AuthLocalRepository>();
       String refreshToken = await authLocalRepo.getRefreshToken();
       final data = {"refresh": refreshToken};
-      
+
       Response response = await httpService.post(
         path: API.refresh,
         data: data,
         isAuth: false,
       );
-      
+
       return Right(response.data);
     } catch (e) {
       return Left(await AgroNexusException.fromDioError(e));
@@ -86,7 +102,7 @@ class AuthRemoteRepositoryImpl implements AuthRemoteRepository {
         data: {},
         isAuth: true,
       );
-      
+
       return Right(response.data);
     } catch (e) {
       return Left(await AgroNexusException.fromDioError(e));
