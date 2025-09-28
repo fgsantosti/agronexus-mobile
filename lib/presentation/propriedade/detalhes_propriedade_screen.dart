@@ -253,8 +253,7 @@ class DetalhesPropriedadeScreen extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(height: 16),
-                      _buildDetalheItem('Data de Criação', propriedade.dataCriacao!),
-                      if (propriedade.id != null) _buildDetalheItem('ID', propriedade.id!),
+                      _buildDetalheItem('Data de Criação', _formatDate(propriedade.dataCriacao ?? propriedade.createdAt ?? '')),
                     ],
                   ),
                 ),
@@ -361,6 +360,18 @@ class DetalhesPropriedadeScreen extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  String _formatDate(String dateString) {
+    if (dateString.isEmpty) return 'Data não informada';
+    try {
+      final date = DateTime.parse(dateString);
+      // Converter para horário local se necessário
+      final localDate = date.toLocal();
+      return '${localDate.day.toString().padLeft(2, '0')}/${localDate.month.toString().padLeft(2, '0')}/${localDate.year} às ${localDate.hour.toString().padLeft(2, '0')}:${localDate.minute.toString().padLeft(2, '0')}';
+    } catch (e) {
+      return 'Data inválida';
+    }
   }
 
   // _navegarParaEdicao removido (edição não disponível)
