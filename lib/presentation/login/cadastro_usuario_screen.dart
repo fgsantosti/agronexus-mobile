@@ -23,6 +23,7 @@ class _CadastroUsuarioScreenState extends State<CadastroUsuarioScreen> {
   static const String _minPasswordLength = "Senha deve ter pelo menos 8 caracteres";
 
   final _formKey = GlobalKey<FormState>();
+  String? _passwordErrorFromApi; // Para armazenar erro da API
   final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _firstNameController = TextEditingController();
@@ -38,6 +39,19 @@ class _CadastroUsuarioScreenState extends State<CadastroUsuarioScreen> {
   final FocusNode _confirmPasswordFocusNode = FocusNode();
 
   @override
+  void initState() {
+    super.initState();
+    // Limpa o erro da API quando o usuário digita na senha
+    _passwordController.addListener(() {
+      if (_passwordErrorFromApi != null) {
+        setState(() {
+          _passwordErrorFromApi = null;
+        });
+      }
+    });
+  }
+
+  @override
   void dispose() {
     _usernameController.dispose();
     _emailController.dispose();
@@ -45,7 +59,7 @@ class _CadastroUsuarioScreenState extends State<CadastroUsuarioScreen> {
     _lastNameController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
-    
+
     _usernameFocusNode.dispose();
     _emailFocusNode.dispose();
     _firstNameFocusNode.dispose();
@@ -56,6 +70,11 @@ class _CadastroUsuarioScreenState extends State<CadastroUsuarioScreen> {
   }
 
   Future<void> _performCadastro() async {
+    // Limpa erro anterior da API antes de tentar novamente
+    setState(() {
+      _passwordErrorFromApi = null;
+    });
+
     if (_formKey.currentState!.validate()) {
       final userEntity = UserEntity(
         username: _usernameController.text.trim(),
@@ -68,25 +87,31 @@ class _CadastroUsuarioScreenState extends State<CadastroUsuarioScreen> {
       );
 
       context.read<UserBloc>().add(CreateUserEvent(
-        user: userEntity,
-        password: _passwordController.text,
-        password2: _confirmPasswordController.text,
-      ));
+            user: userEntity,
+            password: _passwordController.text,
+            password2: _confirmPasswordController.text,
+          ));
     }
   }
 
   String? _validateEmail(String? value) {
     if (value == null || value.isEmpty) return _requiredField;
-    
+
     final emailRegex = RegExp(r'^[^@]+@[^@]+\.[^@]+');
     if (!emailRegex.hasMatch(value)) return _invalidEmail;
-    
+
     return null;
   }
 
   String? _validatePassword(String? value) {
     if (value == null || value.isEmpty) return _requiredField;
     if (value.length < 8) return _minPasswordLength;
+
+    // Se há erro da API relacionado à senha, mostra uma mensagem curta
+    if (_passwordErrorFromApi != null && _passwordErrorFromApi!.isNotEmpty) {
+      return "Verifique os requisitos da senha abaixo";
+    }
+
     return null;
   }
 
@@ -103,15 +128,31 @@ class _CadastroUsuarioScreenState extends State<CadastroUsuarioScreen> {
         listener: (context, state) async {
           if (state.status == UserStatus.failure) {
             String errorMessage = state.errorMessage ?? 'Erro ao criar usuário';
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(errorMessage),
-                backgroundColor: Colors.red,
-                duration: const Duration(seconds: 5),
-              ),
-            );
+
+            // Se o erro está relacionado à senha, mostra embaixo do campo
+            if (errorMessage.toLowerCase().contains('senha')) {
+              setState(() {
+                _passwordErrorFromApi = errorMessage;
+              });
+              // Força a validação do campo de senha
+              _formKey.currentState?.validate();
+            } else {
+              // Para outros erros, mostra no SnackBar
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(errorMessage),
+                  backgroundColor: Colors.red,
+                  duration: const Duration(seconds: 5),
+                ),
+              );
+            }
           }
           if (state.status == UserStatus.created) {
+            // Limpa qualquer erro da API
+            setState(() {
+              _passwordErrorFromApi = null;
+            });
+
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
                 content: Text('Usuário criado com sucesso!'),
@@ -131,9 +172,7 @@ class _CadastroUsuarioScreenState extends State<CadastroUsuarioScreen> {
             padding: const EdgeInsets.all(16),
             child: ConstrainedBox(
               constraints: BoxConstraints(
-                minHeight: MediaQuery.of(context).size.height - 
-                    MediaQuery.of(context).padding.top - 
-                    MediaQuery.of(context).padding.bottom - 32,
+                minHeight: MediaQuery.of(context).size.height - MediaQuery.of(context).padding.top - MediaQuery.of(context).padding.bottom - 32,
               ),
               child: IntrinsicHeight(
                 child: Column(
@@ -161,7 +200,7 @@ class _CadastroUsuarioScreenState extends State<CadastroUsuarioScreen> {
                               ),
                             ),
                             const SizedBox(height: 20),
-                            
+
                             // Username field
                             TextFormField(
                               controller: _usernameController,
@@ -182,7 +221,7 @@ class _CadastroUsuarioScreenState extends State<CadastroUsuarioScreen> {
                               },
                             ),
                             const SizedBox(height: 16),
-                            
+
                             // Email field
                             TextFormField(
                               controller: _emailController,
@@ -201,7 +240,7 @@ class _CadastroUsuarioScreenState extends State<CadastroUsuarioScreen> {
                               },
                             ),
                             const SizedBox(height: 16),
-                            
+
                             // First name field
                             TextFormField(
                               controller: _firstNameController,
@@ -222,7 +261,7 @@ class _CadastroUsuarioScreenState extends State<CadastroUsuarioScreen> {
                               },
                             ),
                             const SizedBox(height: 16),
-                            
+
                             // Last name field
                             TextFormField(
                               controller: _lastNameController,
@@ -243,7 +282,7 @@ class _CadastroUsuarioScreenState extends State<CadastroUsuarioScreen> {
                               },
                             ),
                             const SizedBox(height: 16),
-                            
+
                             // Password field
                             PasswordTextField(
                               controller: _passwordController,
@@ -254,8 +293,29 @@ class _CadastroUsuarioScreenState extends State<CadastroUsuarioScreen> {
                                 _confirmPasswordFocusNode.requestFocus();
                               },
                             ),
+
+                            // Exibe a mensagem completa do erro da API
+                            if (_passwordErrorFromApi != null && _passwordErrorFromApi!.isNotEmpty)
+                              Container(
+                                width: double.infinity,
+                                margin: const EdgeInsets.only(top: 8, left: 12, right: 12),
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  color: Colors.red.shade50,
+                                  border: Border.all(color: Colors.red.shade300),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Text(
+                                  _passwordErrorFromApi!,
+                                  style: TextStyle(
+                                    color: Colors.red.shade700,
+                                    fontSize: 14,
+                                  ),
+                                ),
+                              ),
+
                             const SizedBox(height: 16),
-                            
+
                             // Confirm password field
                             PasswordTextField(
                               controller: _confirmPasswordController,
@@ -268,14 +328,12 @@ class _CadastroUsuarioScreenState extends State<CadastroUsuarioScreen> {
                               },
                             ),
                             const SizedBox(height: 24),
-                            
+
                             // Register button
                             SizedBox(
                               width: double.infinity,
                               child: ElevatedButton(
-                                onPressed: state.status == UserStatus.loading
-                                    ? null
-                                    : _performCadastro,
+                                onPressed: state.status == UserStatus.loading ? null : _performCadastro,
                                 child: state.status == UserStatus.loading
                                     ? const SizedBox(
                                         height: 20,
@@ -289,14 +347,12 @@ class _CadastroUsuarioScreenState extends State<CadastroUsuarioScreen> {
                               ),
                             ),
                             const SizedBox(height: 16),
-                            
+
                             // Back to login button
                             SizedBox(
                               width: double.infinity,
                               child: OutlinedButton(
-                                onPressed: state.status == UserStatus.loading
-                                    ? null
-                                    : () => GoRouter.of(context).pop(),
+                                onPressed: state.status == UserStatus.loading ? null : () => GoRouter.of(context).pop(),
                                 child: const Text(_voltar),
                               ),
                             ),

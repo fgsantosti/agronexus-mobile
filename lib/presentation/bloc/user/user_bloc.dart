@@ -1,3 +1,4 @@
+import 'package:agronexus/config/exceptions.dart';
 import 'package:agronexus/config/utils.dart';
 import 'package:agronexus/domain/models/list_base_entity.dart';
 import 'package:agronexus/domain/models/user_entity.dart';
@@ -33,52 +34,73 @@ class UserBloc extends Bloc<UserEvent, UserState> {
         password: event.password,
         password2: event.password2,
       );
-      emit(
-          state.copyWith(status: () => UserStatus.created, entity: () => user));
+      emit(state.copyWith(status: () => UserStatus.created, entity: () => user));
     } catch (e) {
-      emit(state.copyWith(status: () => UserStatus.failure));
+      String errorMessage = 'Não foi possível criar usuário';
+      if (e is AgroNexusException) {
+        errorMessage = e.message;
+      }
+      emit(state.copyWith(
+        status: () => UserStatus.failure,
+        errorMessage: () => errorMessage,
+      ));
     }
   }
 
-  Future<void> _onUpdateUserEvent(
-      UpdateUserEvent event, Emitter<UserState> emit) async {
+  Future<void> _onUpdateUserEvent(UpdateUserEvent event, Emitter<UserState> emit) async {
     emit(state.copyWith(status: () => UserStatus.loading));
     try {
       UserEntity user = await userService.updateUser(
         user: event.user,
       );
-      emit(
-          state.copyWith(status: () => UserStatus.updated, entity: () => user));
+      emit(state.copyWith(status: () => UserStatus.updated, entity: () => user));
     } catch (e) {
-      emit(state.copyWith(status: () => UserStatus.failure));
+      String errorMessage = 'Não foi possível atualizar usuário';
+      if (e is AgroNexusException) {
+        errorMessage = e.message;
+      }
+      emit(state.copyWith(
+        status: () => UserStatus.failure,
+        errorMessage: () => errorMessage,
+      ));
     }
   }
 
-  Future<void> _onDeleteUserEvent(
-      DeleteUserEvent event, Emitter<UserState> emit) async {
+  Future<void> _onDeleteUserEvent(DeleteUserEvent event, Emitter<UserState> emit) async {
     emit(state.copyWith(status: () => UserStatus.loading));
     try {
       await userService.deleteUser(event.id);
       emit(state.copyWith(status: () => UserStatus.deleted));
     } catch (e) {
-      emit(state.copyWith(status: () => UserStatus.failure));
+      String errorMessage = 'Não foi possível excluir usuário';
+      if (e is AgroNexusException) {
+        errorMessage = e.message;
+      }
+      emit(state.copyWith(
+        status: () => UserStatus.failure,
+        errorMessage: () => errorMessage,
+      ));
     }
   }
 
-  Future<void> _onGetSelfUserEvent(
-      GetSelfUserEvent event, Emitter<UserState> emit) async {
+  Future<void> _onGetSelfUserEvent(GetSelfUserEvent event, Emitter<UserState> emit) async {
     emit(state.copyWith(status: () => UserStatus.loading));
     try {
       UserEntity user = await userService.getSelfUser();
-      emit(
-          state.copyWith(status: () => UserStatus.initial, entity: () => user));
+      emit(state.copyWith(status: () => UserStatus.initial, entity: () => user));
     } catch (e) {
-      emit(state.copyWith(status: () => UserStatus.failure));
+      String errorMessage = 'Não foi possível carregar usuário';
+      if (e is AgroNexusException) {
+        errorMessage = e.message;
+      }
+      emit(state.copyWith(
+        status: () => UserStatus.failure,
+        errorMessage: () => errorMessage,
+      ));
     }
   }
 
-  Future<void> _onChangePasswordEvent(
-      ChangePasswordEvent event, Emitter<UserState> emit) async {
+  Future<void> _onChangePasswordEvent(ChangePasswordEvent event, Emitter<UserState> emit) async {
     emit(state.copyWith(status: () => UserStatus.loading));
     try {
       await userService.updatePassword(
@@ -88,7 +110,14 @@ class UserBloc extends Bloc<UserEvent, UserState> {
       );
       emit(state.copyWith(status: () => UserStatus.passwordChanged));
     } catch (e) {
-      emit(state.copyWith(status: () => UserStatus.failure));
+      String errorMessage = 'Não foi possível alterar senha';
+      if (e is AgroNexusException) {
+        errorMessage = e.message;
+      }
+      emit(state.copyWith(
+        status: () => UserStatus.failure,
+        errorMessage: () => errorMessage,
+      ));
     }
   }
 
@@ -97,8 +126,7 @@ class UserBloc extends Bloc<UserEvent, UserState> {
     Emitter<UserState> emit,
   ) {
     emit(
-      state.copyWith(
-          entity: () => event.user, status: () => UserStatus.initial),
+      state.copyWith(entity: () => event.user, status: () => UserStatus.initial),
     );
   }
 
@@ -123,9 +151,7 @@ class UserBloc extends Bloc<UserEvent, UserState> {
       emit(
         state.copyWith(
           status: () => UserStatus.success,
-          entities: () => event.isLoadingMore
-              ? [...state.entities, ...result.results]
-              : result.results,
+          entities: () => event.isLoadingMore ? [...state.entities, ...result.results] : result.results,
           limit: () => event.limit,
           offset: () => event.offset + event.limit,
           profile: () => event.profile ?? state.profile,
@@ -134,7 +160,14 @@ class UserBloc extends Bloc<UserEvent, UserState> {
         ),
       );
     } catch (e) {
-      emit(state.copyWith(status: () => UserStatus.failure));
+      String errorMessage = 'Não foi possível carregar lista de usuários';
+      if (e is AgroNexusException) {
+        errorMessage = e.message;
+      }
+      emit(state.copyWith(
+        status: () => UserStatus.failure,
+        errorMessage: () => errorMessage,
+      ));
     }
   }
 
