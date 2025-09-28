@@ -9,6 +9,7 @@ enum UserStatus {
   updated,
   created,
   deleted,
+  loggedOut,
 }
 
 class UserState extends Equatable {

@@ -21,6 +21,7 @@ class UserBloc extends Bloc<UserEvent, UserState> {
     on<UpdateLoadedUserEvent>(_onUpdateLoadedUserEvent);
     on<ListUsersEvent>(_onListAllUsersEvent);
     on<NextPageUserEvent>(_onNextPageUserEvent);
+    on<LogoutUserEvent>(_onLogoutUserEvent);
   }
 
   Future<void> _onCreateUserEvent(
@@ -185,5 +186,29 @@ class UserBloc extends Bloc<UserEvent, UserState> {
         isLoadingMore: true,
       ),
     );
+  }
+
+  Future<void> _onLogoutUserEvent(
+    LogoutUserEvent event,
+    Emitter<UserState> emit,
+  ) async {
+    emit(state.copyWith(status: () => UserStatus.loading));
+    try {
+      await userService.logout();
+      emit(state.copyWith(
+        status: () => UserStatus.loggedOut,
+        entity: () => null,
+        entities: () => [],
+      ));
+    } catch (e) {
+      String errorMessage = 'Não foi possível sair da conta';
+      if (e is AgroNexusException) {
+        errorMessage = e.message;
+      }
+      emit(state.copyWith(
+        status: () => UserStatus.failure,
+        errorMessage: () => errorMessage,
+      ));
+    }
   }
 }

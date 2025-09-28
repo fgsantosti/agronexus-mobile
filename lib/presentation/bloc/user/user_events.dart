@@ -93,3 +93,10 @@ class NextPageUserEvent extends UserEvent {
   @override
   List<Object?> get props => [];
 }
+
+class LogoutUserEvent extends UserEvent {
+  const LogoutUserEvent();
+
+  @override
+  List<Object?> get props => [];
+}
