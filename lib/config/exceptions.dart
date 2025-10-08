@@ -8,44 +8,64 @@ class AgroNexusException implements Exception {
   static Future<AgroNexusException> fromDioError(dynamic e) async {
     String message = "An error occurred";
     if (e is DioException) {
-      // Adiciona informações detalhadas do erro
-      String detailedMessage = "";
-
       switch (e.type) {
         case DioExceptionType.badCertificate:
           message = "Bad certificate";
           break;
         case DioExceptionType.badResponse:
-          print("🔍 Debug - Status Code: ${e.response?.statusCode}");
-          print("🔍 Debug - Response Data Type: ${e.response?.data.runtimeType}");
-          print("🔍 Debug - Response Data: ${e.response?.data}");
-
-          message = "Bad response: ${e.response?.statusCode}";
           if (e.response?.data != null) {
-            detailedMessage = " - ${e.response?.data.toString()}";
+            try {
+              dynamic responseData = e.response?.data;
 
-            // Tratamento específico para erros de validação
-            if (e.response?.statusCode == 400) {
-              try {
-                dynamic responseData = e.response?.data;
-
-                // Tentar converter string JSON para Map se necessário
-                if (responseData is String) {
-                  print("🔍 Debug - Tentando fazer parse de JSON string");
-                  responseData = json.decode(responseData);
-                }
-
-                if (responseData is Map<String, dynamic>) {
-                  print("🔍 Debug - Usando _parseValidationError");
-                  message = _parseValidationError(responseData);
-                } else {
-                  print("🔍 Debug - responseData não é Map: ${responseData.runtimeType}");
-                }
-              } catch (parseError) {
-                print("🔍 Debug - Erro ao fazer parse: $parseError");
-                message = "Dados fornecidos são inválidos.";
+              // Tentar converter string JSON para Map se necessário
+              if (responseData is String) {
+                responseData = json.decode(responseData);
               }
+
+              if (responseData is Map<String, dynamic>) {
+                // Verificar se há campo 'detail' (comum em erros de autenticação)
+                if (responseData.containsKey('detail')) {
+                  message = responseData['detail'].toString();
+                  break;
+                }
+
+                // Verificar se há campo 'error' genérico
+                if (responseData.containsKey('error')) {
+                  message = responseData['error'].toString();
+                  break;
+                }
+
+                // Tratamento específico para erros de validação (400)
+                if (e.response?.statusCode == 400) {
+                  message = _parseValidationError(responseData);
+                  break;
+                }
+
+                // Se chegou aqui, tenta extrair a primeira mensagem disponível
+                if (responseData.isNotEmpty) {
+                  final firstKey = responseData.keys.first;
+                  final firstValue = responseData[firstKey];
+                  if (firstValue is List && firstValue.isNotEmpty) {
+                    message = firstValue.first.toString();
+                  } else if (firstValue is String) {
+                    message = firstValue;
+                  } else {
+                    message = _getMessageForStatusCode(e.response?.statusCode);
+                  }
+                } else {
+                  message = _getMessageForStatusCode(e.response?.statusCode);
+                }
+              } else {
+                // Se não é um Map, usa a resposta como string
+                message = responseData.toString();
+              }
+            } catch (parseError) {
+              print("⚠️ Erro ao processar resposta da API: $parseError");
+              message = "Erro ao processar resposta da API";
             }
+          } else {
+            // Se não há dados na resposta, usa mensagem genérica baseada no código
+            message = _getMessageForStatusCode(e.response?.statusCode);
           }
           break;
         case DioExceptionType.cancel:
@@ -68,42 +88,33 @@ class AgroNexusException implements Exception {
           break;
       }
 
-      if (e.response?.statusCode != 400) {
-        message += detailedMessage;
-      }
-
-      // Log detalhado para debug
-      print("🔴 AgroNexusException: $message");
-      print("🔴 Request URL: ${e.requestOptions.uri}");
-      print("🔴 Request Method: ${e.requestOptions.method}");
-      print("🔴 Request Data: ${e.requestOptions.data}");
-      if (e.response != null) {
-        print("🔴 Response Status: ${e.response?.statusCode}");
-        print("🔴 Response Data: ${e.response?.data}");
+      // Log apenas em caso de erro inesperado
+      final statusCode = e.response?.statusCode;
+      if (e.response == null || (statusCode != null && statusCode >= 500)) {
+        print("🔴 AgroNexusException: $message");
+        print("🔴 Request URL: ${e.requestOptions.uri}");
+        print("🔴 Request Method: ${e.requestOptions.method}");
+        if (statusCode != null) {
+          print("🔴 Response Status: $statusCode");
+        }
       }
     }
-    // await FirebaseCrashlytics.instance.recordFlutterError(
-    //   FlutterErrorDetails(exception: e),
-    // );
+
     return AgroNexusException(message: message);
   }
 
   static String _parseValidationError(Map<String, dynamic> responseData) {
-    print("🔍 DEBUG _parseValidationError - responseData keys: ${responseData.keys}");
-    print("🔍 DEBUG _parseValidationError - responseData: $responseData");
-
     // Tratamento específico para erro de senha do Django
     if (responseData.containsKey('error') && responseData.containsKey('details')) {
-      print("🔍 DEBUG - Usando tratamento de erro de senha");
       final error = responseData['error'].toString();
       final details = responseData['details'];
 
       // Verificar se é erro de usuário duplicado para não adicionar prefixo
-      if (error.toLowerCase().contains('nome de usuário já existe') || error.toLowerCase().contains('username') && error.toLowerCase().contains('already exists')) {
+      if (error.toLowerCase().contains('nome de usuário já existe') || (error.toLowerCase().contains('username') && error.toLowerCase().contains('already exists'))) {
         return 'Nome de usuário já existe';
       }
 
-      if (error.toLowerCase().contains('e-mail já cadastrado') || error.toLowerCase().contains('email') && error.toLowerCase().contains('already exists')) {
+      if (error.toLowerCase().contains('e-mail já cadastrado') || (error.toLowerCase().contains('email') && error.toLowerCase().contains('already exists'))) {
         return 'E-mail já cadastrado';
       }
 
@@ -117,11 +128,9 @@ class AgroNexusException implements Exception {
 
     // Tratamento para erros de validação específicos
     if (responseData.containsKey('non_field_errors')) {
-      print("🔍 DEBUG - Usando tratamento de non_field_errors");
       final errors = responseData['non_field_errors'] as List;
       if (errors.isNotEmpty) {
         final firstError = errors.first.toString();
-        print("🔍 DEBUG - non_field_errors primeiro erro: $firstError");
 
         // Tratamento específico para erro de unicidade
         if (firstError.contains('propriedade_id, identificacao_unica devem criar um set único')) {
@@ -134,42 +143,31 @@ class AgroNexusException implements Exception {
 
     // Tratamento para erros de campo específicos
     if (responseData.isNotEmpty) {
-      print("🔍 DEBUG - Usando tratamento de campo específico");
       final firstKey = responseData.keys.first;
       final firstValue = responseData[firstKey];
-      print("🔍 DEBUG - Campo: $firstKey, Valor: $firstValue, Tipo: ${firstValue.runtimeType}");
 
       if (firstValue is List && firstValue.isNotEmpty) {
         final errorMessage = firstValue.first.toString();
-        print("🔍 DEBUG - Mensagem de erro: $errorMessage");
 
         // Tratamento específico para erros de usuário duplicado
         if (firstKey == 'username' && errorMessage.toLowerCase().contains('already exists')) {
-          print("🔍 DEBUG - Detectado erro de username duplicado");
           return 'Nome de usuário já existe';
         }
 
         if (firstKey == 'email' && errorMessage.toLowerCase().contains('already exists')) {
-          print("🔍 DEBUG - Detectado erro de email duplicado");
           return 'E-mail já cadastrado';
         }
 
         // Traduzir nomes de campos para português
         String fieldName = _translateFieldName(firstKey);
-        print("🔍 DEBUG - Campo traduzido: $fieldName");
-
         return '$fieldName: $errorMessage';
       } else if (firstValue is String && firstValue.isNotEmpty) {
-        print("🔍 DEBUG - Valor é string: $firstValue");
-
         // Tratamento para quando o valor é uma string direta
         if (firstKey == 'username' && firstValue.toLowerCase().contains('already exists')) {
-          print("🔍 DEBUG - Detectado erro de username duplicado (string)");
           return 'Nome de usuário já existe';
         }
 
         if (firstKey == 'email' && firstValue.toLowerCase().contains('already exists')) {
-          print("🔍 DEBUG - Detectado erro de email duplicado (string)");
           return 'E-mail já cadastrado';
         }
 
@@ -178,7 +176,6 @@ class AgroNexusException implements Exception {
       }
     }
 
-    print("🔍 DEBUG - Retornando mensagem padrão");
     return 'Dados fornecidos são inválidos.';
   }
 
@@ -238,6 +235,27 @@ class AgroNexusException implements Exception {
         return 'Observações';
       default:
         return fieldName;
+    }
+  }
+
+  static String _getMessageForStatusCode(int? statusCode) {
+    switch (statusCode) {
+      case 400:
+        return 'Requisição inválida';
+      case 401:
+        return 'Não autorizado - verifique suas credenciais';
+      case 403:
+        return 'Acesso negado';
+      case 404:
+        return 'Recurso não encontrado';
+      case 500:
+        return 'Erro interno do servidor';
+      case 502:
+        return 'Servidor temporariamente indisponível';
+      case 503:
+        return 'Serviço indisponível';
+      default:
+        return 'Erro: $statusCode';
     }
   }
 }
