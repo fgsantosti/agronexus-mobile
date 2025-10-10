@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:agronexus/config/api.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:agronexus/presentation/cubit/bottom_bar/bottom_bar_cubit.dart';
 
 class FunctionalityData {
   final String title;
@@ -156,13 +158,13 @@ class _HomeScreenState extends State<HomeScreen> {
         } else if (constraints.maxWidth > 350) {
           // Phone médio
           crossAxisCount = 2;
-          childAspectRatio = 1.0;
+          childAspectRatio = 1.1; // Aumentado de 1.0 para 1.1 para dar mais altura
           crossAxisSpacing = 12;
           mainAxisSpacing = 12;
         } else {
           // Phone muito pequeno
           crossAxisCount = 1;
-          childAspectRatio = 2.8;
+          childAspectRatio = 2.2; // Aumentado de 2.8 para 2.2 para dar mais altura aos cards
           crossAxisSpacing = 8;
           mainAxisSpacing = 12;
         }
@@ -193,8 +195,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
         // Ajustar tamanhos baseado na dimensão do card
         final iconSize = (cardWidth * 0.2).clamp(24.0, 36.0);
-        final titleFontSize = (cardWidth * 0.04).clamp(14.0, 18.0);
-        final subtitleFontSize = (cardWidth * 0.03).clamp(11.0, 14.0);
+        final titleFontSize = (cardWidth * 0.045).clamp(16.0, 20.0); // Aumentado o mínimo de 14 para 16
+        final subtitleFontSize = (cardWidth * 0.035).clamp(13.0, 16.0); // Aumentado o mínimo de 11 para 13
         final padding = (cardWidth * 0.08).clamp(12.0, 20.0);
 
         return Container(
@@ -232,8 +234,9 @@ class _HomeScreenState extends State<HomeScreen> {
                         size: iconSize,
                       ),
                     ),
-                    SizedBox(height: cardHeight * 0.08),
-                    Flexible(
+                    SizedBox(height: cardHeight * 0.06), // Reduzido de 0.08 para 0.06
+                    Expanded(
+                      // Mudado de Flexible para Expanded para garantir espaço
                       child: Text(
                         item.title,
                         style: TextStyle(
@@ -246,8 +249,9 @@ class _HomeScreenState extends State<HomeScreen> {
                         maxLines: 2,
                       ),
                     ),
-                    SizedBox(height: cardHeight * 0.02),
-                    Flexible(
+                    SizedBox(height: cardHeight * 0.01), // Reduzido de 0.02 para 0.01
+                    Expanded(
+                      // Mudado de Flexible para Expanded para garantir espaço
                       child: Text(
                         item.subtitle,
                         style: TextStyle(
@@ -327,6 +331,8 @@ class _HomeScreenState extends State<HomeScreen> {
         color: Colors.green,
         backgroundColor: Colors.green[50]!,
         onTap: () {
+          // Atualizar o estado da bottom bar para propriedades
+          context.read<BottomBarCubit>().setItem(item: BottomBarItems.propriedades);
           context.go(API.propriedadesRoute);
         },
       ),
@@ -337,6 +343,8 @@ class _HomeScreenState extends State<HomeScreen> {
         color: Colors.brown,
         backgroundColor: Colors.brown[50]!,
         onTap: () {
+          // Atualizar o estado da bottom bar para animais
+          context.read<BottomBarCubit>().setItem(item: BottomBarItems.animais);
           context.go(API.animaisRoute);
         },
       ),
