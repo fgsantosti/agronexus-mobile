@@ -40,7 +40,14 @@ class InternalScaffold extends StatelessWidget {
                       fit: BoxFit.contain,
                     ),
                   ),
-            title: null,
+            title: Text(
+              'AgroNexus',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
             centerTitle: false,
             backgroundColor: Colors.green[800],
             toolbarHeight: 80,
