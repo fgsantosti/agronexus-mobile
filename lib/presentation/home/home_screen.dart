@@ -176,7 +176,7 @@ class _HomeScreenState extends State<HomeScreen> {
             mainAxisSpacing: mainAxisSpacing,
             childAspectRatio: childAspectRatio,
           ),
-          itemCount: 6,
+          itemCount: 3, // Reduzido de 6 para 3 (removidos cards em desenvolvimento)
           itemBuilder: (context, index) {
             return _buildFunctionalityCard(_getFunctionalityData(index));
           },
@@ -271,6 +271,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
   FunctionalityData _getFunctionalityData(int index) {
     final functionalities = [
+      // Cards em desenvolvimento - temporariamente desativados
+      /*
       FunctionalityData(
         title: 'Calendário',
         subtitle: 'Próximas atividades',
@@ -307,6 +309,7 @@ class _HomeScreenState extends State<HomeScreen> {
           );
         },
       ),
+      */
       FunctionalityData(
         title: 'Manejo Reprodutivo',
         subtitle: 'Controle reprodutivo',
