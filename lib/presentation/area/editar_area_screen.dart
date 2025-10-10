@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
+import 'package:agronexus/config/routers/router.dart';
 import 'package:agronexus/presentation/bloc/area/area_bloc.dart';
 import 'package:agronexus/presentation/bloc/area/area_event.dart';
 import 'package:agronexus/presentation/bloc/area/area_state.dart';
@@ -82,8 +84,14 @@ class _EditarAreaScreenState extends State<EditarAreaScreen> {
   }
 
   void _atualizar() {
-    if (!_formKey.currentState!.validate()) return;
+    debugPrint('🔄 Iniciando atualização da área...');
+    if (!_formKey.currentState!.validate()) {
+      debugPrint('❌ Formulário não passou na validação');
+      return;
+    }
+    debugPrint('✅ Formulário validado com sucesso');
     final tamanho = double.parse(_tamanhoCtrl.text.replaceAll(',', '.'));
+    debugPrint('📏 Tamanho parseado: $tamanho');
     final updated = widget.area.copyWith(
       nome: () => _nomeCtrl.text.trim(),
       tipo: () => _tipoCtrl.text.trim(),
@@ -107,7 +115,10 @@ class _EditarAreaScreenState extends State<EditarAreaScreen> {
         }
       },
     );
+    debugPrint('📤 Enviando evento UpdateAreaEvent para o BLoC...');
+    debugPrint('🆔 ID da área: ${widget.area.id}');
     context.read<AreaBloc>().add(UpdateAreaEvent(id: widget.area.id!, area: updated));
+    debugPrint('✅ Evento enviado!');
   }
 
   @override
@@ -121,11 +132,16 @@ class _EditarAreaScreenState extends State<EditarAreaScreen> {
       ),
       body: BlocListener<AreaBloc, AreaState>(
         listener: (context, state) {
+          debugPrint('🔔 Estado recebido no BlocListener: ${state.runtimeType}');
           if (state is AreaUpdated) {
+            debugPrint('✅ Área atualizada com sucesso!');
             Navigator.pop(context, true);
             ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Área atualizada com sucesso')));
+            // Navegar para a tela de detalhes da área editada
+            context.go(AgroNexusRouter.areas.detailPath.replaceFirst(':id', state.area.id!), extra: state.area);
           }
           if (state is AreaError) {
+            debugPrint('❌ Erro ao atualizar área: ${state.message}');
             ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(state.message)));
           }
         },
@@ -219,12 +235,17 @@ class _EditarAreaScreenState extends State<EditarAreaScreen> {
                 PolygonEditor(
                   initial: _initialPolygon,
                   onChanged: (points) {
-                    _coordenadasCtrl.text = const JsonEncoder.withIndent('  ').convert(points);
-                    _initialPolygon = points;
+                    if (points.isEmpty) {
+                      _coordenadasCtrl.text = '';
+                      _initialPolygon = null;
+                    } else {
+                      _coordenadasCtrl.text = const JsonEncoder.withIndent('  ').convert(points);
+                      _initialPolygon = points;
+                    }
                   },
                   onAreaChanged: (ha) {
-                    // Alinha com comportamento da tela de cadastro: sempre sincroniza
-                    final txt = ha < 10 ? ha.toStringAsFixed(4) : ha.toStringAsFixed(2);
+                    // Sempre usa 2 casas decimais conforme exigido pela API
+                    final txt = ha.toStringAsFixed(2);
                     if (_tamanhoCtrl.text != txt) {
                       _tamanhoCtrl.text = txt;
                     }
@@ -246,10 +267,19 @@ class _EditarAreaScreenState extends State<EditarAreaScreen> {
                     if (v == null || v.trim().isEmpty) return null;
                     try {
                       final decoded = jsonDecode(v.trim());
-                      if (decoded is! List) return 'Deve ser lista';
+                      if (decoded is! List) return 'Deve ser uma lista de coordenadas';
+                      final list = decoded;
+                      if (list.isNotEmpty) {
+                        // Validar que cada item da lista tem 2 elementos (lat, lng)
+                        for (var item in list) {
+                          if (item is! List || item.length != 2) {
+                            return 'Cada coordenada deve ter latitude e longitude';
+                          }
+                        }
+                      }
                       _parseInitialPolygon();
-                    } catch (_) {
-                      return 'JSON inválido';
+                    } catch (e) {
+                      return 'JSON inválido: ${e.toString()}';
                     }
                     return null;
                   },

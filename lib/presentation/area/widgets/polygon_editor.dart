@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
 
 /// Widget para desenhar/editar um polígono e retornar JSON de coordenadas.
@@ -23,6 +24,8 @@ class _PolygonEditorState extends State<PolygonEditor> {
   int? _editingIndex; // índice do ponto em edição (reposicionamento ou remoção)
   DateTime _lastNotify = DateTime.fromMillisecondsSinceEpoch(0);
   static const _notifyIntervalMs = 120; // debounce de callbacks
+  bool _isGettingLocation = false;
+  LatLng? _currentLocation;
 
   @override
   void initState() {
@@ -32,6 +35,42 @@ class _PolygonEditorState extends State<PolygonEditor> {
         if (p.length == 2) _points.add(LatLng(p[0], p[1]));
       }
       _closed = _points.length > 2;
+    }
+    // Obter localização atual silenciosamente
+    _getCurrentLocationSilently();
+  }
+
+  Future<void> _getCurrentLocationSilently() async {
+    try {
+      // Verificar permissões sem solicitar
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied || permission == LocationPermission.deniedForever) {
+        return; // Não fazer nada se não tiver permissão
+      }
+
+      // Verificar se serviços estão habilitados
+      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) {
+        return; // Não fazer nada se serviços estão desabilitados
+      }
+
+      // Obter posição atual
+      Position position = await Geolocator.getCurrentPosition(
+        locationSettings: const LocationSettings(
+          accuracy: LocationAccuracy.medium, // Menor precisão para ser mais rápido
+          distanceFilter: 0,
+        ),
+      );
+
+      // Armazenar localização atual
+      if (mounted) {
+        setState(() {
+          _currentLocation = LatLng(position.latitude, position.longitude);
+        });
+      }
+    } catch (e) {
+      // Falha silenciosa - não mostrar erro ao usuário
+      debugPrint('Erro ao obter localização inicial: $e');
     }
   }
 
@@ -80,7 +119,7 @@ class _PolygonEditorState extends State<PolygonEditor> {
     });
     widget.onClear?.call();
     _notify();
-    if (widget.onAreaChanged != null) widget.onAreaChanged!(0);
+    if (widget.onAreaChanged != null) widget.onAreaChanged!(0.00);
   }
 
   double _computeAreaHa() {
@@ -103,7 +142,101 @@ class _PolygonEditorState extends State<PolygonEditor> {
       area2 += xs[i] * ys[j] - xs[j] * ys[i];
     }
     final areaM2 = area2.abs() / 2.0;
-    return areaM2 / 10000.0; // converte m² para hectares
+    final areaHa = areaM2 / 10000.0; // converte m² para hectares
+    return double.parse(areaHa.toStringAsFixed(2)); // limita a 2 casas decimais
+  }
+
+  Future<void> _goToCurrentLocation() async {
+    if (_isGettingLocation) return;
+
+    setState(() {
+      _isGettingLocation = true;
+    });
+
+    try {
+      // Verificar permissões
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+        if (permission == LocationPermission.denied) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Permissão de localização negada'),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
+          return;
+        }
+      }
+
+      if (permission == LocationPermission.deniedForever) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Permissão de localização negada permanentemente. Ative nas configurações do dispositivo.'),
+              backgroundColor: Colors.red,
+              duration: Duration(seconds: 4),
+            ),
+          );
+        }
+        return;
+      }
+
+      // Verificar se serviços de localização estão habilitados
+      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Serviços de localização estão desabilitados'),
+              backgroundColor: Colors.orange,
+            ),
+          );
+        }
+        return;
+      }
+
+      // Obter posição atual
+      Position position = await Geolocator.getCurrentPosition(
+        locationSettings: const LocationSettings(
+          accuracy: LocationAccuracy.high,
+          distanceFilter: 0,
+        ),
+      );
+
+      // Mover mapa para a localização atual e armazenar
+      final currentLocation = LatLng(position.latitude, position.longitude);
+      setState(() {
+        _currentLocation = currentLocation;
+      });
+      _mapController.move(currentLocation, 16.0);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Mapa centrado na sua localização'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Erro ao obter localização: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isGettingLocation = false;
+        });
+      }
+    }
   }
 
   @override
@@ -140,7 +273,7 @@ class _PolygonEditorState extends State<PolygonEditor> {
                   ),
                   children: [
                     TileLayer(
-                      urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                      urlTemplate: 'https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}',
                       userAgentPackageName: 'agronexus-mobile',
                       tileBuilder: (context, widget, tile) => widget,
                       errorTileCallback: (tile, error, stackTrace) {
@@ -205,6 +338,39 @@ class _PolygonEditorState extends State<PolygonEditor> {
                             )
                             .toList(),
                       ),
+                    // Marcador da localização atual do usuário
+                    if (_currentLocation != null)
+                      MarkerLayer(
+                        markers: [
+                          Marker(
+                            point: _currentLocation!,
+                            width: 40,
+                            height: 40,
+                            child: Container(
+                              decoration: BoxDecoration(
+                                color: Colors.blue,
+                                shape: BoxShape.circle,
+                                border: Border.all(
+                                  color: Colors.white,
+                                  width: 3,
+                                ),
+                                boxShadow: const [
+                                  BoxShadow(
+                                    color: Colors.black26,
+                                    blurRadius: 4,
+                                    offset: Offset(0, 2),
+                                  ),
+                                ],
+                              ),
+                              child: const Icon(
+                                Icons.my_location,
+                                color: Colors.white,
+                                size: 20,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
                   ],
                 ),
               ),
@@ -229,13 +395,14 @@ class _PolygonEditorState extends State<PolygonEditor> {
                 child: Column(
                   children: [
                     FloatingActionButton.small(
-                      onPressed: hasPolygon
-                          ? () {
-                              final center = _points.reduce((a, b) => LatLng((a.latitude + b.latitude) / 2, (a.longitude + b.longitude) / 2));
-                              _mapController.move(center, _mapController.camera.zoom);
-                            }
-                          : null,
-                      child: const Icon(Icons.my_location, size: 18),
+                      onPressed: _isGettingLocation ? null : _goToCurrentLocation,
+                      child: _isGettingLocation
+                          ? const SizedBox(
+                              width: 18,
+                              height: 18,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : const Icon(Icons.my_location, size: 18),
                     ),
                     const SizedBox(height: 6),
                     FloatingActionButton.small(

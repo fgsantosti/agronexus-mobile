@@ -95,21 +95,49 @@ class _FazendaAddScreenState extends State<FazendaAddScreen> {
   }
 
   Future<String> _getLatitude() async {
-    Position position = await Geolocator.getCurrentPosition();
+    Position position = await _getCurrentLocationWithPermission();
     return position.latitude.toString();
   }
 
   Future<String> _getLongitude() async {
-    Position position = await Geolocator.getCurrentPosition();
+    Position position = await _getCurrentLocationWithPermission();
     return position.longitude.toString();
+  }
+
+  Future<Position> _getCurrentLocationWithPermission() async {
+    // Verificar permissões
+    LocationPermission permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied) {
+      permission = await Geolocator.requestPermission();
+      if (permission == LocationPermission.denied) {
+        throw Exception('Permissão de localização negada');
+      }
+    }
+
+    if (permission == LocationPermission.deniedForever) {
+      throw Exception('Permissão de localização negada permanentemente. Ative nas configurações do dispositivo.');
+    }
+
+    // Verificar se serviços de localização estão habilitados
+    bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    if (!serviceEnabled) {
+      throw Exception('Serviços de localização estão desabilitados');
+    }
+
+    // Obter posição atual
+    return await Geolocator.getCurrentPosition(
+      locationSettings: const LocationSettings(
+        accuracy: LocationAccuracy.high,
+        distanceFilter: 0,
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return BlocConsumer<FazendaBloc, FazendaState>(
       listener: (context, state) async {
-        ScaffoldMessengerState scaffoldMessengerState =
-            ScaffoldMessenger.of(context);
+        ScaffoldMessengerState scaffoldMessengerState = ScaffoldMessenger.of(context);
         GoRouter router = GoRouter.of(context);
         if (state.entity.id != null) {
           if (_nomeController.text.isEmpty) {
@@ -126,12 +154,10 @@ class _FazendaAddScreenState extends State<FazendaAddScreen> {
           }
 
           if (_latitudeController.text.isEmpty) {
-            _latitudeController.text =
-                state.entity.latitude ?? await _getLatitude();
+            _latitudeController.text = state.entity.latitude ?? await _getLatitude();
           }
           if (_longitudeController.text.isEmpty) {
-            _longitudeController.text =
-                state.entity.longitude ?? await _getLongitude();
+            _longitudeController.text = state.entity.longitude ?? await _getLongitude();
           }
         }
         if (state.status == FazendaStatus.failure) {
@@ -217,8 +243,7 @@ class _FazendaAddScreenState extends State<FazendaAddScreen> {
                     .toList(),
                 onChanged: (vl) => context.read<FazendaBloc>().add(
                       UpdateLoadedFazendaEvent(
-                        entity: state.entity.copyWith(
-                            tipo: () => TipoFazenda.fromString(vl!.value)),
+                        entity: state.entity.copyWith(tipo: () => TipoFazenda.fromString(vl!.value)),
                       ),
                     ),
                 selectedItem: SelectItem(
@@ -252,8 +277,27 @@ class _FazendaAddScreenState extends State<FazendaAddScreen> {
                   hintText: _latitudePlaceholder,
                   suffix: IconButton(
                     onPressed: () async {
-                      Position position = await Geolocator.getCurrentPosition();
-                      _latitudeController.text = position.latitude.toString();
+                      try {
+                        Position position = await _getCurrentLocationWithPermission();
+                        _latitudeController.text = position.latitude.toString();
+                        if (mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Latitude obtida com sucesso'),
+                              backgroundColor: Colors.green,
+                            ),
+                          );
+                        }
+                      } catch (e) {
+                        if (mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('Erro ao obter localização: $e'),
+                              backgroundColor: Colors.red,
+                            ),
+                          );
+                        }
+                      }
                     },
                     icon: FaIcon(
                       FontAwesomeIcons.mapLocationDot,
@@ -272,8 +316,27 @@ class _FazendaAddScreenState extends State<FazendaAddScreen> {
                   hintText: _longitudePlaceholder,
                   suffix: IconButton(
                     onPressed: () async {
-                      Position position = await Geolocator.getCurrentPosition();
-                      _longitudeController.text = position.longitude.toString();
+                      try {
+                        Position position = await _getCurrentLocationWithPermission();
+                        _longitudeController.text = position.longitude.toString();
+                        if (mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Longitude obtida com sucesso'),
+                              backgroundColor: Colors.green,
+                            ),
+                          );
+                        }
+                      } catch (e) {
+                        if (mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('Erro ao obter localização: $e'),
+                              backgroundColor: Colors.red,
+                            ),
+                          );
+                        }
+                      }
                     },
                     icon: FaIcon(
                       FontAwesomeIcons.mapLocationDot,
