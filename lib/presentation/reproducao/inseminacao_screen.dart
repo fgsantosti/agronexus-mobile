@@ -17,7 +17,7 @@ class InseminacaoScreen extends StatefulWidget {
   State<InseminacaoScreen> createState() => _InseminacaoScreenState();
 }
 
-class _InseminacaoScreenState extends State<InseminacaoScreen> {
+class _InseminacaoScreenState extends State<InseminacaoScreen> with WidgetsBindingObserver {
   final DateFormat _dateFormat = DateFormat('dd/MM/yyyy');
   bool _isInitialized = false;
   List<InseminacaoEntity>? _cachedInseminacoes; // Cache local das inseminações
@@ -25,7 +25,33 @@ class _InseminacaoScreenState extends State<InseminacaoScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _loadInseminacoes();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+
+    // Recarregar dados quando o app volta para o foreground
+    if (state == AppLifecycleState.resumed) {
+      print('DEBUG LIFECYCLE - App voltou para foreground, recarregando dados se necessário');
+      _recarregarDadosSeNecessario();
+    }
+  }
+
+  void _recarregarDadosSeNecessario() {
+    // Recarregar apenas se os dados estão muito antigos ou se não existem
+    if (_cachedInseminacoes == null || _cachedInseminacoes!.isEmpty) {
+      print('DEBUG LIFECYCLE - Recarregando dados da InseminacaoScreen');
+      _loadInseminacoes();
+    }
   }
 
   void _loadInseminacoes() {
@@ -42,152 +68,164 @@ class _InseminacaoScreenState extends State<InseminacaoScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: RefreshIndicator(
-        onRefresh: () async => _loadInseminacoes(),
-        child: BlocListener<ReproducaoBloc, ReproducaoState>(
-          listener: (context, state) {
-            // Cache das inseminações para preservar estado
-            if (state is InseminacoesLoaded) {
-              _cachedInseminacoes = state.inseminacoes;
-            }
-            // Tratar sucesso na exclusão
-            else if (state is InseminacaoDeleted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Inseminação excluída com sucesso!'),
-                  backgroundColor: Colors.green,
-                ),
-              );
-              // Recarregar a lista de inseminações
-              _loadInseminacoes();
-            }
-            // Apenas escutar erros e outros estados relevantes
-            else if (state is ReproducaoError) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text('Erro: ${state.message}'),
-                  backgroundColor: Colors.red,
-                ),
-              );
-            }
-          },
-          child: BlocBuilder<ReproducaoBloc, ReproducaoState>(
-            builder: (context, state) {
-              // Se não foi inicializado e não está carregando, forçar carregamento
-              if (!_isInitialized && state is! InseminacoesLoading) {
-                WidgetsBinding.instance.addPostFrameCallback((_) {
-                  if (mounted) {
-                    _loadInseminacoes();
-                  }
-                });
-              }
+    return PopScope(
+      canPop: true, // Permite que a tela seja fechada normalmente
+      onPopInvokedWithResult: (didPop, result) {
+        // Log para debug
+        print('DEBUG NAVEGAÇÃO - PopScope na InseminacaoScreen invocado: didPop=$didPop');
 
-              // Mostrar loading apenas se não temos cache e está carregando
-              if (state is InseminacoesLoading && _cachedInseminacoes == null) {
-                return const Center(child: CircularProgressIndicator());
+        // Se o pop foi bem sucedido, não precisamos fazer nada adicional
+        if (didPop) {
+          print('DEBUG NAVEGAÇÃO - Pop foi bem sucedido, voltando para tela anterior');
+        }
+      },
+      child: Scaffold(
+        body: RefreshIndicator(
+          onRefresh: () async => _loadInseminacoes(),
+          child: BlocListener<ReproducaoBloc, ReproducaoState>(
+            listener: (context, state) {
+              // Cache das inseminações para preservar estado
+              if (state is InseminacoesLoaded) {
+                _cachedInseminacoes = state.inseminacoes;
               }
-
-              if (state is ReproducaoError && _cachedInseminacoes == null) {
-                return Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.error_outline, size: 64, color: Colors.red.shade400),
-                      const SizedBox(height: 16),
-                      Text(
-                        'Erro ao carregar inseminações',
-                        style: TextStyle(fontSize: 18, color: Colors.red.shade400),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        state.message,
-                        style: TextStyle(color: Colors.grey.shade600),
-                        textAlign: TextAlign.center,
-                      ),
-                      const SizedBox(height: 16),
-                      ElevatedButton(
-                        onPressed: _loadInseminacoes,
-                        child: const Text('Tentar Novamente'),
-                      ),
-                    ],
+              // Tratar sucesso na exclusão
+              else if (state is InseminacaoDeleted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Inseminação excluída com sucesso!'),
+                    backgroundColor: Colors.green,
+                  ),
+                );
+                // Recarregar a lista de inseminações
+                _loadInseminacoes();
+              }
+              // Apenas escutar erros e outros estados relevantes
+              else if (state is ReproducaoError) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Erro: ${state.message}'),
+                    backgroundColor: Colors.red,
                   ),
                 );
               }
+            },
+            child: BlocBuilder<ReproducaoBloc, ReproducaoState>(
+              builder: (context, state) {
+                // Se não foi inicializado e não está carregando, forçar carregamento
+                if (!_isInitialized && state is! InseminacoesLoading) {
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    if (mounted) {
+                      _loadInseminacoes();
+                    }
+                  });
+                }
 
-              // Usar dados do estado atual ou cache
-              List<InseminacaoEntity>? inseminacoesToShow;
-              if (state is InseminacoesLoaded) {
-                inseminacoesToShow = state.inseminacoes;
-              } else if (_cachedInseminacoes != null) {
-                inseminacoesToShow = _cachedInseminacoes;
-              }
+                // Mostrar loading apenas se não temos cache e está carregando
+                if (state is InseminacoesLoading && _cachedInseminacoes == null) {
+                  return const Center(child: CircularProgressIndicator());
+                }
 
-              if (inseminacoesToShow != null) {
-                if (inseminacoesToShow.isEmpty) {
+                if (state is ReproducaoError && _cachedInseminacoes == null) {
                   return Center(
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(Icons.favorite_outline, size: 64, color: Colors.grey.shade400),
+                        Icon(Icons.error_outline, size: 64, color: Colors.red.shade400),
                         const SizedBox(height: 16),
                         Text(
-                          'Nenhuma inseminação encontrada',
-                          style: TextStyle(fontSize: 18, color: Colors.grey.shade600),
+                          'Erro ao carregar inseminações',
+                          style: TextStyle(fontSize: 18, color: Colors.red.shade400),
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          'Registre a primeira inseminação',
-                          style: TextStyle(color: Colors.grey.shade500),
+                          state.message,
+                          style: TextStyle(color: Colors.grey.shade600),
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 16),
+                        ElevatedButton(
+                          onPressed: _loadInseminacoes,
+                          child: const Text('Tentar Novamente'),
                         ),
                       ],
                     ),
                   );
                 }
 
-                return ListView.builder(
-                  padding: const EdgeInsets.all(16),
-                  itemCount: inseminacoesToShow.length,
-                  itemBuilder: (context, index) {
-                    final inseminacao = inseminacoesToShow![index];
-                    return _buildInseminacaoCard(inseminacao);
-                  },
-                );
-              }
+                // Usar dados do estado atual ou cache
+                List<InseminacaoEntity>? inseminacoesToShow;
+                if (state is InseminacoesLoaded) {
+                  inseminacoesToShow = state.inseminacoes;
+                } else if (_cachedInseminacoes != null) {
+                  inseminacoesToShow = _cachedInseminacoes;
+                }
 
-              // Para qualquer outro estado, mostrar loading
-              return const Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    CircularProgressIndicator(),
-                    SizedBox(height: 16),
-                    Text('Carregando inseminações...'),
-                  ],
-                ),
-              );
-            },
+                if (inseminacoesToShow != null) {
+                  if (inseminacoesToShow.isEmpty) {
+                    return Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.favorite_outline, size: 64, color: Colors.grey.shade400),
+                          const SizedBox(height: 16),
+                          Text(
+                            'Nenhuma inseminação encontrada',
+                            style: TextStyle(fontSize: 18, color: Colors.grey.shade600),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Registre a primeira inseminação',
+                            style: TextStyle(color: Colors.grey.shade500),
+                          ),
+                        ],
+                      ),
+                    );
+                  }
+
+                  return ListView.builder(
+                    padding: const EdgeInsets.all(16),
+                    itemCount: inseminacoesToShow.length,
+                    itemBuilder: (context, index) {
+                      final inseminacao = inseminacoesToShow![index];
+                      return _buildInseminacaoCard(inseminacao);
+                    },
+                  );
+                }
+
+                // Para qualquer outro estado, mostrar loading
+                return const Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      CircularProgressIndicator(),
+                      SizedBox(height: 16),
+                      Text('Carregando inseminações...'),
+                    ],
+                  ),
+                );
+              },
+            ),
           ),
         ),
-      ),
-      floatingActionButton: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (widget.onNavigateToTab != null)
-            FloatingActionButton.small(
-              heroTag: 'fabNavigateToDiagnostico',
-              backgroundColor: Colors.orange.shade400,
-              onPressed: () => widget.onNavigateToTab!(1), // Aba 1 = Diagnósticos
-              child: const Icon(Icons.medical_services, color: Colors.white, size: 20),
+        floatingActionButton: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (widget.onNavigateToTab != null)
+              FloatingActionButton.small(
+                heroTag: 'fabNavigateToDiagnostico',
+                backgroundColor: Colors.orange.shade400,
+                onPressed: () => widget.onNavigateToTab!(1), // Aba 1 = Diagnósticos
+                child: const Icon(Icons.medical_services, color: Colors.white, size: 20),
+              ),
+            if (widget.onNavigateToTab != null) const SizedBox(height: 8),
+            FloatingActionButton(
+              heroTag: 'fabInseminacao',
+              backgroundColor: Colors.pink.shade400,
+              onPressed: () => _navegarParaCadastro(),
+              child: const Icon(Icons.add, color: Colors.white),
             ),
-          if (widget.onNavigateToTab != null) const SizedBox(height: 8),
-          FloatingActionButton(
-            heroTag: 'fabInseminacao',
-            backgroundColor: Colors.pink.shade400,
-            onPressed: () => _navegarParaCadastro(),
-            child: const Icon(Icons.add, color: Colors.white),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

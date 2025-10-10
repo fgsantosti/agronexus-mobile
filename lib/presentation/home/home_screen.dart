@@ -314,7 +314,7 @@ class _HomeScreenState extends State<HomeScreen> {
         color: Colors.pink,
         backgroundColor: Colors.pink[50]!,
         onTap: () {
-          context.go(API.manejoReprodutivoRoute);
+          context.push(API.manejoReprodutivoRoute);
         },
       ),
       FunctionalityData(

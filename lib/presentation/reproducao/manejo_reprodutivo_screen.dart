@@ -60,46 +60,58 @@ class _ManejoReprodutivoScreenState extends State<ManejoReprodutivoScreen> with 
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: buildStandardAppBar(
-        title: 'Manejo Reprodutivo',
-        showBack: false,
-        bottom: TabBar(
-          controller: _tabController,
-          isScrollable: true,
-          indicatorColor: Colors.white,
-          labelColor: Colors.white,
-          unselectedLabelColor: Colors.white70,
-          labelStyle: const TextStyle(fontWeight: FontWeight.bold),
-          tabs: const [
-            Tab(icon: Icon(Icons.favorite), text: 'Inseminações'),
-            Tab(icon: Icon(Icons.medical_services), text: 'Diagnósticos'),
-            Tab(icon: Icon(Icons.child_care), text: 'Partos'),
-            Tab(icon: Icon(Icons.calendar_today), text: 'Est. Monta'),
-            Tab(icon: Icon(Icons.science), text: 'IATF'),
-            Tab(icon: Icon(Icons.assessment), text: 'Relatórios'),
+    return PopScope(
+      canPop: true, // Permite que a tela seja fechada normalmente
+      onPopInvokedWithResult: (didPop, result) {
+        // Log para debug
+        print('DEBUG NAVEGAÇÃO - PopScope no ManejoReprodutivoScreen invocado: didPop=$didPop');
+
+        // Se o pop foi bem sucedido, não precisamos fazer nada adicional
+        if (didPop) {
+          print('DEBUG NAVEGAÇÃO - Pop foi bem sucedido, voltando para tela anterior');
+        }
+      },
+      child: Scaffold(
+        appBar: buildStandardAppBar(
+          title: 'Manejo Reprodutivo',
+          showBack: true,
+          bottom: TabBar(
+            controller: _tabController,
+            isScrollable: true,
+            indicatorColor: Colors.white,
+            labelColor: Colors.white,
+            unselectedLabelColor: Colors.white70,
+            labelStyle: const TextStyle(fontWeight: FontWeight.bold),
+            tabs: const [
+              Tab(icon: Icon(Icons.favorite), text: 'Inseminações'),
+              Tab(icon: Icon(Icons.medical_services), text: 'Diagnósticos'),
+              Tab(icon: Icon(Icons.child_care), text: 'Partos'),
+              Tab(icon: Icon(Icons.calendar_today), text: 'Est. Monta'),
+              Tab(icon: Icon(Icons.science), text: 'IATF'),
+              Tab(icon: Icon(Icons.assessment), text: 'Relatórios'),
+            ],
+          ),
+        ),
+        body: Column(
+          children: [
+            // Card com resumo geral
+            _buildResumoCard(),
+            // Conteúdo das abas
+            Expanded(
+              child: TabBarView(
+                controller: _tabController,
+                children: [
+                  InseminacaoScreen(),
+                  DiagnosticoGestacaoScreen(),
+                  PartoScreen(),
+                  EstacaoMontaScreen(),
+                  ProtocoloIATFScreen(),
+                  RelatoriosScreen(),
+                ],
+              ),
+            ),
           ],
         ),
-      ),
-      body: Column(
-        children: [
-          // Card com resumo geral
-          _buildResumoCard(),
-          // Conteúdo das abas
-          Expanded(
-            child: TabBarView(
-              controller: _tabController,
-              children: [
-                InseminacaoScreen(),
-                DiagnosticoGestacaoScreen(),
-                PartoScreen(),
-                EstacaoMontaScreen(),
-                ProtocoloIATFScreen(),
-                RelatoriosScreen(),
-              ],
-            ),
-          ),
-        ],
       ),
     );
   }

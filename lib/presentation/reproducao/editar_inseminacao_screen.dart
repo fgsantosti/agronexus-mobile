@@ -131,63 +131,72 @@ class _EditarInseminacaoScreenState extends State<EditarInseminacaoScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: buildStandardAppBar(
-        title: 'Editar Inseminação',
-      ),
-      body: BlocListener<ReproducaoBloc, ReproducaoState>(
-        listener: (context, state) {
-          if (state is OpcoesCadastroInseminacaoLoaded) {
-            setState(() {
-              _opcoes = state.opcoes;
-              _isLoading = false;
-            });
-          } else if (state is InseminacaoUpdated) {
-            _mostrarSnackbar('Inseminação atualizada com sucesso!');
-            Navigator.of(context).pop(true); // Retorna true para indicar sucesso
-          } else if (state is ReproducaoError) {
-            _mostrarSnackbar('Erro: ${state.message}');
-            setState(() {
-              _isLoading = false;
-            });
-          } else if (state is OpcoesCadastroInseminacaoLoading) {
-            setState(() {
-              _isLoading = true;
-            });
-          }
-        },
-        child: _isLoading
-            ? const Center(child: CircularProgressIndicator())
-            : _opcoes == null
-                ? const Center(child: CircularProgressIndicator())
-                : SingleChildScrollView(
-                    padding: const EdgeInsets.all(16),
-                    child: Form(
-                      key: _formKey,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          _buildAnimalDropdown(),
-                          const SizedBox(height: 16),
-                          _buildDataInseminacao(),
-                          const SizedBox(height: 16),
-                          _buildTipoInseminacaoDropdown(),
-                          const SizedBox(height: 16),
-                          _buildReprodutorDropdown(),
-                          const SizedBox(height: 16),
-                          _buildProtocoloDropdown(),
-                          const SizedBox(height: 16),
-                          _buildEstacaoSearchField(),
-                          const SizedBox(height: 16),
-                          _buildSemenUtilizado(),
-                          const SizedBox(height: 16),
-                          _buildObservacoes(),
-                          const SizedBox(height: 24),
-                          _buildBotaoAtualizar(),
-                        ],
+    return PopScope(
+      canPop: true, // Permite voltar normalmente
+      onPopInvokedWithResult: (didPop, result) {
+        print('DEBUG NAVEGAÇÃO - PopScope na EditarInseminacaoScreen invocado: didPop=$didPop');
+        if (didPop) {
+          print('DEBUG NAVEGAÇÃO - Voltando da tela de edição');
+        }
+      },
+      child: Scaffold(
+        appBar: buildStandardAppBar(
+          title: 'Editar Inseminação',
+        ),
+        body: BlocListener<ReproducaoBloc, ReproducaoState>(
+          listener: (context, state) {
+            if (state is OpcoesCadastroInseminacaoLoaded) {
+              setState(() {
+                _opcoes = state.opcoes;
+                _isLoading = false;
+              });
+            } else if (state is InseminacaoUpdated) {
+              _mostrarSnackbar('Inseminação atualizada com sucesso!');
+              Navigator.of(context).pop(true); // Retorna true para indicar sucesso
+            } else if (state is ReproducaoError) {
+              _mostrarSnackbar('Erro: ${state.message}');
+              setState(() {
+                _isLoading = false;
+              });
+            } else if (state is OpcoesCadastroInseminacaoLoading) {
+              setState(() {
+                _isLoading = true;
+              });
+            }
+          },
+          child: _isLoading
+              ? const Center(child: CircularProgressIndicator())
+              : _opcoes == null
+                  ? const Center(child: CircularProgressIndicator())
+                  : SingleChildScrollView(
+                      padding: const EdgeInsets.all(16),
+                      child: Form(
+                        key: _formKey,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            _buildAnimalDropdown(),
+                            const SizedBox(height: 16),
+                            _buildDataInseminacao(),
+                            const SizedBox(height: 16),
+                            _buildTipoInseminacaoDropdown(),
+                            const SizedBox(height: 16),
+                            _buildReprodutorDropdown(),
+                            const SizedBox(height: 16),
+                            _buildProtocoloDropdown(),
+                            const SizedBox(height: 16),
+                            _buildEstacaoSearchField(),
+                            const SizedBox(height: 16),
+                            _buildSemenUtilizado(),
+                            const SizedBox(height: 16),
+                            _buildObservacoes(),
+                            const SizedBox(height: 24),
+                            _buildBotaoAtualizar(),
+                          ],
+                        ),
                       ),
                     ),
-                  ),
+        ),
       ),
     );
   }

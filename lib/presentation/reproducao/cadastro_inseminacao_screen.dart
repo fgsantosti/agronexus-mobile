@@ -201,78 +201,87 @@ class _CadastroInseminacaoScreenState extends State<CadastroInseminacaoScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: buildStandardAppBar(
-        title: 'Nova Inseminação',
-      ),
-      body: BlocListener<ReproducaoBloc, ReproducaoState>(
-        listener: (context, state) {
-          if (state is OpcoesCadastroInseminacaoLoaded) {
-            setState(() {
-              _opcoes = state.opcoes;
-              _isLoading = false;
-            });
+    return PopScope(
+      canPop: true, // Permite voltar normalmente
+      onPopInvokedWithResult: (didPop, result) {
+        print('DEBUG NAVEGAÇÃO - PopScope na CadastroInseminacaoScreen invocado: didPop=$didPop');
+        if (didPop) {
+          print('DEBUG NAVEGAÇÃO - Voltando da tela de cadastro');
+        }
+      },
+      child: Scaffold(
+        appBar: buildStandardAppBar(
+          title: 'Nova Inseminação',
+        ),
+        body: BlocListener<ReproducaoBloc, ReproducaoState>(
+          listener: (context, state) {
+            if (state is OpcoesCadastroInseminacaoLoaded) {
+              setState(() {
+                _opcoes = state.opcoes;
+                _isLoading = false;
+              });
 
-            // Preencher campos padrão quando opções são carregadas
-            _preencherProtocoloPadraoSeDisponivel();
-            _preencherReprodutorPadraoSeDisponivel();
+              // Preencher campos padrão quando opções são carregadas
+              _preencherProtocoloPadraoSeDisponivel();
+              _preencherReprodutorPadraoSeDisponivel();
 
-            // Debug: verificar quantos reprodutores foram carregados
-            print('DEBUG CADASTRO - Reprodutores carregados: ${state.opcoes.reprodutores.length}');
-            for (var reprodutor in state.opcoes.reprodutores) {
-              print('DEBUG CADASTRO - Reprodutor: ${reprodutor.idAnimal} - ${reprodutor.fazendaNome} - Sexo: ${reprodutor.sexo}');
+              // Debug: verificar quantos reprodutores foram carregados
+              print('DEBUG CADASTRO - Reprodutores carregados: ${state.opcoes.reprodutores.length}');
+              for (var reprodutor in state.opcoes.reprodutores) {
+                print('DEBUG CADASTRO - Reprodutor: ${reprodutor.idAnimal} - ${reprodutor.fazendaNome} - Sexo: ${reprodutor.sexo}');
+              }
+            } else if (state is InseminacaoCreated) {
+              print('DEBUG CADASTRO - Estado InseminacaoCreated recebido!');
+              _mostrarSnackbar('Inseminação cadastrada com sucesso!');
+              print('DEBUG CADASTRO - Chamando Navigator.pop(true)');
+              Navigator.of(context).pop(true); // Retorna true para indicar sucesso
+            } else if (state is ReproducaoError) {
+              _mostrarSnackbar('Erro: ${state.message}');
+              setState(() {
+                _isLoading = false;
+              });
+            } else if (state is OpcoesCadastroInseminacaoLoading) {
+              setState(() {
+                _isLoading = true;
+              });
             }
-          } else if (state is InseminacaoCreated) {
-            print('DEBUG CADASTRO - Estado InseminacaoCreated recebido!');
-            _mostrarSnackbar('Inseminação cadastrada com sucesso!');
-            print('DEBUG CADASTRO - Chamando Navigator.pop(true)');
-            Navigator.of(context).pop(true); // Retorna true para indicar sucesso
-          } else if (state is ReproducaoError) {
-            _mostrarSnackbar('Erro: ${state.message}');
-            setState(() {
-              _isLoading = false;
-            });
-          } else if (state is OpcoesCadastroInseminacaoLoading) {
-            setState(() {
-              _isLoading = true;
-            });
-          }
-        },
-        child: _isLoading
-            ? const Center(child: CircularProgressIndicator())
-            : _opcoes == null
-                ? const Center(child: CircularProgressIndicator())
-                : SingleChildScrollView(
-                    padding: const EdgeInsets.all(16),
-                    child: Form(
-                      key: _formKey,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          // Banner informativo sobre pré-preenchimento
-                          if (_temCamposPrePreenchidos()) _buildBannerConfiguracoesAplicadas(),
-                          if (_temCamposPrePreenchidos()) const SizedBox(height: 16),
-                          _buildAnimalDropdown(),
-                          const SizedBox(height: 16),
-                          _buildDataInseminacao(),
-                          const SizedBox(height: 16),
-                          _buildTipoInseminacaoDropdown(),
-                          const SizedBox(height: 16),
-                          _buildReprodutorDropdown(),
-                          const SizedBox(height: 16),
-                          _buildProtocoloDropdown(),
-                          const SizedBox(height: 16),
-                          _buildEstacaoSearchField(),
-                          const SizedBox(height: 16),
-                          _buildSemenUtilizado(),
-                          const SizedBox(height: 16),
-                          _buildObservacoes(),
-                          const SizedBox(height: 24),
-                          _buildBotaoSalvar(),
-                        ],
+          },
+          child: _isLoading
+              ? const Center(child: CircularProgressIndicator())
+              : _opcoes == null
+                  ? const Center(child: CircularProgressIndicator())
+                  : SingleChildScrollView(
+                      padding: const EdgeInsets.all(16),
+                      child: Form(
+                        key: _formKey,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            // Banner informativo sobre pré-preenchimento
+                            if (_temCamposPrePreenchidos()) _buildBannerConfiguracoesAplicadas(),
+                            if (_temCamposPrePreenchidos()) const SizedBox(height: 16),
+                            _buildAnimalDropdown(),
+                            const SizedBox(height: 16),
+                            _buildDataInseminacao(),
+                            const SizedBox(height: 16),
+                            _buildTipoInseminacaoDropdown(),
+                            const SizedBox(height: 16),
+                            _buildReprodutorDropdown(),
+                            const SizedBox(height: 16),
+                            _buildProtocoloDropdown(),
+                            const SizedBox(height: 16),
+                            _buildEstacaoSearchField(),
+                            const SizedBox(height: 16),
+                            _buildSemenUtilizado(),
+                            const SizedBox(height: 16),
+                            _buildObservacoes(),
+                            const SizedBox(height: 24),
+                            _buildBotaoSalvar(),
+                          ],
+                        ),
                       ),
                     ),
-                  ),
+        ),
       ),
     );
   }
