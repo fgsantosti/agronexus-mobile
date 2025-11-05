@@ -9,7 +9,8 @@ import 'package:agronexus/presentation/bloc/animal/animal_state.dart';
 import 'package:agronexus/domain/models/reproducao_entity.dart';
 import 'package:agronexus/domain/models/animal_entity.dart';
 import 'package:agronexus/presentation/widgets/animal_search_field.dart';
-import 'package:agronexus/presentation/widgets/standard_app_bar.dart';
+import 'package:agronexus/presentation/widgets/form_components.dart';
+import 'package:agronexus/presentation/widgets/form_submit_protection_mixin.dart';
 import 'package:intl/intl.dart';
 
 class CadastroPartoScreen extends StatefulWidget {
@@ -19,7 +20,7 @@ class CadastroPartoScreen extends StatefulWidget {
   State<CadastroPartoScreen> createState() => _CadastroPartoScreenState();
 }
 
-class _CadastroPartoScreenState extends State<CadastroPartoScreen> {
+class _CadastroPartoScreenState extends State<CadastroPartoScreen> with FormSubmitProtectionMixin {
   final _formKey = GlobalKey<FormState>();
   final DateFormat _dateFormat = DateFormat('dd/MM/yyyy');
 
@@ -41,7 +42,6 @@ class _CadastroPartoScreenState extends State<CadastroPartoScreen> {
   List<AnimalEntity> _filhosDaMae = [];
 
   DateTime _dataSelecionada = DateTime.now();
-  bool _isLoading = false;
   bool _isLoadingFilhos = false;
 
   @override
@@ -71,12 +71,6 @@ class _CadastroPartoScreenState extends State<CadastroPartoScreen> {
     super.dispose();
   }
 
-  void _mostrarSnackbar(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
-    );
-  }
-
   Future<void> _selecionarData() async {
     final DateTime? picked = await showDatePicker(
       context: context,
@@ -94,22 +88,33 @@ class _CadastroPartoScreenState extends State<CadastroPartoScreen> {
     }
   }
 
-  void _salvarParto() {
-    if (!_formKey.currentState!.validate()) return;
-    if (_maeSelecionada == null) {
-      _mostrarSnackbar('Selecione a mãe');
-      return;
-    }
-    if (_resultadoSelecionado == null) {
-      _mostrarSnackbar('Selecione o resultado do parto');
-      return;
-    }
-    if (_dificuldadeSelecionada == null) {
-      _mostrarSnackbar('Selecione a dificuldade do parto');
+  void _salvarParto() async {
+    if (!canSubmit()) return;
+
+    if (!_formKey.currentState!.validate()) {
+      resetProtection();
       return;
     }
 
-    setState(() => _isLoading = true);
+    if (_maeSelecionada == null) {
+      showProtectedSnackBar('Selecione a mãe', isError: true);
+      resetProtection();
+      return;
+    }
+
+    if (_resultadoSelecionado == null) {
+      showProtectedSnackBar('Selecione o resultado do parto', isError: true);
+      resetProtection();
+      return;
+    }
+
+    if (_dificuldadeSelecionada == null) {
+      showProtectedSnackBar('Selecione a dificuldade do parto', isError: true);
+      resetProtection();
+      return;
+    }
+
+    markAsSubmitting();
 
     final parto = PartoEntity(
       id: '', // Será gerado pela API
@@ -128,8 +133,9 @@ class _CadastroPartoScreenState extends State<CadastroPartoScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: buildStandardAppBar(
+      appBar: FormAppBar(
         title: 'Cadastrar Parto',
+        showSaveButton: false,
       ),
       body: MultiBlocListener(
         listeners: [
@@ -139,17 +145,8 @@ class _CadastroPartoScreenState extends State<CadastroPartoScreen> {
 
               if (state is PartoCreated) {
                 print('DEBUG SCREEN - Parto criado com sucesso! Redirecionando...');
-                setState(() => _isLoading = false);
-
-                // Aguardar um frame antes de redirecionar para garantir que o estado seja atualizado
-                WidgetsBinding.instance.addPostFrameCallback((_) {
-                  if (mounted) {
-                    Navigator.pop(context, true);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Parto cadastrado com sucesso!')),
-                    );
-                  }
-                });
+                showProtectedSnackBar('Parto cadastrado com sucesso!');
+                safeNavigateBack(result: true);
               }
 
               if (state is GestacoesPendentePartoLoaded) {
@@ -161,10 +158,8 @@ class _CadastroPartoScreenState extends State<CadastroPartoScreen> {
 
               if (state is ReproducaoError) {
                 print('DEBUG SCREEN - Erro: ${state.message}');
-                setState(() => _isLoading = false);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('Erro: ${state.message}')),
-                );
+                showProtectedSnackBar('Erro: ${state.message}', isError: true);
+                resetProtection();
               }
 
               if (state is ReproducaoLoading) {
@@ -806,39 +801,10 @@ class _CadastroPartoScreenState extends State<CadastroPartoScreen> {
   }
 
   Widget _buildBotaoSalvar() {
-    return SizedBox(
-      width: double.infinity,
-      child: ElevatedButton(
-        onPressed: _isLoading ? null : _salvarParto,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: Theme.of(context).primaryColor,
-          foregroundColor: Colors.white,
-          padding: const EdgeInsets.symmetric(vertical: 16),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(8),
-          ),
-        ),
-        child: _isLoading
-            ? const Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  SizedBox(
-                    height: 20,
-                    width: 20,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                    ),
-                  ),
-                  SizedBox(width: 8),
-                  Text('Salvando...'),
-                ],
-              )
-            : const Text(
-                'Salvar Parto',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-              ),
-      ),
+    return FormPrimaryButton(
+      onPressed: _salvarParto,
+      isLoading: isSaving,
+      text: 'Salvar Parto',
     );
   }
 }

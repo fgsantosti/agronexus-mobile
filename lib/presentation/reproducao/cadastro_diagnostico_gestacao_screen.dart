@@ -5,7 +5,8 @@ import 'package:agronexus/presentation/bloc/reproducao/reproducao_event.dart';
 import 'package:agronexus/presentation/bloc/reproducao/reproducao_state.dart';
 import 'package:agronexus/domain/models/reproducao_entity.dart';
 import 'package:agronexus/presentation/widgets/inseminacao_search_field.dart';
-import 'package:agronexus/presentation/widgets/standard_app_bar.dart';
+import 'package:agronexus/presentation/widgets/form_components.dart';
+import 'package:agronexus/presentation/widgets/form_submit_protection_mixin.dart';
 import 'package:intl/intl.dart';
 
 class CadastroDiagnosticoGestacaoScreen extends StatefulWidget {
@@ -20,7 +21,7 @@ class CadastroDiagnosticoGestacaoScreen extends StatefulWidget {
   State<CadastroDiagnosticoGestacaoScreen> createState() => _CadastroDiagnosticoGestacaoScreenState();
 }
 
-class _CadastroDiagnosticoGestacaoScreenState extends State<CadastroDiagnosticoGestacaoScreen> {
+class _CadastroDiagnosticoGestacaoScreenState extends State<CadastroDiagnosticoGestacaoScreen> with FormSubmitProtectionMixin {
   final _formKey = GlobalKey<FormState>();
   final DateFormat _dateFormat = DateFormat('dd/MM/yyyy');
 
@@ -108,26 +109,34 @@ class _CadastroDiagnosticoGestacaoScreenState extends State<CadastroDiagnosticoG
     }
   }
 
-  void _cadastrarDiagnostico() {
-    if (!_formKey.currentState!.validate()) return;
-    if (_inseminacaoSelecionada == null) {
-      _mostrarSnackbar('Selecione uma inseminação');
+  void _cadastrarDiagnostico() async {
+    if (!canSubmit()) return;
+
+    if (!_formKey.currentState!.validate()) {
+      resetProtection();
       return;
     }
+
+    if (_inseminacaoSelecionada == null) {
+      showProtectedSnackBar('Selecione uma inseminação', isError: true);
+      resetProtection();
+      return;
+    }
+
     if (_resultadoSelecionado == null) {
-      _mostrarSnackbar('Selecione o resultado do diagnóstico');
+      showProtectedSnackBar('Selecione o resultado do diagnóstico', isError: true);
+      resetProtection();
       return;
     }
 
     // Validar se a data do diagnóstico é posterior à data da inseminação
     if (_dataSelecionada.isBefore(_inseminacaoSelecionada!.dataInseminacao)) {
-      _mostrarSnackbar('A data do diagnóstico deve ser posterior à data da inseminação');
+      showProtectedSnackBar('A data do diagnóstico deve ser posterior à data da inseminação', isError: true);
+      resetProtection();
       return;
     }
 
-    setState(() {
-      _isLoading = true;
-    });
+    markAsSubmitting();
 
     final diagnostico = DiagnosticoGestacaoEntity(
       id: '', // Será gerado pelo backend
@@ -151,17 +160,12 @@ class _CadastroDiagnosticoGestacaoScreenState extends State<CadastroDiagnosticoG
     return null;
   }
 
-  void _mostrarSnackbar(String mensagem) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(mensagem)),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: buildStandardAppBar(
+      appBar: FormAppBar(
         title: 'Novo Diagnóstico',
+        showSaveButton: false,
       ),
       body: BlocListener<ReproducaoBloc, ReproducaoState>(
         listener: (context, state) {
@@ -175,10 +179,11 @@ class _CadastroDiagnosticoGestacaoScreenState extends State<CadastroDiagnosticoG
               _diagnosticos = state.diagnosticos;
             });
           } else if (state is DiagnosticoGestacaoCreated) {
-            _mostrarSnackbar('Diagnóstico cadastrado com sucesso!');
-            Navigator.of(context).pop(true);
+            showProtectedSnackBar('Diagnóstico cadastrado com sucesso!');
+            safeNavigateBack(result: true);
           } else if (state is ReproducaoError) {
-            _mostrarSnackbar('Erro: ${state.message}');
+            showProtectedSnackBar('Erro: ${state.message}', isError: true);
+            resetProtection();
             setState(() {
               _isLoading = false;
             });
@@ -436,29 +441,10 @@ class _CadastroDiagnosticoGestacaoScreenState extends State<CadastroDiagnosticoG
   }
 
   Widget _buildBotaoSalvar() {
-    return ElevatedButton(
-      onPressed: _isLoading ? null : _cadastrarDiagnostico,
-      style: ElevatedButton.styleFrom(
-        backgroundColor: Colors.orange.shade400,
-        foregroundColor: Colors.white,
-        padding: const EdgeInsets.symmetric(vertical: 16),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(8),
-        ),
-      ),
-      child: _isLoading
-          ? const SizedBox(
-              height: 20,
-              width: 20,
-              child: CircularProgressIndicator(
-                strokeWidth: 2,
-                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-              ),
-            )
-          : const Text(
-              'Salvar Diagnóstico',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-            ),
+    return FormPrimaryButton(
+      onPressed: _cadastrarDiagnostico,
+      isLoading: isSaving,
+      text: 'Salvar Diagnóstico',
     );
   }
 

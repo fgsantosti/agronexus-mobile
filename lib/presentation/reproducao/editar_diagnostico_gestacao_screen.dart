@@ -4,7 +4,8 @@ import 'package:agronexus/presentation/bloc/reproducao/reproducao_bloc.dart';
 import 'package:agronexus/presentation/bloc/reproducao/reproducao_event.dart';
 import 'package:agronexus/presentation/bloc/reproducao/reproducao_state.dart';
 import 'package:agronexus/domain/models/reproducao_entity.dart';
-import 'package:agronexus/presentation/widgets/standard_app_bar.dart';
+import 'package:agronexus/presentation/widgets/form_components.dart';
+import 'package:agronexus/presentation/widgets/form_submit_protection_mixin.dart';
 import 'package:intl/intl.dart';
 
 class EditarDiagnosticoGestacaoScreen extends StatefulWidget {
@@ -19,7 +20,7 @@ class EditarDiagnosticoGestacaoScreen extends StatefulWidget {
   State<EditarDiagnosticoGestacaoScreen> createState() => _EditarDiagnosticoGestacaoScreenState();
 }
 
-class _EditarDiagnosticoGestacaoScreenState extends State<EditarDiagnosticoGestacaoScreen> {
+class _EditarDiagnosticoGestacaoScreenState extends State<EditarDiagnosticoGestacaoScreen> with FormSubmitProtectionMixin {
   final _formKey = GlobalKey<FormState>();
   final DateFormat _dateFormat = DateFormat('dd/MM/yyyy');
 
@@ -32,7 +33,6 @@ class _EditarDiagnosticoGestacaoScreenState extends State<EditarDiagnosticoGesta
   ResultadoDiagnostico? _resultadoSelecionado;
 
   DateTime _dataSelecionada = DateTime.now();
-  bool _isLoading = false;
 
   @override
   void initState() {
@@ -59,12 +59,6 @@ class _EditarDiagnosticoGestacaoScreenState extends State<EditarDiagnosticoGesta
     super.dispose();
   }
 
-  void _mostrarSnackbar(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
-    );
-  }
-
   Future<void> _selecionarData() async {
     final DateTime? picked = await showDatePicker(
       context: context,
@@ -82,18 +76,28 @@ class _EditarDiagnosticoGestacaoScreenState extends State<EditarDiagnosticoGesta
     }
   }
 
-  void _atualizarDiagnostico() {
-    if (!_formKey.currentState!.validate()) return;
+  void _atualizarDiagnostico() async {
+    if (!canSubmit()) return;
+
+    if (!_formKey.currentState!.validate()) {
+      resetProtection();
+      return;
+    }
+
     if (_resultadoSelecionado == null) {
-      _mostrarSnackbar('Selecione o resultado do diagnóstico');
+      showProtectedSnackBar('Selecione o resultado do diagnóstico', isError: true);
+      resetProtection();
       return;
     }
 
     // Validar se a data do diagnóstico é posterior à data da inseminação
     if (_dataSelecionada.isBefore(widget.diagnostico.inseminacao.dataInseminacao)) {
-      _mostrarSnackbar('A data do diagnóstico deve ser posterior à data da inseminação');
+      showProtectedSnackBar('A data do diagnóstico deve ser posterior à data da inseminação', isError: true);
+      resetProtection();
       return;
     }
+
+    markAsSubmitting();
 
     final diagnosticoAtualizado = DiagnosticoGestacaoEntity(
       id: widget.diagnostico.id,
@@ -117,23 +121,18 @@ class _EditarDiagnosticoGestacaoScreenState extends State<EditarDiagnosticoGesta
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: buildStandardAppBar(
+      appBar: FormAppBar(
         title: 'Editar Diagnóstico',
+        showSaveButton: false,
       ),
       body: BlocListener<ReproducaoBloc, ReproducaoState>(
         listener: (context, state) {
           if (state is DiagnosticoGestacaoUpdated) {
-            _mostrarSnackbar('Diagnóstico atualizado com sucesso!');
-            Navigator.of(context).pop(true);
+            showProtectedSnackBar('Diagnóstico atualizado com sucesso!');
+            safeNavigateBack(result: true);
           } else if (state is ReproducaoError) {
-            _mostrarSnackbar('Erro: ${state.message}');
-            setState(() {
-              _isLoading = false;
-            });
-          } else if (state is ReproducaoLoading) {
-            setState(() {
-              _isLoading = true;
-            });
+            showProtectedSnackBar('Erro: ${state.message}', isError: true);
+            resetProtection();
           }
         },
         child: SingleChildScrollView(
@@ -372,39 +371,10 @@ class _EditarDiagnosticoGestacaoScreenState extends State<EditarDiagnosticoGesta
   }
 
   Widget _buildBotaoAtualizar() {
-    return SizedBox(
-      width: double.infinity,
-      child: ElevatedButton(
-        onPressed: _isLoading ? null : _atualizarDiagnostico,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: Theme.of(context).primaryColor,
-          foregroundColor: Colors.white,
-          padding: const EdgeInsets.symmetric(vertical: 16),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(8),
-          ),
-        ),
-        child: _isLoading
-            ? const Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  SizedBox(
-                    height: 20,
-                    width: 20,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                    ),
-                  ),
-                  SizedBox(width: 8),
-                  Text('Atualizando...'),
-                ],
-              )
-            : const Text(
-                'Atualizar Diagnóstico',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-              ),
-      ),
+    return FormPrimaryButton(
+      onPressed: _atualizarDiagnostico,
+      isLoading: isSaving,
+      text: 'Atualizar Diagnóstico',
     );
   }
 }

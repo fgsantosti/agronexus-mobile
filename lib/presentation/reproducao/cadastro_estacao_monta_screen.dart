@@ -9,7 +9,8 @@ import 'package:agronexus/presentation/bloc/propriedade/propriedade_state_new.da
 import 'package:agronexus/domain/models/reproducao_entity.dart';
 import 'package:agronexus/domain/models/propriedade_entity.dart';
 import 'package:agronexus/presentation/reproducao/selecionar_lotes_screen.dart';
-import 'package:agronexus/presentation/widgets/standard_app_bar.dart';
+import 'package:agronexus/presentation/widgets/form_components.dart';
+import 'package:agronexus/presentation/widgets/form_submit_protection_mixin.dart';
 import 'package:intl/intl.dart';
 
 class CadastroEstacaoMontaScreen extends StatefulWidget {
@@ -19,7 +20,7 @@ class CadastroEstacaoMontaScreen extends StatefulWidget {
   State<CadastroEstacaoMontaScreen> createState() => _CadastroEstacaoMontaScreenState();
 }
 
-class _CadastroEstacaoMontaScreenState extends State<CadastroEstacaoMontaScreen> {
+class _CadastroEstacaoMontaScreenState extends State<CadastroEstacaoMontaScreen> with FormSubmitProtectionMixin {
   final _formKey = GlobalKey<FormState>();
   final DateFormat _dateFormat = DateFormat('dd/MM/yyyy');
 
@@ -32,7 +33,6 @@ class _CadastroEstacaoMontaScreenState extends State<CadastroEstacaoMontaScreen>
   DateTime _dataInicioSelecionada = DateTime.now();
   DateTime _dataFimSelecionada = DateTime.now().add(const Duration(days: 60));
   bool _ativa = true;
-  bool _isLoading = false;
 
   // Propriedades
   PropriedadeEntity? _propriedadeSelecionada;
@@ -98,18 +98,21 @@ class _CadastroEstacaoMontaScreenState extends State<CadastroEstacaoMontaScreen>
     }
   }
 
-  void _cadastrarEstacao() {
-    if (!_formKey.currentState!.validate()) return;
+  void _cadastrarEstacao() async {
+    if (!canSubmit()) return;
 
-    if (_propriedadeSelecionada == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Selecione uma propriedade'),
-          backgroundColor: Colors.red,
-        ),
-      );
+    if (!_formKey.currentState!.validate()) {
+      resetProtection();
       return;
     }
+
+    if (_propriedadeSelecionada == null) {
+      showProtectedSnackBar('Selecione uma propriedade', isError: true);
+      resetProtection();
+      return;
+    }
+
+    markAsSubmitting();
 
     final estacao = EstacaoMontaEntity(
       id: '', // Será gerado pelo backend
@@ -126,30 +129,18 @@ class _CadastroEstacaoMontaScreenState extends State<CadastroEstacaoMontaScreen>
     context.read<ReproducaoBloc>().add(CreateEstacaoMontaEvent(estacao));
   }
 
-  void _mostrarSnackbar(String mensagem, {bool isError = false}) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(mensagem),
-        backgroundColor: isError ? Colors.red : Colors.green,
-        duration: const Duration(seconds: 3),
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: buildStandardAppBar(
+      appBar: FormAppBar(
         title: 'Nova Estação de Monta',
+        showSaveButton: false,
       ),
       body: BlocListener<ReproducaoBloc, ReproducaoState>(
         listener: (context, state) {
-          setState(() {
-            _isLoading = state is ReproducaoLoading;
-          });
-
           if (state is EstacaoMontaCreated) {
-            _mostrarSnackbar('Estação de monta cadastrada com sucesso!');
+            showProtectedSnackBar('Estação de monta cadastrada com sucesso!');
+            markAsNavigated();
 
             // Navegar para seleção de lotes
             Navigator.push(
@@ -165,10 +156,13 @@ class _CadastroEstacaoMontaScreenState extends State<CadastroEstacaoMontaScreen>
               ),
             ).then((_) {
               // Voltar para a tela anterior após selecionar lotes
-              Navigator.of(context).pop(true);
+              if (mounted) {
+                Navigator.of(context).pop(true);
+              }
             });
           } else if (state is ReproducaoError) {
-            _mostrarSnackbar(state.message, isError: true);
+            showProtectedSnackBar(state.message, isError: true);
+            resetProtection();
           }
         },
         child: Padding(
@@ -505,35 +499,10 @@ class _CadastroEstacaoMontaScreenState extends State<CadastroEstacaoMontaScreen>
   }
 
   Widget _buildBotaoSalvar() {
-    return SizedBox(
-      width: double.infinity,
-      height: 50,
-      child: ElevatedButton(
-        onPressed: _isLoading ? null : _cadastrarEstacao,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.blue.shade600,
-          foregroundColor: Colors.white,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(8),
-          ),
-        ),
-        child: _isLoading
-            ? const SizedBox(
-                height: 20,
-                width: 20,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                ),
-              )
-            : const Text(
-                'Cadastrar Estação',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-      ),
+    return FormPrimaryButton(
+      onPressed: _cadastrarEstacao,
+      isLoading: isSaving,
+      text: 'Cadastrar Estação',
     );
   }
 }

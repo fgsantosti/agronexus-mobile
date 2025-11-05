@@ -6,7 +6,8 @@ import 'package:agronexus/presentation/bloc/reproducao/reproducao_state.dart';
 import 'package:agronexus/domain/models/reproducao_entity.dart';
 import 'package:agronexus/domain/models/animal_entity.dart';
 import 'package:agronexus/presentation/widgets/estacao_monta_search_field.dart';
-import 'package:agronexus/presentation/widgets/standard_app_bar.dart';
+import 'package:agronexus/presentation/widgets/form_components.dart';
+import 'package:agronexus/presentation/widgets/form_submit_protection_mixin.dart';
 import 'package:intl/intl.dart';
 
 class EditarInseminacaoScreen extends StatefulWidget {
@@ -21,7 +22,7 @@ class EditarInseminacaoScreen extends StatefulWidget {
   State<EditarInseminacaoScreen> createState() => _EditarInseminacaoScreenState();
 }
 
-class _EditarInseminacaoScreenState extends State<EditarInseminacaoScreen> {
+class _EditarInseminacaoScreenState extends State<EditarInseminacaoScreen> with FormSubmitProtectionMixin {
   final _formKey = GlobalKey<FormState>();
   final DateFormat _dateFormat = DateFormat('dd/MM/yyyy');
 
@@ -96,16 +97,27 @@ class _EditarInseminacaoScreenState extends State<EditarInseminacaoScreen> {
     }
   }
 
-  void _atualizarInseminacao() {
-    if (!_formKey.currentState!.validate()) return;
+  void _atualizarInseminacao() async {
+    if (!canSubmit()) return;
+
+    if (!_formKey.currentState!.validate()) {
+      resetProtection();
+      return;
+    }
+
     if (_animalSelecionado == null) {
-      _mostrarSnackbar('Selecione um animal');
+      showProtectedSnackBar('Selecione um animal', isError: true);
+      resetProtection();
       return;
     }
+
     if (_tipoSelecionado == null) {
-      _mostrarSnackbar('Selecione o tipo de inseminação');
+      showProtectedSnackBar('Selecione o tipo de inseminação', isError: true);
+      resetProtection();
       return;
     }
+
+    markAsSubmitting();
 
     final inseminacaoAtualizada = InseminacaoEntity(
       id: widget.inseminacao.id, // Manter o ID existente
@@ -123,12 +135,6 @@ class _EditarInseminacaoScreenState extends State<EditarInseminacaoScreen> {
     context.read<ReproducaoBloc>().add(UpdateInseminacaoEvent(widget.inseminacao.id, inseminacaoAtualizada));
   }
 
-  void _mostrarSnackbar(String mensagem) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(mensagem)),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     return PopScope(
@@ -140,8 +146,9 @@ class _EditarInseminacaoScreenState extends State<EditarInseminacaoScreen> {
         }
       },
       child: Scaffold(
-        appBar: buildStandardAppBar(
+        appBar: FormAppBar(
           title: 'Editar Inseminação',
+          showSaveButton: false,
         ),
         body: BlocListener<ReproducaoBloc, ReproducaoState>(
           listener: (context, state) {
@@ -151,10 +158,11 @@ class _EditarInseminacaoScreenState extends State<EditarInseminacaoScreen> {
                 _isLoading = false;
               });
             } else if (state is InseminacaoUpdated) {
-              _mostrarSnackbar('Inseminação atualizada com sucesso!');
-              Navigator.of(context).pop(true); // Retorna true para indicar sucesso
+              showProtectedSnackBar('Inseminação atualizada com sucesso!');
+              safeNavigateBack(result: true);
             } else if (state is ReproducaoError) {
-              _mostrarSnackbar('Erro: ${state.message}');
+              showProtectedSnackBar('Erro: ${state.message}', isError: true);
+              resetProtection();
               setState(() {
                 _isLoading = false;
               });
@@ -342,36 +350,10 @@ class _EditarInseminacaoScreenState extends State<EditarInseminacaoScreen> {
   }
 
   Widget _buildBotaoAtualizar() {
-    return ElevatedButton(
-      onPressed: _isLoading ? null : _atualizarInseminacao,
-      style: ElevatedButton.styleFrom(
-        backgroundColor: Theme.of(context).primaryColor,
-        foregroundColor: Colors.white,
-        padding: const EdgeInsets.symmetric(vertical: 16),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(8),
-        ),
-      ),
-      child: _isLoading
-          ? const Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                SizedBox(
-                  height: 20,
-                  width: 20,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                  ),
-                ),
-                SizedBox(width: 8),
-                Text('Atualizando...'),
-              ],
-            )
-          : const Text(
-              'Atualizar Inseminação',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-            ),
+    return FormPrimaryButton(
+      onPressed: _atualizarInseminacao,
+      isLoading: isSaving,
+      text: 'Atualizar Inseminação',
     );
   }
 }

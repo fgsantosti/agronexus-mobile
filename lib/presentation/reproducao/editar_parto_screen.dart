@@ -5,7 +5,8 @@ import 'package:agronexus/presentation/bloc/reproducao/reproducao_event.dart';
 import 'package:agronexus/presentation/bloc/reproducao/reproducao_state.dart';
 import 'package:agronexus/domain/models/reproducao_entity.dart';
 import 'package:agronexus/domain/models/animal_entity.dart';
-import 'package:agronexus/presentation/widgets/standard_app_bar.dart';
+import 'package:agronexus/presentation/widgets/form_components.dart';
+import 'package:agronexus/presentation/widgets/form_submit_protection_mixin.dart';
 import 'package:intl/intl.dart';
 
 class EditarPartoScreen extends StatefulWidget {
@@ -17,7 +18,7 @@ class EditarPartoScreen extends StatefulWidget {
   State<EditarPartoScreen> createState() => _EditarPartoScreenState();
 }
 
-class _EditarPartoScreenState extends State<EditarPartoScreen> {
+class _EditarPartoScreenState extends State<EditarPartoScreen> with FormSubmitProtectionMixin {
   final _formKey = GlobalKey<FormState>();
   final DateFormat _dateFormat = DateFormat('dd/MM/yyyy');
 
@@ -32,7 +33,6 @@ class _EditarPartoScreenState extends State<EditarPartoScreen> {
   AnimalEntity? _bezerroSelecionado;
   ResultadoParto? _resultadoSelecionado;
   DificuldadeParto? _dificuldadeSelecionada;
-  bool _isLoading = false;
 
   @override
   void initState() {
@@ -73,12 +73,6 @@ class _EditarPartoScreenState extends State<EditarPartoScreen> {
     super.dispose();
   }
 
-  void _mostrarSnackbar(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
-    );
-  }
-
   Future<void> _selecionarData() async {
     final DateTime? picked = await showDatePicker(
       context: context,
@@ -96,22 +90,33 @@ class _EditarPartoScreenState extends State<EditarPartoScreen> {
     }
   }
 
-  void _atualizarParto() {
-    if (!_formKey.currentState!.validate()) return;
-    if (_maeSelecionada == null) {
-      _mostrarSnackbar('Selecione a mãe');
-      return;
-    }
-    if (_resultadoSelecionado == null) {
-      _mostrarSnackbar('Selecione o resultado do parto');
-      return;
-    }
-    if (_dificuldadeSelecionada == null) {
-      _mostrarSnackbar('Selecione a dificuldade do parto');
+  void _atualizarParto() async {
+    if (!canSubmit()) return;
+
+    if (!_formKey.currentState!.validate()) {
+      resetProtection();
       return;
     }
 
-    setState(() => _isLoading = true);
+    if (_maeSelecionada == null) {
+      showProtectedSnackBar('Selecione a mãe', isError: true);
+      resetProtection();
+      return;
+    }
+
+    if (_resultadoSelecionado == null) {
+      showProtectedSnackBar('Selecione o resultado do parto', isError: true);
+      resetProtection();
+      return;
+    }
+
+    if (_dificuldadeSelecionada == null) {
+      showProtectedSnackBar('Selecione a dificuldade do parto', isError: true);
+      resetProtection();
+      return;
+    }
+
+    markAsSubmitting();
 
     final partoAtualizado = PartoEntity(
       id: widget.parto.id,
@@ -130,22 +135,20 @@ class _EditarPartoScreenState extends State<EditarPartoScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: buildStandardAppBar(
+      appBar: FormAppBar(
         title: 'Editar Parto',
+        showSaveButton: false,
       ),
       body: BlocListener<ReproducaoBloc, ReproducaoState>(
         listener: (context, state) {
           if (state is PartoUpdated) {
-            setState(() => _isLoading = false);
-            Navigator.pop(context, true);
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Parto atualizado com sucesso!')),
-            );
+            showProtectedSnackBar('Parto atualizado com sucesso!');
+            safeNavigateBack(result: true);
           }
 
           if (state is ReproducaoError) {
-            setState(() => _isLoading = false);
-            _mostrarSnackbar(state.message);
+            showProtectedSnackBar(state.message, isError: true);
+            resetProtection();
           }
         },
         child: SingleChildScrollView(
@@ -510,39 +513,10 @@ class _EditarPartoScreenState extends State<EditarPartoScreen> {
   }
 
   Widget _buildBotaoAtualizar() {
-    return SizedBox(
-      width: double.infinity,
-      child: ElevatedButton(
-        onPressed: _isLoading ? null : _atualizarParto,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: Theme.of(context).primaryColor,
-          foregroundColor: Colors.white,
-          padding: const EdgeInsets.symmetric(vertical: 16),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(8),
-          ),
-        ),
-        child: _isLoading
-            ? const Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  SizedBox(
-                    height: 20,
-                    width: 20,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                    ),
-                  ),
-                  SizedBox(width: 8),
-                  Text('Atualizando...'),
-                ],
-              )
-            : const Text(
-                'Atualizar Parto',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-              ),
-      ),
+    return FormPrimaryButton(
+      onPressed: _atualizarParto,
+      isLoading: isSaving,
+      text: 'Atualizar Parto',
     );
   }
 }

@@ -8,7 +8,8 @@ import 'package:agronexus/domain/models/reproducao_entity.dart';
 import 'package:agronexus/domain/models/animal_entity.dart';
 import 'package:agronexus/presentation/widgets/animal_search_field.dart';
 import 'package:agronexus/presentation/widgets/estacao_monta_search_field.dart';
-import 'package:agronexus/presentation/widgets/standard_app_bar.dart';
+import 'package:agronexus/presentation/widgets/form_components.dart';
+import 'package:agronexus/presentation/widgets/form_submit_protection_mixin.dart';
 import 'package:intl/intl.dart';
 
 class CadastroInseminacaoScreen extends StatefulWidget {
@@ -31,7 +32,7 @@ class CadastroInseminacaoScreen extends StatefulWidget {
   State<CadastroInseminacaoScreen> createState() => _CadastroInseminacaoScreenState();
 }
 
-class _CadastroInseminacaoScreenState extends State<CadastroInseminacaoScreen> {
+class _CadastroInseminacaoScreenState extends State<CadastroInseminacaoScreen> with FormSubmitProtectionMixin {
   final _formKey = GlobalKey<FormState>();
   final DateFormat _dateFormat = DateFormat('dd/MM/yyyy');
 
@@ -167,16 +168,27 @@ class _CadastroInseminacaoScreenState extends State<CadastroInseminacaoScreen> {
     }
   }
 
-  void _cadastrarInseminacao() {
-    if (!_formKey.currentState!.validate()) return;
+  void _cadastrarInseminacao() async {
+    if (!canSubmit()) return;
+
+    if (!_formKey.currentState!.validate()) {
+      resetProtection();
+      return;
+    }
+
     if (_animalSelecionado == null) {
-      _mostrarSnackbar('Selecione um animal');
+      showProtectedSnackBar('Selecione um animal', isError: true);
+      resetProtection();
       return;
     }
+
     if (_tipoSelecionado == null) {
-      _mostrarSnackbar('Selecione o tipo de inseminação');
+      showProtectedSnackBar('Selecione o tipo de inseminação', isError: true);
+      resetProtection();
       return;
     }
+
+    markAsSubmitting();
 
     final inseminacao = InseminacaoEntity(
       id: '', // Será gerado pelo backend
@@ -193,12 +205,6 @@ class _CadastroInseminacaoScreenState extends State<CadastroInseminacaoScreen> {
     context.read<ReproducaoBloc>().add(CreateInseminacaoEvent(inseminacao));
   }
 
-  void _mostrarSnackbar(String mensagem) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(mensagem)),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     return PopScope(
@@ -210,8 +216,9 @@ class _CadastroInseminacaoScreenState extends State<CadastroInseminacaoScreen> {
         }
       },
       child: Scaffold(
-        appBar: buildStandardAppBar(
+        appBar: FormAppBar(
           title: 'Nova Inseminação',
+          showSaveButton: false,
         ),
         body: BlocListener<ReproducaoBloc, ReproducaoState>(
           listener: (context, state) {
@@ -232,11 +239,13 @@ class _CadastroInseminacaoScreenState extends State<CadastroInseminacaoScreen> {
               }
             } else if (state is InseminacaoCreated) {
               print('DEBUG CADASTRO - Estado InseminacaoCreated recebido!');
-              _mostrarSnackbar('Inseminação cadastrada com sucesso!');
-              print('DEBUG CADASTRO - Chamando Navigator.pop(true)');
-              Navigator.of(context).pop(true); // Retorna true para indicar sucesso
+              print('DEBUG CADASTRO - Chamando safeNavigateBack()');
+
+              showProtectedSnackBar('Inseminação cadastrada com sucesso!');
+              safeNavigateBack(result: true);
             } else if (state is ReproducaoError) {
-              _mostrarSnackbar('Erro: ${state.message}');
+              showProtectedSnackBar('Erro: ${state.message}', isError: true);
+              resetProtection();
               setState(() {
                 _isLoading = false;
               });
@@ -467,36 +476,10 @@ class _CadastroInseminacaoScreenState extends State<CadastroInseminacaoScreen> {
   }
 
   Widget _buildBotaoSalvar() {
-    return ElevatedButton(
-      onPressed: _isLoading ? null : _cadastrarInseminacao,
-      style: ElevatedButton.styleFrom(
-        backgroundColor: Theme.of(context).primaryColor,
-        foregroundColor: Colors.white,
-        padding: const EdgeInsets.symmetric(vertical: 16),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(8),
-        ),
-      ),
-      child: _isLoading
-          ? const Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                SizedBox(
-                  height: 20,
-                  width: 20,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                  ),
-                ),
-                SizedBox(width: 8),
-                Text('Salvando...'),
-              ],
-            )
-          : const Text(
-              'Cadastrar Inseminação',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-            ),
+    return FormPrimaryButton(
+      onPressed: _cadastrarInseminacao,
+      isLoading: isSaving,
+      text: 'Cadastrar Inseminação',
     );
   }
 }

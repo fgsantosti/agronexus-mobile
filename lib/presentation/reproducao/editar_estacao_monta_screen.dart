@@ -4,7 +4,8 @@ import 'package:agronexus/presentation/bloc/reproducao/reproducao_bloc.dart';
 import 'package:agronexus/presentation/bloc/reproducao/reproducao_event.dart';
 import 'package:agronexus/presentation/bloc/reproducao/reproducao_state.dart';
 import 'package:agronexus/domain/models/reproducao_entity.dart';
-import 'package:agronexus/presentation/widgets/standard_app_bar.dart';
+import 'package:agronexus/presentation/widgets/form_components.dart';
+import 'package:agronexus/presentation/widgets/form_submit_protection_mixin.dart';
 import 'package:intl/intl.dart';
 
 class EditarEstacaoMontaScreen extends StatefulWidget {
@@ -19,7 +20,7 @@ class EditarEstacaoMontaScreen extends StatefulWidget {
   State<EditarEstacaoMontaScreen> createState() => _EditarEstacaoMontaScreenState();
 }
 
-class _EditarEstacaoMontaScreenState extends State<EditarEstacaoMontaScreen> {
+class _EditarEstacaoMontaScreenState extends State<EditarEstacaoMontaScreen> with FormSubmitProtectionMixin {
   final _formKey = GlobalKey<FormState>();
   final DateFormat _dateFormat = DateFormat('dd/MM/yyyy');
 
@@ -32,7 +33,6 @@ class _EditarEstacaoMontaScreenState extends State<EditarEstacaoMontaScreen> {
   late DateTime _dataInicioSelecionada;
   late DateTime _dataFimSelecionada;
   late bool _ativa;
-  bool _isLoading = false;
 
   @override
   void initState() {
@@ -100,8 +100,15 @@ class _EditarEstacaoMontaScreenState extends State<EditarEstacaoMontaScreen> {
     }
   }
 
-  void _atualizarEstacao() {
-    if (!_formKey.currentState!.validate()) return;
+  void _atualizarEstacao() async {
+    if (!canSubmit()) return;
+
+    if (!_formKey.currentState!.validate()) {
+      resetProtection();
+      return;
+    }
+
+    markAsSubmitting();
 
     final estacaoAtualizada = EstacaoMontaEntity(
       id: widget.estacao.id,
@@ -144,42 +151,26 @@ class _EditarEstacaoMontaScreenState extends State<EditarEstacaoMontaScreen> {
     );
   }
 
-  void _mostrarSnackbar(String mensagem, {bool isError = false}) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(mensagem),
-        backgroundColor: isError ? Colors.red : Colors.green,
-        duration: const Duration(seconds: 3),
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: buildStandardAppBar(
+      appBar: FormAppBar(
         title: 'Editar Estação de Monta',
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.delete),
-            onPressed: _confirmarExclusao,
-          ),
-        ],
+        showSaveButton: false,
       ),
       body: BlocListener<ReproducaoBloc, ReproducaoState>(
         listener: (context, state) {
-          setState(() {
-            _isLoading = state is ReproducaoLoading;
-          });
-
           if (state is EstacaoMontaUpdated) {
-            _mostrarSnackbar('Estação de monta atualizada com sucesso!');
-            Navigator.of(context).pop(true);
+            showProtectedSnackBar('Estação de monta atualizada com sucesso!');
+            safeNavigateBack(result: true);
           } else if (state is EstacaoMontaDeleted) {
-            _mostrarSnackbar('Estação de monta excluída com sucesso!');
-            Navigator.of(context).pop(true);
+            showProtectedSnackBar('Estação de monta excluída com sucesso!');
+            if (mounted) {
+              Navigator.of(context).pop(true);
+            }
           } else if (state is ReproducaoError) {
-            _mostrarSnackbar(state.message, isError: true);
+            showProtectedSnackBar(state.message, isError: true);
+            resetProtection();
           }
         },
         child: Padding(
@@ -437,35 +428,20 @@ class _EditarEstacaoMontaScreenState extends State<EditarEstacaoMontaScreen> {
   }
 
   Widget _buildBotaoSalvar() {
-    return SizedBox(
-      width: double.infinity,
-      height: 50,
-      child: ElevatedButton(
-        onPressed: _isLoading ? null : _atualizarEstacao,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.blue.shade600,
-          foregroundColor: Colors.white,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(8),
-          ),
+    return Column(
+      children: [
+        FormPrimaryButton(
+          onPressed: _atualizarEstacao,
+          isLoading: isSaving,
+          text: 'Salvar Alterações',
         ),
-        child: _isLoading
-            ? const SizedBox(
-                height: 20,
-                width: 20,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                ),
-              )
-            : const Text(
-                'Salvar Alterações',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-      ),
+        const SizedBox(height: 12),
+        FormSecondaryButton(
+          onPressed: _confirmarExclusao,
+          text: 'Excluir Estação',
+          icon: Icons.delete,
+        ),
+      ],
     );
   }
 }
