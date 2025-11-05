@@ -10,7 +10,8 @@ import 'package:agronexus/presentation/bloc/propriedade/propriedade_state_new.da
 import 'package:agronexus/presentation/area/widgets/polygon_editor.dart';
 import 'package:agronexus/domain/models/area_entity.dart';
 import 'package:agronexus/domain/models/propriedade_entity.dart';
-import 'package:agronexus/presentation/widgets/standard_app_bar.dart';
+import 'package:agronexus/presentation/widgets/form_components.dart';
+import 'package:agronexus/presentation/widgets/form_submit_protection_mixin.dart';
 
 class CadastroAreaScreen extends StatefulWidget {
   const CadastroAreaScreen({super.key});
@@ -19,7 +20,7 @@ class CadastroAreaScreen extends StatefulWidget {
   State<CadastroAreaScreen> createState() => _CadastroAreaScreenState();
 }
 
-class _CadastroAreaScreenState extends State<CadastroAreaScreen> {
+class _CadastroAreaScreenState extends State<CadastroAreaScreen> with FormSubmitProtectionMixin {
   final _formKey = GlobalKey<FormState>();
   final _nomeCtrl = TextEditingController();
   final _tamanhoCtrl = TextEditingController();
@@ -70,7 +71,13 @@ class _CadastroAreaScreenState extends State<CadastroAreaScreen> {
   }
 
   void _salvar() {
-    if (!_formKey.currentState!.validate()) return;
+    if (!canSubmit()) return;
+    if (!_formKey.currentState!.validate()) {
+      resetProtection();
+      return;
+    }
+    markAsSubmitting();
+
     final tamanho = double.parse(_tamanhoCtrl.text.replaceAll(',', '.'));
     dynamic coordenadas;
     if (_coordenadasCtrl.text.trim().isNotEmpty) {
@@ -83,9 +90,10 @@ class _CadastroAreaScreenState extends State<CadastroAreaScreen> {
           throw const FormatException('Estrutura deve ser lista');
         }
       } catch (e) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Formato de coordenadas inválido: ${e.toString()}')),
-        );
+        if (mounted) {
+          FormSnackBar.showError(context, 'Formato de coordenadas inválido: ${e.toString()}');
+        }
+        resetProtection();
         return; // impede envio se inválido
       }
     }
@@ -106,23 +114,19 @@ class _CadastroAreaScreenState extends State<CadastroAreaScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: buildStandardAppBar(
+      appBar: FormAppBar(
         title: 'Nova Área',
-        actions: [
-          TextButton(
-            onPressed: _salvar,
-            child: const Text('Salvar', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-          ),
-        ],
+        showSaveButton: false,
       ),
       body: BlocListener<AreaBloc, AreaState>(
         listener: (context, state) {
           if (state is AreaCreated) {
-            Navigator.pop(context, true);
-            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Área criada com sucesso')));
+            FormSnackBar.showSuccess(context, 'Área criada com sucesso');
+            safeNavigateBack();
           }
           if (state is AreaError) {
-            ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(state.message)));
+            FormSnackBar.showError(context, state.message);
+            resetProtection();
           }
         },
         child: Form(
@@ -266,6 +270,13 @@ class _CadastroAreaScreenState extends State<CadastroAreaScreen> {
                   ],
                   onChanged: (v) => setState(() => _status = v ?? 'disponivel'),
                 ),
+                const SizedBox(height: 24),
+                FormPrimaryButton(
+                  text: 'Salvar Área',
+                  onPressed: _salvar,
+                  isLoading: isSaving,
+                ),
+                const SizedBox(height: 16),
               ],
             ),
           ),

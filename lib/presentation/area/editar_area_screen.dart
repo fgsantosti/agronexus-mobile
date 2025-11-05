@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:go_router/go_router.dart';
-import 'package:agronexus/config/routers/router.dart';
 import 'package:agronexus/presentation/bloc/area/area_bloc.dart';
 import 'package:agronexus/presentation/bloc/area/area_event.dart';
 import 'package:agronexus/presentation/bloc/area/area_state.dart';
@@ -12,7 +10,8 @@ import 'package:agronexus/presentation/bloc/propriedade/propriedade_state_new.da
 import 'package:agronexus/domain/models/area_entity.dart';
 import 'package:agronexus/domain/models/propriedade_entity.dart';
 import 'package:agronexus/presentation/area/widgets/polygon_editor.dart';
-import 'package:agronexus/presentation/widgets/standard_app_bar.dart';
+import 'package:agronexus/presentation/widgets/form_components.dart';
+import 'package:agronexus/presentation/widgets/form_submit_protection_mixin.dart';
 
 class EditarAreaScreen extends StatefulWidget {
   final AreaEntity area;
@@ -22,7 +21,7 @@ class EditarAreaScreen extends StatefulWidget {
   State<EditarAreaScreen> createState() => _EditarAreaScreenState();
 }
 
-class _EditarAreaScreenState extends State<EditarAreaScreen> {
+class _EditarAreaScreenState extends State<EditarAreaScreen> with FormSubmitProtectionMixin {
   final _formKey = GlobalKey<FormState>();
   late TextEditingController _nomeCtrl;
   late TextEditingController _tipoCtrl;
@@ -84,12 +83,18 @@ class _EditarAreaScreenState extends State<EditarAreaScreen> {
   }
 
   void _atualizar() {
+    if (!canSubmit()) return;
+
     debugPrint('🔄 Iniciando atualização da área...');
     if (!_formKey.currentState!.validate()) {
       debugPrint('❌ Formulário não passou na validação');
+      resetProtection();
       return;
     }
     debugPrint('✅ Formulário validado com sucesso');
+
+    markAsSubmitting();
+
     final tamanho = double.parse(_tamanhoCtrl.text.replaceAll(',', '.'));
     debugPrint('📏 Tamanho parseado: $tamanho');
     final updated = widget.area.copyWith(
@@ -108,9 +113,10 @@ class _EditarAreaScreenState extends State<EditarAreaScreen> {
           if (decoded is! List) throw const FormatException('Lista esperada');
           return decoded;
         } catch (e) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Coordenadas inválidas: ${e.toString()}')),
-          );
+          if (mounted) {
+            FormSnackBar.showError(context, 'Coordenadas inválidas: ${e.toString()}');
+          }
+          resetProtection();
           return widget.area.coordenadasPoligono; // mantém antigo se inválido
         }
       },
@@ -124,25 +130,22 @@ class _EditarAreaScreenState extends State<EditarAreaScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: buildStandardAppBar(
+      appBar: FormAppBar(
         title: 'Editar Área',
-        actions: [
-          TextButton(onPressed: _atualizar, child: const Text('Salvar', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),
-        ],
+        showSaveButton: false,
       ),
       body: BlocListener<AreaBloc, AreaState>(
         listener: (context, state) {
           debugPrint('🔔 Estado recebido no BlocListener: ${state.runtimeType}');
           if (state is AreaUpdated) {
             debugPrint('✅ Área atualizada com sucesso!');
-            Navigator.pop(context, true);
-            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Área atualizada com sucesso')));
-            // Navegar para a tela de detalhes da área editada
-            context.go(AgroNexusRouter.areas.detailPath.replaceFirst(':id', state.area.id!), extra: state.area);
+            FormSnackBar.showSuccess(context, 'Área atualizada com sucesso');
+            safeNavigateBack();
           }
           if (state is AreaError) {
             debugPrint('❌ Erro ao atualizar área: ${state.message}');
-            ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(state.message)));
+            FormSnackBar.showError(context, state.message);
+            resetProtection();
           }
         },
         child: Form(
@@ -298,6 +301,13 @@ class _EditarAreaScreenState extends State<EditarAreaScreen> {
                   ],
                   onChanged: (v) => setState(() => _status = v ?? _status),
                 ),
+                const SizedBox(height: 24),
+                FormPrimaryButton(
+                  text: 'Salvar Alterações',
+                  onPressed: _atualizar,
+                  isLoading: isSaving,
+                ),
+                const SizedBox(height: 16),
               ],
             ),
           ),
