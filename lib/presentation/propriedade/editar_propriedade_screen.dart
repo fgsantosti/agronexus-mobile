@@ -4,7 +4,8 @@ import 'package:agronexus/presentation/bloc/propriedade/propriedade_bloc_new.dar
 import 'package:agronexus/presentation/bloc/propriedade/propriedade_event_new.dart';
 import 'package:agronexus/presentation/bloc/propriedade/propriedade_state_new.dart';
 import 'package:agronexus/domain/models/propriedade_entity.dart';
-import 'package:agronexus/presentation/widgets/standard_app_bar.dart';
+import 'package:agronexus/presentation/widgets/form_components.dart';
+import 'package:agronexus/presentation/widgets/form_submit_protection_mixin.dart';
 
 class EditarPropriedadeScreen extends StatefulWidget {
   final PropriedadeEntity propriedade;
@@ -18,7 +19,7 @@ class EditarPropriedadeScreen extends StatefulWidget {
   State<EditarPropriedadeScreen> createState() => _EditarPropriedadeScreenState();
 }
 
-class _EditarPropriedadeScreenState extends State<EditarPropriedadeScreen> {
+class _EditarPropriedadeScreenState extends State<EditarPropriedadeScreen> with FormSubmitProtectionMixin {
   final _formKey = GlobalKey<FormState>();
 
   // Controllers para campos de texto
@@ -31,7 +32,6 @@ class _EditarPropriedadeScreenState extends State<EditarPropriedadeScreen> {
   final _longitudeController = TextEditingController();
 
   bool _ativa = true;
-  bool _isLoading = false;
 
   @override
   void initState() {
@@ -74,48 +74,24 @@ class _EditarPropriedadeScreenState extends State<EditarPropriedadeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: buildStandardAppBar(
+      appBar: FormAppBar(
         title: 'Editar Propriedade',
-        actions: [
-          TextButton(
-            onPressed: _isLoading ? null : _atualizarPropriedade,
-            child: _isLoading
-                ? const SizedBox(
-                    width: 16,
-                    height: 16,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                    ),
-                  )
-                : const Text(
-                    'Salvar',
-                    style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-                  ),
-          ),
-        ],
+        showSaveButton: false,
       ),
       body: BlocListener<PropriedadeBlocNew, PropriedadeState>(
         listener: (context, state) {
           if (state is PropriedadeUpdated) {
-            Navigator.pop(context, true);
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Propriedade atualizada com sucesso!')),
-            );
+            FormSnackBar.showSuccess(context, 'Propriedade atualizada com sucesso!');
+            safeNavigateBack();
           }
 
           if (state is PropriedadeError) {
-            setState(() => _isLoading = false);
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(state.message),
-                backgroundColor: Colors.red,
-              ),
-            );
+            FormSnackBar.showError(context, state.message);
+            resetProtection();
           }
 
           if (state is PropriedadeLoading) {
-            setState(() => _isLoading = true);
+            // Não precisa setar loading, o mixin já controla
           }
         },
         child: Form(
@@ -304,7 +280,13 @@ class _EditarPropriedadeScreenState extends State<EditarPropriedadeScreen> {
                   ),
                 ),
 
-                const SizedBox(height: 32),
+                const SizedBox(height: 24),
+                FormPrimaryButton(
+                  text: 'Salvar Alterações',
+                  onPressed: _atualizarPropriedade,
+                  isLoading: isSaving,
+                ),
+                const SizedBox(height: 16),
               ],
             ),
           ),
@@ -314,9 +296,14 @@ class _EditarPropriedadeScreenState extends State<EditarPropriedadeScreen> {
   }
 
   void _atualizarPropriedade() {
-    if (!_formKey.currentState!.validate()) return;
+    if (!canSubmit()) return;
 
-    setState(() => _isLoading = true);
+    if (!_formKey.currentState!.validate()) {
+      resetProtection();
+      return;
+    }
+
+    markAsSubmitting();
 
     // Criar coordenadas GPS se fornecidas
     PropriedadeCoordenadas? coordenadas;

@@ -4,6 +4,8 @@ import 'package:agronexus/presentation/bloc/propriedade/propriedade_bloc_new.dar
 import 'package:agronexus/presentation/bloc/propriedade/propriedade_event_new.dart';
 import 'package:agronexus/presentation/bloc/propriedade/propriedade_state_new.dart';
 import 'package:agronexus/domain/models/propriedade_entity.dart';
+import 'package:agronexus/presentation/widgets/form_components.dart';
+import 'package:agronexus/presentation/widgets/form_submit_protection_mixin.dart';
 
 class CadastroPropriedadeScreen extends StatefulWidget {
   const CadastroPropriedadeScreen({super.key});
@@ -12,7 +14,7 @@ class CadastroPropriedadeScreen extends StatefulWidget {
   State<CadastroPropriedadeScreen> createState() => _CadastroPropriedadeScreenState();
 }
 
-class _CadastroPropriedadeScreenState extends State<CadastroPropriedadeScreen> {
+class _CadastroPropriedadeScreenState extends State<CadastroPropriedadeScreen> with FormSubmitProtectionMixin {
   final _formKey = GlobalKey<FormState>();
 
   // Controllers para campos de texto
@@ -25,7 +27,6 @@ class _CadastroPropriedadeScreenState extends State<CadastroPropriedadeScreen> {
   final _longitudeController = TextEditingController();
 
   bool _ativa = true;
-  bool _isLoading = false;
 
   @override
   void dispose() {
@@ -42,56 +43,24 @@ class _CadastroPropriedadeScreenState extends State<CadastroPropriedadeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Nova Propriedade'),
-        backgroundColor: Colors.green.shade600,
-        foregroundColor: Colors.white,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () {
-            Navigator.of(context).pop();
-          },
-        ),
-        actions: [
-          TextButton(
-            onPressed: _isLoading ? null : _cadastrarPropriedade,
-            child: _isLoading
-                ? const SizedBox(
-                    width: 16,
-                    height: 16,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                    ),
-                  )
-                : const Text(
-                    'Salvar',
-                    style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-                  ),
-          ),
-        ],
+      appBar: FormAppBar(
+        title: 'Nova Propriedade',
+        showSaveButton: false,
       ),
       body: BlocListener<PropriedadeBlocNew, PropriedadeState>(
         listener: (context, state) {
           if (state is PropriedadeCreated) {
-            Navigator.pop(context, true);
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Propriedade cadastrada com sucesso!')),
-            );
+            FormSnackBar.showSuccess(context, 'Propriedade cadastrada com sucesso!');
+            safeNavigateBack();
           }
 
           if (state is PropriedadeError) {
-            setState(() => _isLoading = false);
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(state.message),
-                backgroundColor: Colors.red,
-              ),
-            );
+            FormSnackBar.showError(context, state.message);
+            resetProtection();
           }
 
           if (state is PropriedadeLoading) {
-            setState(() => _isLoading = true);
+            // Não precisa setar loading, o mixin já controla
           }
         },
         child: Form(
@@ -280,7 +249,13 @@ class _CadastroPropriedadeScreenState extends State<CadastroPropriedadeScreen> {
                   ),
                 ),
 
-                const SizedBox(height: 32),
+                const SizedBox(height: 24),
+                FormPrimaryButton(
+                  text: 'Cadastrar Propriedade',
+                  onPressed: _cadastrarPropriedade,
+                  isLoading: isSaving,
+                ),
+                const SizedBox(height: 16),
               ],
             ),
           ),
@@ -290,9 +265,14 @@ class _CadastroPropriedadeScreenState extends State<CadastroPropriedadeScreen> {
   }
 
   void _cadastrarPropriedade() {
-    if (!_formKey.currentState!.validate()) return;
+    if (!canSubmit()) return;
 
-    setState(() => _isLoading = true);
+    if (!_formKey.currentState!.validate()) {
+      resetProtection();
+      return;
+    }
+
+    markAsSubmitting();
 
     // Criar coordenadas GPS se fornecidas
     PropriedadeCoordenadas? coordenadas;
