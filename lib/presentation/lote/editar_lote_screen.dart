@@ -8,7 +8,8 @@ import 'package:agronexus/domain/models/area_entity.dart';
 import 'package:agronexus/presentation/bloc/area/area_bloc.dart';
 import 'package:agronexus/presentation/bloc/area/area_event.dart';
 import 'package:agronexus/presentation/bloc/area/area_state.dart';
-import 'package:agronexus/presentation/widgets/standard_app_bar.dart';
+import 'package:agronexus/presentation/widgets/form_components.dart';
+import 'package:agronexus/presentation/widgets/form_submit_protection_mixin.dart';
 
 class EditarLoteScreen extends StatefulWidget {
   final LoteEntity lote;
@@ -22,7 +23,7 @@ class EditarLoteScreen extends StatefulWidget {
   State<EditarLoteScreen> createState() => _EditarLoteScreenState();
 }
 
-class _EditarLoteScreenState extends State<EditarLoteScreen> {
+class _EditarLoteScreenState extends State<EditarLoteScreen> with FormSubmitProtectionMixin {
   final _formKey = GlobalKey<FormState>();
 
   // Controllers para campos de texto
@@ -34,7 +35,6 @@ class _EditarLoteScreenState extends State<EditarLoteScreen> {
   String? _finalidade;
   String? _sistemaCriacao;
   bool _ativo = true;
-  bool _isLoading = false;
 
   // Opções dos dropdowns
   final List<Map<String, String>> _aptidaoOptions = [
@@ -93,50 +93,26 @@ class _EditarLoteScreenState extends State<EditarLoteScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: buildStandardAppBar(
+      appBar: FormAppBar(
         title: 'Editar Lote',
-        actions: [
-          TextButton(
-            onPressed: _isLoading ? null : _atualizarLote,
-            child: _isLoading
-                ? const SizedBox(
-                    width: 16,
-                    height: 16,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                    ),
-                  )
-                : const Text(
-                    'Salvar',
-                    style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-                  ),
-          ),
-        ],
+        showSaveButton: false,
       ),
       body: MultiBlocListener(
         listeners: [
           BlocListener<LoteBloc, LoteState>(
             listener: (context, state) {
               if (state is LoteUpdated) {
-                Navigator.pop(context, true);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Lote atualizado com sucesso!')),
-                );
+                FormSnackBar.showSuccess(context, 'Lote atualizado com sucesso!');
+                safeNavigateBack();
               }
 
               if (state is LoteError) {
-                setState(() => _isLoading = false);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(state.message),
-                    backgroundColor: Colors.red,
-                  ),
-                );
+                FormSnackBar.showError(context, state.message);
+                resetProtection();
               }
 
               if (state is LoteLoading) {
-                setState(() => _isLoading = true);
+                // Não precisa setar loading, o mixin já controla
               }
             },
           ),
@@ -348,7 +324,13 @@ class _EditarLoteScreenState extends State<EditarLoteScreen> {
                   ),
                 ),
 
-                const SizedBox(height: 32),
+                const SizedBox(height: 24),
+                FormPrimaryButton(
+                  text: 'Salvar Alterações',
+                  onPressed: _atualizarLote,
+                  isLoading: isSaving,
+                ),
+                const SizedBox(height: 16),
               ],
             ),
           ),
@@ -358,9 +340,14 @@ class _EditarLoteScreenState extends State<EditarLoteScreen> {
   }
 
   void _atualizarLote() {
-    if (!_formKey.currentState!.validate()) return;
+    if (!canSubmit()) return;
 
-    setState(() => _isLoading = true);
+    if (!_formKey.currentState!.validate()) {
+      resetProtection();
+      return;
+    }
+
+    markAsSubmitting();
 
     print('🔍 Debug - propriedadeId original: ${widget.lote.propriedadeId}');
     print('🔍 Debug - propriedade original: ${widget.lote.propriedade?.nome}');
@@ -370,10 +357,8 @@ class _EditarLoteScreenState extends State<EditarLoteScreen> {
 
     if (propriedadeIdEfetivo.isEmpty) {
       // Não deve prosseguir sem UUID – evita 400 desnecessário
-      setState(() => _isLoading = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Propriedade inválida: ID não encontrado.')),
-      );
+      FormSnackBar.showError(context, 'Propriedade inválida: ID não encontrado.');
+      resetProtection();
       return;
     }
 

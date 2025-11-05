@@ -13,7 +13,8 @@ import 'package:agronexus/domain/models/area_entity.dart';
 import 'package:agronexus/presentation/bloc/area/area_bloc.dart';
 import 'package:agronexus/presentation/bloc/area/area_event.dart';
 import 'package:agronexus/presentation/bloc/area/area_state.dart';
-import 'package:agronexus/presentation/widgets/standard_app_bar.dart';
+import 'package:agronexus/presentation/widgets/form_components.dart';
+import 'package:agronexus/presentation/widgets/form_submit_protection_mixin.dart';
 
 class CadastroLoteScreen extends StatefulWidget {
   final String? propriedadeId;
@@ -25,7 +26,7 @@ class CadastroLoteScreen extends StatefulWidget {
   State<CadastroLoteScreen> createState() => _CadastroLoteScreenState();
 }
 
-class _CadastroLoteScreenState extends State<CadastroLoteScreen> {
+class _CadastroLoteScreenState extends State<CadastroLoteScreen> with FormSubmitProtectionMixin {
   final _formKey = GlobalKey<FormState>();
 
   // Controllers para campos de texto
@@ -40,7 +41,6 @@ class _CadastroLoteScreenState extends State<CadastroLoteScreen> {
   List<AreaEntity> _areasDisponiveis = [];
   bool _loadingPropriedades = false;
   bool _loadingAreas = false;
-  bool _isLoading = false;
 
   String? _aptidao;
   String? _finalidade;
@@ -108,55 +108,31 @@ class _CadastroLoteScreenState extends State<CadastroLoteScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: buildStandardAppBar(
+      appBar: FormAppBar(
         title: widget.loteInicial == null ? 'Novo Lote' : 'Editar Lote',
-        actions: [
-          TextButton(
-            onPressed: _isLoading ? null : _salvar,
-            child: _isLoading
-                ? const SizedBox(
-                    width: 16,
-                    height: 16,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                    ),
-                  )
-                : const Text(
-                    'Salvar',
-                    style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-                  ),
-          ),
-        ],
+        showSaveButton: false,
       ),
       body: MultiBlocListener(
         listeners: [
           BlocListener<LoteBloc, LoteState>(
             listener: (context, state) {
               if (state is LoteCreated) {
-                Navigator.pop(context, true);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Lote cadastrado com sucesso!')),
-                );
+                FormSnackBar.showSuccess(context, 'Lote cadastrado com sucesso!');
+                safeNavigateBack();
               }
 
               if (state is LoteUpdated) {
-                // Retorna para a lista informando sucesso da edição
-                Navigator.pop(context, true);
+                FormSnackBar.showSuccess(context, 'Lote atualizado com sucesso!');
+                safeNavigateBack();
               }
 
               if (state is LoteError) {
-                setState(() => _isLoading = false);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(state.message),
-                    backgroundColor: Colors.red,
-                  ),
-                );
+                FormSnackBar.showError(context, state.message);
+                resetProtection();
               }
 
               if (state is LoteLoading) {
-                setState(() => _isLoading = true);
+                // Não precisa setar loading, o mixin já controla
               }
             },
           ),
@@ -438,7 +414,13 @@ class _CadastroLoteScreenState extends State<CadastroLoteScreen> {
                   ),
                 ),
 
-                const SizedBox(height: 32),
+                const SizedBox(height: 24),
+                FormPrimaryButton(
+                  text: widget.loteInicial == null ? 'Cadastrar Lote' : 'Salvar Alterações',
+                  onPressed: _salvar,
+                  isLoading: isSaving,
+                ),
+                const SizedBox(height: 16),
               ],
             ),
           ),
@@ -448,18 +430,19 @@ class _CadastroLoteScreenState extends State<CadastroLoteScreen> {
   }
 
   void _salvar() {
-    if (!_formKey.currentState!.validate()) return;
+    if (!canSubmit()) return;
+
+    if (!_formKey.currentState!.validate()) {
+      resetProtection();
+      return;
+    }
     if (_propriedadeSelecionada == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Selecione uma propriedade'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      FormSnackBar.showError(context, 'Selecione uma propriedade');
+      resetProtection();
       return;
     }
 
-    setState(() => _isLoading = true);
+    markAsSubmitting();
 
     final lote = LoteEntity(
       id: widget.loteInicial?.id,
