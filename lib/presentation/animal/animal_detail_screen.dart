@@ -36,16 +36,24 @@ class _AnimalDetailScreenState extends State<AnimalDetailScreen> {
               const SnackBar(
                 content: Text('Animal excluído com sucesso'),
                 backgroundColor: Colors.green,
+                duration: Duration(seconds: 2),
               ),
             );
-            Navigator.of(context).pop();
+            // Aguardar um pequeno delay para garantir que o SnackBar seja exibido
+            Future.delayed(const Duration(milliseconds: 300), () {
+              if (mounted) {
+                Navigator.of(context).pop();
+              }
+            });
           } else if (state is AnimalError) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(state.message),
-                backgroundColor: Colors.red,
-              ),
-            );
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(state.message),
+                  backgroundColor: Colors.red,
+                ),
+              );
+            }
           }
         },
         child: BlocBuilder<AnimalBloc, AnimalState>(

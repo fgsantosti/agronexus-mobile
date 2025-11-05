@@ -3,7 +3,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:agronexus/presentation/bloc/animal/animal_bloc.dart';
 import 'package:agronexus/presentation/bloc/animal/animal_event.dart';
 import 'package:agronexus/presentation/bloc/animal/animal_state.dart';
-import 'package:agronexus/presentation/widgets/standard_app_bar.dart';
+import 'package:agronexus/presentation/widgets/form_submit_protection_mixin.dart';
+import 'package:agronexus/presentation/widgets/form_components.dart';
 import 'package:agronexus/domain/models/animal_entity.dart';
 import 'package:agronexus/domain/models/opcoes_cadastro_animal.dart';
 
@@ -19,7 +20,7 @@ class AnimalFormScreen extends StatefulWidget {
   State<AnimalFormScreen> createState() => _AnimalFormScreenState();
 }
 
-class _AnimalFormScreenState extends State<AnimalFormScreen> {
+class _AnimalFormScreenState extends State<AnimalFormScreen> with FormSubmitProtectionMixin {
   final PageController _pageController = PageController();
   int _currentStep = 0;
   final int _totalSteps = 4;
@@ -49,15 +50,25 @@ class _AnimalFormScreenState extends State<AnimalFormScreen> {
   List<RacaAnimal> _racasDisponiveis = [];
   List<String> _categoriasDisponiveis = [];
 
+  // Proteção é fornecida pelo FormSubmitProtectionMixin
+  // Não precisa mais declarar: _isSaving, _hasNavigated, _lastClickTime
+
   @override
   void initState() {
     super.initState();
+
+    print('🚀 DEBUG FORM - initState chamado');
+    print('🚀 DEBUG FORM - É edição: ${widget.animal != null}');
+
+    // Resetar estados de navegação e salvamento usando o mixin
+    resetAllProtection();
 
     // Carregar opções de cadastro
     context.read<AnimalBloc>().add(const LoadOpcoesCadastroEvent());
 
     // Se for edição, preencher os campos
     if (widget.animal != null) {
+      print('🚀 DEBUG FORM - Preenchendo campos para edição: ${widget.animal!.identificacaoUnica}');
       _preencherCamposEdicao();
     }
   }
@@ -218,10 +229,16 @@ class _AnimalFormScreenState extends State<AnimalFormScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: buildStandardAppBar(title: widget.animal == null ? 'Cadastrar Animal' : 'Editar Animal'),
+      appBar: FormAppBar(
+        title: widget.animal == null ? 'Cadastrar Animal' : 'Editar Animal',
+        showSaveButton: false, // Salvar será no último step
+      ),
       body: BlocListener<AnimalBloc, AnimalState>(
         listener: (context, state) {
+          print('📢 DEBUG FORM - Listener recebeu estado: ${state.runtimeType}');
+
           if (state is OpcoesCadastroLoaded) {
+            print('📋 DEBUG FORM - Opções de cadastro carregadas');
             setState(() {
               _opcoesCadastro = state.opcoes;
 
@@ -294,47 +311,66 @@ class _AnimalFormScreenState extends State<AnimalFormScreen> {
               _categoriasDisponiveis = state.categorias;
             });
           } else if (state is AnimalCreated || state is AnimalUpdated) {
+            print('🔄 DEBUG FORM - Estado recebido: ${state.runtimeType}');
+            print('🔄 DEBUG FORM - hasNavigated: $hasNavigated');
+            print('🔄 DEBUG FORM - isSaving: $isSaving');
+            print('🔄 DEBUG FORM - mounted: $mounted');
+
+            // Prevenir navegação duplicada usando o mixin
+            if (hasNavigated) {
+              print('⚠️ DEBUG FORM - Navegação já realizada, ignorando...');
+              return;
+            }
+
             // Retorna o animal criado/atualizado para a tela anterior para atualização otimista do cache
             final returnedAnimal = state is AnimalCreated ? state.animal : (state as AnimalUpdated).animal;
-            Navigator.of(context).pop(returnedAnimal);
-            // Snackbar opcional – a lista pode exibir outra, então evitamos duplicar aqui
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(widget.animal == null ? 'Animal cadastrado com sucesso!' : 'Animal atualizado com sucesso!'),
-                backgroundColor: Colors.green,
-              ),
+            print('✅ DEBUG FORM - Animal retornado: ${returnedAnimal.identificacaoUnica}');
+
+            // Mostrar SnackBar e navegar usando o mixin
+            showProtectedSnackBar(
+              widget.animal == null ? 'Animal cadastrado com sucesso!' : 'Animal atualizado com sucesso!',
             );
+            safeNavigateBack(result: returnedAnimal);
           } else if (state is AnimalError) {
+            print('❌ DEBUG FORM - Erro recebido: ${state.message}');
+            resetProtection(); // Reseta para permitir nova tentativa
             // Mostrar apenas dialog de erro
-            _showErrorDialog(context, state.message);
+            if (mounted) {
+              _showErrorDialog(context, state.message);
+            }
+          } else if (state is AnimalLoading) {
+            print('⏳ DEBUG FORM - Estado de loading recebido');
           }
         },
-        child: Column(
-          children: [
-            // Indicador de progresso
-            _buildProgressIndicator(),
+        child: wrapWithProtection(
+          child: Column(
+            children: [
+              // Indicador de progresso
+              _buildProgressIndicator(),
 
-            // Conteúdo do formulário
-            Expanded(
-              child: PageView(
-                controller: _pageController,
-                onPageChanged: (index) {
-                  setState(() {
-                    _currentStep = index;
-                  });
-                },
-                children: [
-                  _buildStep1(), // Informações básicas
-                  _buildStep2(), // Espécie, raça e categoria
-                  _buildStep3(), // Genealogia e localização
-                  _buildStep4(), // Dados adicionais e observações
-                ],
+              // Conteúdo do formulário
+              Expanded(
+                child: PageView(
+                  controller: _pageController,
+                  physics: isSaving ? const NeverScrollableScrollPhysics() : null,
+                  onPageChanged: (index) {
+                    setState(() {
+                      _currentStep = index;
+                    });
+                  },
+                  children: [
+                    _buildStep1(), // Informações básicas
+                    _buildStep2(), // Espécie, raça e categoria
+                    _buildStep3(), // Genealogia e localização
+                    _buildStep4(), // Dados adicionais e observações
+                  ],
+                ),
               ),
-            ),
 
-            // Botões de navegação
-            _buildNavigationButtons(),
-          ],
+              // Botões de navegação
+              _buildNavigationButtons(),
+            ],
+          ),
         ),
       ),
     );
@@ -676,7 +712,7 @@ class _AnimalFormScreenState extends State<AnimalFormScreen> {
             DropdownButtonFormField<PropriedadeSimples>(
               value: _propriedadeSelecionada,
               decoration: const InputDecoration(
-                labelText: 'Propriedade',
+                labelText: 'Propriedade *',
                 border: OutlineInputBorder(),
                 prefixIcon: Icon(Icons.home),
               ),
@@ -700,6 +736,12 @@ class _AnimalFormScreenState extends State<AnimalFormScreen> {
                     _maeSelecionada = null;
                   }
                 });
+              },
+              validator: (value) {
+                if (value == null) {
+                  return 'Selecione uma propriedade';
+                }
+                return null;
               },
             ),
 
@@ -881,54 +923,29 @@ class _AnimalFormScreenState extends State<AnimalFormScreen> {
   }
 
   Widget _buildNavigationButtons() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      child: Row(
-        children: [
-          // Botão Voltar
-          if (_currentStep > 0)
-            Expanded(
-              child: OutlinedButton(
-                onPressed: () {
-                  _pageController.previousPage(
-                    duration: const Duration(milliseconds: 300),
-                    curve: Curves.easeInOut,
-                  );
-                },
-                child: const Text('Voltar'),
-              ),
-            ),
-
-          if (_currentStep > 0) const SizedBox(width: 16),
-
-          // Botão Próximo/Salvar
-          Expanded(
-            child: ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.green,
-              ),
-              onPressed: () {
-                if (_currentStep < _totalSteps - 1) {
-                  // Validar passo atual antes de prosseguir
-                  if (_validateCurrentStep()) {
-                    _pageController.nextPage(
-                      duration: const Duration(milliseconds: 300),
-                      curve: Curves.easeInOut,
-                    );
-                  }
-                } else {
-                  // Salvar animal
-                  _saveAnimal();
-                }
-              },
-              child: Text(
-                _currentStep < _totalSteps - 1 ? 'Próximo' : 'Salvar',
-                style: const TextStyle(color: Colors.white),
-              ),
-            ),
-          ),
-        ],
-      ),
+    return FormStepButtons(
+      currentStep: _currentStep,
+      totalSteps: _totalSteps,
+      onPrevious: _currentStep > 0
+          ? () {
+              _pageController.previousPage(
+                duration: const Duration(milliseconds: 300),
+                curve: Curves.easeInOut,
+              );
+            }
+          : null,
+      onNext: _currentStep < _totalSteps - 1
+          ? () {
+              if (_validateCurrentStep()) {
+                _pageController.nextPage(
+                  duration: const Duration(milliseconds: 300),
+                  curve: Curves.easeInOut,
+                );
+              }
+            }
+          : null,
+      onSave: _saveAnimal,
+      isSaving: isSaving,
     );
   }
 
@@ -939,7 +956,17 @@ class _AnimalFormScreenState extends State<AnimalFormScreen> {
       case 1:
         return _especieSelecionada != null && _categoriaSelecionada != null;
       case 2:
-        return true; // Campos opcionais
+        // Propriedade é obrigatória
+        if (_propriedadeSelecionada == null) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Selecione uma propriedade'),
+              backgroundColor: Colors.red,
+            ),
+          );
+          return false;
+        }
+        return true;
       case 3:
         return true; // Campos opcionais
       default:
@@ -948,15 +975,31 @@ class _AnimalFormScreenState extends State<AnimalFormScreen> {
   }
 
   void _saveAnimal() {
-    if (!_validateCurrentStep()) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Por favor, preencha todos os campos obrigatórios'),
-          backgroundColor: Colors.red,
-        ),
-      );
+    print('💾 DEBUG FORM - _saveAnimal chamado');
+
+    // Usar proteção do mixin
+    if (!canSubmit()) {
       return;
     }
+
+    if (!_validateCurrentStep()) {
+      print('⚠️ DEBUG FORM - Validação falhou');
+      showProtectedSnackBar('Por favor, preencha todos os campos obrigatórios', isError: true);
+      return;
+    }
+
+    // Validação adicional da propriedade antes de salvar
+    if (_propriedadeSelecionada == null) {
+      print('⚠️ DEBUG FORM - Propriedade não selecionada');
+      showProtectedSnackBar('Selecione uma propriedade antes de salvar', isError: true);
+      return;
+    }
+
+    print('✅ DEBUG FORM - Validação OK, iniciando salvamento...');
+    print('✅ DEBUG FORM - Propriedade: ${_propriedadeSelecionada!.nome}');
+
+    // Marcar como submetendo usando o mixin
+    markAsSubmitting();
 
     final animal = AnimalEntity(
       id: widget.animal?.id,
@@ -985,9 +1028,12 @@ class _AnimalFormScreenState extends State<AnimalFormScreen> {
       fazendaNome: _propriedadeSelecionada?.nome ?? '',
     );
 
+    print('📤 DEBUG FORM - Enviando evento para o BLoC...');
     if (widget.animal == null) {
+      print('📤 DEBUG FORM - CreateAnimalEvent');
       context.read<AnimalBloc>().add(CreateAnimalEvent(animal));
     } else {
+      print('📤 DEBUG FORM - UpdateAnimalEvent (ID: ${widget.animal!.id})');
       context.read<AnimalBloc>().add(UpdateAnimalEvent(widget.animal!.id!, animal));
     }
   }
