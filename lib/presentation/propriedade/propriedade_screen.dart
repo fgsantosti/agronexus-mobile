@@ -9,6 +9,9 @@ import 'package:agronexus/presentation/propriedade/editar_propriedade_screen.dar
 import 'package:agronexus/presentation/propriedade/detalhes_propriedade_screen.dart';
 import 'package:agronexus/presentation/widgets/entity_action_menu.dart';
 import 'package:agronexus/presentation/widgets/standard_app_bar.dart';
+import 'package:showcaseview/showcaseview.dart';
+import 'package:agronexus/config/services/showcase_service.dart';
+import 'package:agronexus/config/inject_dependencies.dart';
 
 class PropriedadeScreen extends StatefulWidget {
   const PropriedadeScreen({super.key});
@@ -18,6 +21,10 @@ class PropriedadeScreen extends StatefulWidget {
 }
 
 class _PropriedadeScreenState extends State<PropriedadeScreen> {
+  final ShowcaseService _showcaseService = getIt<ShowcaseService>();
+  final GlobalKey _fabKey = GlobalKey();
+  bool _showcaseChecked = false; // Flag para evitar verificação múltipla
+
   bool _isInitialized = false;
   List<PropriedadeEntity>? _cachedPropriedades; // Cache local das propriedades
 
@@ -25,6 +32,27 @@ class _PropriedadeScreenState extends State<PropriedadeScreen> {
   void initState() {
     super.initState();
     _loadPropriedades();
+
+    // Verificar e iniciar showcase após o build
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!_showcaseChecked) {
+        _checkAndStartShowcase();
+      }
+    });
+  }
+
+  Future<void> _checkAndStartShowcase() async {
+    _showcaseChecked = true;
+    final showcaseCompleted = await _showcaseService.isPropriedadeShowcaseCompleted();
+
+    if (!showcaseCompleted && mounted) {
+      // Pequeno delay para garantir que tudo foi renderizado
+      await Future.delayed(const Duration(milliseconds: 800));
+
+      if (mounted) {
+        ShowCaseWidget.of(context).startShowCase([_fabKey]);
+      }
+    }
   }
 
   void _loadPropriedades() {
@@ -165,11 +193,33 @@ class _PropriedadeScreenState extends State<PropriedadeScreen> {
           ),
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        heroTag: 'fabPropriedades',
-        backgroundColor: Colors.green.shade600,
-        onPressed: () => _navegarParaCadastro(),
-        child: const Icon(Icons.add, color: Colors.white),
+      floatingActionButton: Showcase(
+        key: _fabKey,
+        title: '➕ Cadastrar Propriedade',
+        description: 'Toque aqui para cadastrar sua primeira propriedade rural. '
+            'É necessário ter pelo menos uma propriedade cadastrada para usar o sistema.',
+        targetShapeBorder: const CircleBorder(),
+        onTargetClick: () async {
+          // Marcar como completo e navegar
+          await _showcaseService.setPropriedadeShowcaseCompleted();
+          if (mounted) {
+            ShowCaseWidget.of(context).dismiss();
+            _navegarParaCadastro();
+          }
+        },
+        disposeOnTap: true,
+        onToolTipClick: () async {
+          await _showcaseService.setPropriedadeShowcaseCompleted();
+        },
+        child: FloatingActionButton(
+          heroTag: 'fabPropriedades',
+          backgroundColor: Colors.green.shade600,
+          onPressed: () async {
+            await _showcaseService.setPropriedadeShowcaseCompleted();
+            _navegarParaCadastro();
+          },
+          child: const Icon(Icons.add, color: Colors.white),
+        ),
       ),
     );
   }

@@ -3,6 +3,9 @@ import 'package:go_router/go_router.dart';
 import 'package:agronexus/config/api.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:agronexus/presentation/cubit/bottom_bar/bottom_bar_cubit.dart';
+import 'package:showcaseview/showcaseview.dart';
+import 'package:agronexus/config/services/showcase_service.dart';
+import 'package:agronexus/config/inject_dependencies.dart';
 
 class FunctionalityData {
   final String title;
@@ -10,7 +13,8 @@ class FunctionalityData {
   final IconData icon;
   final Color color;
   final Color backgroundColor;
-  final VoidCallback? onTap;
+  final Future<void> Function()? onTap;
+  final GlobalKey? showcaseKey;
 
   FunctionalityData({
     required this.title,
@@ -19,6 +23,7 @@ class FunctionalityData {
     required this.color,
     required this.backgroundColor,
     this.onTap,
+    this.showcaseKey,
   });
 }
 
@@ -30,6 +35,46 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+  final ShowcaseService _showcaseService = getIt<ShowcaseService>();
+  bool _showcaseChecked = false; // Flag para evitar verificação múltipla
+
+  // Keys para o showcase
+  final GlobalKey _welcomeKey = GlobalKey();
+  final GlobalKey _propriedadesKey = GlobalKey();
+  final GlobalKey _animaisKey = GlobalKey();
+  final GlobalKey _manejoKey = GlobalKey();
+
+  @override
+  void initState() {
+    super.initState();
+
+    // Verificar e iniciar showcase após o build
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!_showcaseChecked) {
+        _checkAndStartShowcase();
+      }
+    });
+  }
+
+  Future<void> _checkAndStartShowcase() async {
+    _showcaseChecked = true;
+    final showcaseCompleted = await _showcaseService.isHomeShowcaseCompleted();
+
+    if (!showcaseCompleted && mounted) {
+      // Pequeno delay para garantir que tudo foi renderizado
+      await Future.delayed(const Duration(milliseconds: 500));
+
+      if (mounted) {
+        ShowCaseWidget.of(context).startShowCase([
+          _welcomeKey,
+          _propriedadesKey,
+          _animaisKey,
+          _manejoKey,
+        ]);
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
@@ -85,52 +130,60 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildWelcomeCard() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
+    return Showcase(
+      key: _welcomeKey,
+      title: 'Bem-vindo ao AgroNexus!',
+      description: 'Este é seu painel principal. Aqui você pode acessar todas as funcionalidades do sistema de gestão rural.',
+      targetShapeBorder: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
       ),
-      child: Row(
-        children: [
-          const Icon(
-            Icons.wb_sunny_outlined,
-            color: Colors.orange,
-            size: 32,
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Bem-vindo ao AgroNexus',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.green[800],
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  'Gerencie sua propriedade rural de forma inteligente',
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Colors.grey[600],
-                  ),
-                ),
-              ],
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
             ),
-          ),
-        ],
+          ],
+        ),
+        child: Row(
+          children: [
+            const Icon(
+              Icons.wb_sunny_outlined,
+              color: Colors.orange,
+              size: 32,
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Bem-vindo ao AgroNexus',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.green[800],
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Gerencie sua propriedade rural de forma inteligente',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.grey[600],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -199,7 +252,7 @@ class _HomeScreenState extends State<HomeScreen> {
         final subtitleFontSize = (cardWidth * 0.035).clamp(13.0, 16.0); // Aumentado o mínimo de 11 para 13
         final padding = (cardWidth * 0.08).clamp(12.0, 20.0);
 
-        return Container(
+        Widget cardWidget = Container(
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(16),
@@ -269,6 +322,55 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
         );
+
+        // Se houver uma key de showcase, envolver o card com Showcase
+        if (item.showcaseKey != null) {
+          String description = '';
+          String title = item.title;
+
+          if (item.title == 'Propriedades') {
+            title = '⚠️ Comece por aqui!';
+            description = 'IMPORTANTE: Antes de utilizar o sistema, você precisa cadastrar uma propriedade. '
+                'Toque aqui para acessar o cadastro de propriedades e criar sua primeira propriedade rural.';
+          } else if (item.title == 'Animais') {
+            description = 'Após cadastrar uma propriedade, você pode começar a cadastrar os animais do seu rebanho. '
+                'Aqui você gerencia todas as informações dos animais.';
+          } else if (item.title == 'Manejo Reprodutivo') {
+            description = 'Controle todas as atividades reprodutivas do seu rebanho: inseminações, gestações, '
+                'partos e diagnósticos de prenhez.';
+          }
+
+          return Showcase(
+            key: item.showcaseKey!,
+            title: title,
+            description: description,
+            targetShapeBorder: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+            onTargetClick: () async {
+              // Marcar como completo ANTES de qualquer navegação
+              await _showcaseService.setHomeShowcaseCompleted();
+
+              // Fechar o showcase
+              if (mounted) {
+                ShowCaseWidget.of(context).dismiss();
+              }
+
+              // Executar a ação do card
+              if (item.onTap != null && mounted) {
+                item.onTap!();
+              }
+            },
+            disposeOnTap: true,
+            onToolTipClick: () async {
+              // Marcar como completo quando clicar no tooltip
+              await _showcaseService.setHomeShowcaseCompleted();
+            },
+            child: cardWidget,
+          );
+        }
+
+        return cardWidget;
       },
     );
   }
@@ -320,8 +422,13 @@ class _HomeScreenState extends State<HomeScreen> {
         icon: Icons.favorite,
         color: Colors.pink,
         backgroundColor: Colors.pink[50]!,
-        onTap: () {
-          context.push(API.manejoReprodutivoRoute);
+        showcaseKey: _manejoKey,
+        onTap: () async {
+          // Marcar showcase como completo antes de navegar
+          await _showcaseService.setHomeShowcaseCompleted();
+          if (mounted) {
+            context.push(API.manejoReprodutivoRoute);
+          }
         },
       ),
       FunctionalityData(
@@ -330,10 +437,15 @@ class _HomeScreenState extends State<HomeScreen> {
         icon: Icons.home_work,
         color: Colors.green,
         backgroundColor: Colors.green[50]!,
-        onTap: () {
-          // Atualizar o estado da bottom bar para propriedades
-          context.read<BottomBarCubit>().setItem(item: BottomBarItems.propriedades);
-          context.go(API.propriedadesRoute);
+        showcaseKey: _propriedadesKey,
+        onTap: () async {
+          // Marcar showcase como completo antes de navegar
+          await _showcaseService.setHomeShowcaseCompleted();
+          if (mounted) {
+            // Atualizar o estado da bottom bar para propriedades
+            context.read<BottomBarCubit>().setItem(item: BottomBarItems.propriedades);
+            context.go(API.propriedadesRoute);
+          }
         },
       ),
       FunctionalityData(
@@ -342,10 +454,15 @@ class _HomeScreenState extends State<HomeScreen> {
         icon: Icons.pets,
         color: Colors.brown,
         backgroundColor: Colors.brown[50]!,
-        onTap: () {
-          // Atualizar o estado da bottom bar para animais
-          context.read<BottomBarCubit>().setItem(item: BottomBarItems.animais);
-          context.go(API.animaisRoute);
+        showcaseKey: _animaisKey,
+        onTap: () async {
+          // Marcar showcase como completo antes de navegar
+          await _showcaseService.setHomeShowcaseCompleted();
+          if (mounted) {
+            // Atualizar o estado da bottom bar para animais
+            context.read<BottomBarCubit>().setItem(item: BottomBarItems.animais);
+            context.go(API.animaisRoute);
+          }
         },
       ),
     ];

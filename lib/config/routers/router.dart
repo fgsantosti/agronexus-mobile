@@ -51,6 +51,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:agronexus/presentation/bloc/area/area_bloc.dart';
 import 'package:agronexus/presentation/bloc/area/area_event.dart';
+import 'package:showcaseview/showcaseview.dart';
 
 enum AgroNexusRouter {
   login(path: loginPath),
@@ -171,7 +172,9 @@ enum AgroNexusRouter {
                       create: (context) => PropriedadeBloC(service: getIt()),
                     ),
                   ],
-                  child: HomeScreen(),
+                  child: ShowCaseWidget(
+                    builder: (context) => const HomeScreen(),
+                  ),
                 ),
               );
             },
@@ -275,7 +278,9 @@ enum AgroNexusRouter {
                       create: (context) => PropriedadeBlocNew(getIt<PropriedadeServiceNew>())..add(const LoadPropriedadesEvent()),
                     ),
                   ],
-                  child: PropriedadeScreen(),
+                  child: ShowCaseWidget(
+                    builder: (context) => const PropriedadeScreen(),
+                  ),
                 ),
               );
             },

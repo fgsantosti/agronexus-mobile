@@ -38,6 +38,7 @@ dependencies:
   path_provider: ^2.1.1
   permission_handler: ^11.0.1
   share_plus: ^7.2.1
+  showcaseview: ^5.0.1
 
 dev_dependencies:
   flutter_test:

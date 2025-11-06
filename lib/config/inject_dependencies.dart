@@ -1,5 +1,6 @@
 import 'package:agronexus/config/services/http.dart';
 import 'package:agronexus/config/services/http_impl.dart';
+import 'package:agronexus/config/services/showcase_service.dart';
 import 'package:agronexus/domain/repositories/local/animal/animal_local_repository.dart';
 import 'package:agronexus/domain/repositories/local/animal/animal_local_repository_impl.dart';
 import 'package:agronexus/domain/repositories/local/auth/auth_local_repository.dart';
@@ -52,6 +53,7 @@ var getIt = GetIt.I;
 
 void configureDependencies() {
   getIt.registerSingleton<HttpService>(HttpServiceImpl());
+  getIt.registerSingleton<ShowcaseService>(ShowcaseService());
   getIt.registerSingleton<AuthLocalRepository>(AuthLocalRepositoryImpl());
   getIt.registerSingleton<AuthRemoteRepository>(
     AuthRemoteRepositoryImpl(httpService: getIt()),

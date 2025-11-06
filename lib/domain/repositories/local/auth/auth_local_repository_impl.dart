@@ -59,6 +59,19 @@ class AuthLocalRepositoryImpl implements AuthLocalRepository {
   @override
   Future<void> logout() async {
     await _validateSharedInstance();
-    await _sharedPreferences!.clear();
+
+    // Remover apenas tokens de autenticação e dados do usuário
+    // Preservar cache de dados (lotes, fazendas, animais, etc.) e preferências (showcase)
+    final keysToRemove = [
+      _tokenKey, // Token de acesso
+      _refreshTokenKey, // Token de refresh
+      'selfUser', // Dados do usuário logado
+      'allUsers', // Lista de todos os usuários
+    ];
+
+    // Remover cada chave individualmente
+    for (final key in keysToRemove) {
+      await _sharedPreferences!.remove(key);
+    }
   }
 }

@@ -6,6 +6,7 @@ import 'package:agronexus/config/routers/router.dart';
 import 'package:mask_text_input_formatter/mask_text_input_formatter.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:go_router/go_router.dart';
+import 'package:agronexus/presentation/widgets/showcase_reset_button.dart';
 
 class PerfilScreen extends StatefulWidget {
   const PerfilScreen({super.key});
@@ -215,6 +216,25 @@ class _PerfilScreenState extends State<PerfilScreen> {
                   ),
 
                   const SizedBox(height: 24),
+
+                  // Seção de Desenvolvimento (apenas para testes)
+                  if (user.isStaff == true) ...[
+                    Text(
+                      'Ferramentas de Desenvolvimento',
+                      style: theme.textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: theme.colorScheme.primary,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    _buildInfoCard(
+                      context,
+                      children: const [
+                        ShowcaseResetButton(),
+                      ],
+                    ),
+                    const SizedBox(height: 24),
+                  ],
 
                   // Seção de Configurações da Conta
                   Text(
