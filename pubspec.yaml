@@ -1,7 +1,7 @@
 name: agronexus
 description: "Agronexus Mobile Application"
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
-version: 1.0.0+5
+version: 1.0.0+11
 
 environment:
   sdk: ^3.6.0
@@ -12,9 +12,9 @@ dependencies:
   flutter_localizations:
     sdk: flutter
     
-  go_router: ^16.2.1
+  go_router: ^17.0.0
   dio: ^5.9.0
-  get_it: ^8.2.0
+  get_it: ^9.0.5
   equatable: ^2.0.7
   dartz: ^0.10.1
   bloc: ^9.0.0
@@ -29,21 +29,21 @@ dependencies:
   url_launcher: ^6.3.1
   intl: ^0.20.2
   date_field: ^6.0.3+1
-  geolocator: ^13.0.4
+  geolocator: ^14.0.2
   flutter_animate: ^4.1.1+1
-  flutter_map: ^7.0.2
+  flutter_map: ^8.2.2
   latlong2: ^0.9.1
   file_picker: ^10.3.2
   excel: ^4.0.1
   path_provider: ^2.1.1
-  permission_handler: ^11.0.1
-  share_plus: ^7.2.1
+  permission_handler: ^12.0.1
+  share_plus: ^12.0.1
   showcaseview: ^5.0.1
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  flutter_lints: ^5.0.0
+  flutter_lints: ^6.0.0
   flutter_launcher_icons: ^0.14.3
 
 
